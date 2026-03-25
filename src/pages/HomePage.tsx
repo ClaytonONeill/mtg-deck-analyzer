@@ -17,7 +17,7 @@ export default function HomePage() {
         </h1>
         <button
           onClick={() => navigate("/build")}
-          className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+          className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors hover:cursor-pointer"
         >
           + New Deck
         </button>

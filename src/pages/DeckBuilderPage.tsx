@@ -33,7 +33,7 @@ export default function DeckBuilderPage() {
       <header className="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
         <button
           onClick={() => navigate("/")}
-          className="text-slate-400 hover:text-white text-sm transition-colors"
+          className="text-slate-400 hover:text-white text-sm transition-colors hover:cursor-pointer"
         >
           ← Back
         </button>
@@ -43,7 +43,7 @@ export default function DeckBuilderPage() {
         <button
           onClick={handleSave}
           disabled={!deck.name.trim()}
-          className="bg-[#1971c2] hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+          className="bg-[#1971c2] hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors hover:cursor-pointer"
         >
           Save Deck
         </button>

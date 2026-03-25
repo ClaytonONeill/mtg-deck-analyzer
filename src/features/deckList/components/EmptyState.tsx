@@ -13,7 +13,7 @@ export default function EmptyState({ onBuildDeck }: EmptyStateProps) {
       </p>
       <button
         onClick={onBuildDeck}
-        className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+        className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-3 rounded-lg transition-colors hover:cursor-pointer"
       >
         Build Your First Deck
       </button>
