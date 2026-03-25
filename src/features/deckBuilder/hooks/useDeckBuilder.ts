@@ -48,6 +48,7 @@ export function useDeckBuilder(existingDeck?: Deck) {
 
   return {
     deck,
+    setDeck,
     colorWarning,
     setName,
     setCommander,
