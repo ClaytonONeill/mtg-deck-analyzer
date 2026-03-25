@@ -38,4 +38,19 @@ export interface Deck {
   entries: DeckEntry[];
   createdAt: string;
   updatedAt: string;
+  objectives: Objective[];
+}
+
+export interface Objective {
+  id: string;
+  label: string;
+  color: string; // for visual grouping
+}
+
+// Extend DeckEntry
+export interface DeckEntry {
+  card: ScryfallCard;
+  quantity: number;
+  category: CardCategory;
+  objectiveIds: string[]; // references Objective.id
 }

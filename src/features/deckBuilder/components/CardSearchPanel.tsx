@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import type { ScryfallCard } from "@/types";
 import { useCardSearch } from "@/features/deckBuilder/hooks/useCardSearch";
 import CardImageTooltip from "@/components/CardImageTooltip/CardImageTooltip";
