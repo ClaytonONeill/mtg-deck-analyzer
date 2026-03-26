@@ -1,7 +1,10 @@
-import { useState } from "react";
-import type { ScryfallCard } from "@/types";
-import { useCardSearch } from "@/features/deckBuilder/hooks/useCardSearch";
-import CardImageTooltip from "@/components/CardImageTooltip/CardImageTooltip";
+import { useState } from 'react';
+import type { ScryfallCard } from '@/types';
+import { useCardSearch } from '@/features/deckBuilder/hooks/useCardSearch';
+
+import CardImageTooltip from '@/components/CardImageTooltip/CardImageTooltip';
+import ManaCost from '@/components/ManaSymbol/ManaCost';
+import ColorPip from '@/components/ManaSymbol/ColorPip';
 
 interface CardSearchPanelProps {
   commanderOnly?: boolean;
@@ -10,23 +13,14 @@ interface CardSearchPanelProps {
   placeholder?: string;
 }
 
-const COLOR_PIPS: Record<string, { label: string; bg: string; text: string }> =
-  {
-    W: { label: "W", bg: "bg-yellow-50", text: "text-yellow-900" },
-    U: { label: "U", bg: "bg-blue-600", text: "text-white" },
-    B: { label: "B", bg: "bg-slate-900", text: "text-slate-100" },
-    R: { label: "R", bg: "bg-red-600", text: "text-white" },
-    G: { label: "G", bg: "bg-green-700", text: "text-white" },
-  };
-
 export default function CardSearchPanel({
   commanderOnly = false,
   onSelectCard,
   label,
-  placeholder = "Search cards...",
+  placeholder = 'Search cards...',
 }: CardSearchPanelProps) {
   const { results, loading, error, search, searchNow, clear } = useCardSearch();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [hoveredCard, setHoveredCard] = useState<ScryfallCard | null>(null);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
 
@@ -36,12 +30,12 @@ export default function CardSearchPanel({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") searchNow(query, commanderOnly);
+    if (e.key === 'Enter') searchNow(query, commanderOnly);
   };
 
   const handleSelect = (card: ScryfallCard) => {
     onSelectCard(card);
-    setQuery("");
+    setQuery('');
     clear();
     setHoveredCard(null);
     setAnchorRect(null);
@@ -92,17 +86,9 @@ export default function CardSearchPanel({
                     {card.name}
                   </span>
                   <div className="flex gap-1 shrink-0">
-                    {card.color_identity.map((c) => {
-                      const pip = COLOR_PIPS[c];
-                      return pip ? (
-                        <span
-                          key={c}
-                          className={`${pip.bg} ${pip.text} text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border border-slate-600`}
-                        >
-                          {pip.label}
-                        </span>
-                      ) : null;
-                    })}
+                    {card.color_identity.map((c) => (
+                      <ColorPip key={c} color={c} size={16} />
+                    ))}
                   </div>
                 </div>
 
@@ -111,11 +97,7 @@ export default function CardSearchPanel({
 
                 {/* Row 3 — stat chips */}
                 <div className="flex gap-2 flex-wrap">
-                  {card.cmc > 0 && (
-                    <span className="bg-slate-700 text-slate-300 text-[11px] font-mono px-2 py-0.5 rounded">
-                      CMC {card.cmc}
-                    </span>
-                  )}
+                  {card.cmc > 0 && <ManaCost cost={card.mana_cost} size={14} />}
                   {card.power && card.toughness && (
                     <span className="bg-slate-700 text-slate-300 text-[11px] font-mono px-2 py-0.5 rounded">
                       {card.power} / {card.toughness}
@@ -123,7 +105,7 @@ export default function CardSearchPanel({
                   )}
                   {card.oracle_text && (
                     <span className="text-slate-500 text-[11px] italic truncate max-w-[280px]">
-                      {card.oracle_text.split("\n")[0]}
+                      {card.oracle_text.split('\n')[0]}
                     </span>
                   )}
                 </div>

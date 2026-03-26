@@ -5,16 +5,10 @@ import {
   getTypeBreakdown,
   getCMCBreakdown,
 } from '@/features/metrics/utils/deckMetrics';
+
 import TypesChart from '@/features/metrics/components/TypesChart';
 import CMCChart from '@/features/metrics/components/CMCChart';
-
-const COLOR_SYMBOLS: Record<string, { bg: string; text: string }> = {
-  W: { bg: 'bg-amber-200', text: 'text-yellow-900' },
-  U: { bg: 'bg-zinc-400', text: 'text-gray-950' },
-  B: { bg: 'bg-cyan-300', text: 'text-gray-950' },
-  R: { bg: 'bg-red-600', text: 'text-white' },
-  G: { bg: 'bg-green-700', text: 'text-white' },
-};
+import ColorPip from '@/components/ManaSymbol/ColorPip';
 
 type Tab = 'metrics' | 'objectives' | 'decks';
 type MetricView = 'types' | 'cmc';
@@ -64,7 +58,7 @@ export default function DeckDetailPage() {
         </button>
         <button
           onClick={() => navigate(`/build/${deck.id}`)}
-          className="text-sm font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors"
+          className="text-sm font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors hover:cursor-pointer"
         >
           Edit Deck
         </button>
@@ -77,17 +71,9 @@ export default function DeckDetailPage() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-white">{deck.name}</h1>
               <div className="flex gap-1">
-                {deck.colorIdentity.map((c) => {
-                  const style = COLOR_SYMBOLS[c];
-                  return (
-                    <span
-                      key={c}
-                      className={`${style.bg} ${style.text} text-[11px] font-bold w-6 h-6 rounded-full flex items-center justify-center border border-slate-600`}
-                    >
-                      {c}
-                    </span>
-                  );
-                })}
+                {deck.colorIdentity.map((c) => (
+                  <ColorPip key={c} color={c} size={22} />
+                ))}
               </div>
             </div>
             <p className="text-slate-400 text-sm">

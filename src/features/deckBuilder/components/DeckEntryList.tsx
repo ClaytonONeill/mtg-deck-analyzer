@@ -1,15 +1,17 @@
-import type { CardCategory, Deck } from "@/types";
-import { removeCardFromDeck } from "@/store/deckStore";
+import type { CardCategory, Deck } from '@/types';
+import { removeCardFromDeck } from '@/store/deckStore';
+
+import ManaCost from '@/components/ManaSymbol/ManaCost';
 
 const CATEGORY_ORDER: CardCategory[] = [
-  "Creature",
-  "Instant",
-  "Sorcery",
-  "Enchantment",
-  "Artifact",
-  "Planeswalker",
-  "Land",
-  "Other",
+  'Creature',
+  'Instant',
+  'Sorcery',
+  'Enchantment',
+  'Artifact',
+  'Planeswalker',
+  'Land',
+  'Other',
 ];
 
 interface DeckEntryListProps {
@@ -58,9 +60,7 @@ export default function DeckEntryList({
                     <span className="text-white">{entry.card.name}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-slate-500 text-xs">
-                      {entry.card.mana_cost}
-                    </span>
+                    <ManaCost cost={entry.card.mana_cost} size={13} />
                     <button
                       onClick={() => handleRemove(entry.card.id)}
                       className="text-slate-500 hover:text-red-400 transition-colors text-xs"

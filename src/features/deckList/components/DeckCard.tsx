@@ -1,13 +1,6 @@
 import type { Deck } from '@/types';
 import { getDeckCardCount } from '@/store/deckStore';
-
-const COLOR_SYMBOLS: Record<string, string> = {
-  W: '☀️',
-  U: '💧',
-  B: '💀',
-  R: '🔥',
-  G: '🌲',
-};
+import ColorPip from '@/components/ManaSymbol/ColorPip';
 
 interface DeckCardProps {
   deck: Deck;
@@ -33,9 +26,7 @@ export default function DeckCard({
         </h3>
         <div className="flex gap-1 shrink-0">
           {deck.colorIdentity.map((c) => (
-            <span key={c} className="text-lg leading-none">
-              {COLOR_SYMBOLS[c] ?? '⬜'}
-            </span>
+            <ColorPip key={c} color={c} size={18} />
           ))}
         </div>
       </div>
