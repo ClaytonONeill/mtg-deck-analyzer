@@ -53,19 +53,6 @@ function flattenPoint(
   return flat;
 }
 
-function groupForKey(
-  groups: ColorGroup[],
-  key: string,
-): ColorGroup | undefined {
-  return groups.find((g) => {
-    const gKey =
-      g.colorKey === 'multicolor'
-        ? g.colors.slice().sort().join('')
-        : g.colorKey;
-    return gKey === key;
-  });
-}
-
 export default function CMCChart({ data }: CMCChartProps) {
   if (data.length === 0) {
     return (

@@ -1,6 +1,6 @@
-import type { Deck, DeckEntry, ScryfallCard } from "../types";
+import type { Deck, DeckEntry, ScryfallCard } from '../types';
 
-const STORAGE_KEY = "mtg_decks";
+const STORAGE_KEY = 'mtg_decks';
 
 export const deckStore = {
   getAll(): Deck[] {
@@ -44,21 +44,22 @@ export function createNewDeck(name: string): Deck {
     entries: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    objectives: [],
   };
 }
 
 export function inferCategory(
   card: ScryfallCard,
-): import("../types").CardCategory {
+): import('../types').CardCategory {
   const t = card.type_line.toLowerCase();
-  if (t.includes("creature")) return "Creature";
-  if (t.includes("land")) return "Land";
-  if (t.includes("instant")) return "Instant";
-  if (t.includes("sorcery")) return "Sorcery";
-  if (t.includes("enchantment")) return "Enchantment";
-  if (t.includes("artifact")) return "Artifact";
-  if (t.includes("planeswalker")) return "Planeswalker";
-  return "Other";
+  if (t.includes('creature')) return 'Creature';
+  if (t.includes('land')) return 'Land';
+  if (t.includes('instant')) return 'Instant';
+  if (t.includes('sorcery')) return 'Sorcery';
+  if (t.includes('enchantment')) return 'Enchantment';
+  if (t.includes('artifact')) return 'Artifact';
+  if (t.includes('planeswalker')) return 'Planeswalker';
+  return 'Other';
 }
 
 export function addCardToDeck(
@@ -83,7 +84,7 @@ export function addCardToDeck(
       ? deck.entries.map((e, i) =>
           i === existing ? { ...e, quantity: e.quantity + 1 } : e,
         )
-      : [...deck.entries, { card, quantity: 1, category }];
+      : [...deck.entries, { card, quantity: 1, category, objectiveIds: [] }];
 
   return { ...deck, entries, updatedAt: new Date().toISOString() };
 }

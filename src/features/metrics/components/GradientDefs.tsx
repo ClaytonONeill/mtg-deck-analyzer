@@ -1,8 +1,9 @@
 import {
   gradientId,
   buildGradientStops,
-} from "@/features/metrics/utils/chartColors";
-import type { ColorGroup } from "@/features/metrics/utils/deckMetrics";
+} from '@/features/metrics/utils/chartColors';
+
+import type { ColorGroup } from '@/features/metrics/types/metrics.types';
 
 interface GradientDefsProps {
   groups: ColorGroup[];
@@ -16,8 +17,8 @@ export function collectMulticolorGroups(
   const result: ColorGroup[] = [];
   for (const point of dataPoints) {
     for (const group of point.groups) {
-      if (group.colorKey !== "multicolor") continue;
-      const key = group.colors.slice().sort().join("");
+      if (group.colorKey !== 'multicolor') continue;
+      const key = group.colors.slice().sort().join('');
       if (!seen.has(key)) {
         seen.add(key);
         result.push(group);
