@@ -6,16 +6,17 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
-} from "recharts";
-import type {
-  TypeDataPoint,
-  ColorGroup,
-} from "@/features/metrics/utils/deckMetrics";
-import { barFill } from "@/features/metrics/utils/chartColors";
+} from 'recharts';
+
+import type { TypeDataPoint } from '@/features/metrics/types/metrics.types';
+
+import { getFillForKey } from '../utils/chartColors';
+
 import GradientDefs, {
   collectMulticolorGroups,
-} from "@/features/metrics/components/GradientDefs";
+} from '@/features/metrics/components/GradientDefs';
+
+import CustomTooltip from './CustomTooltip';
 
 interface TypesChartProps {
   data: TypeDataPoint[];
@@ -27,8 +28,8 @@ function getAllColorKeys(data: TypeDataPoint[]): string[] {
   for (const point of data) {
     for (const group of point.groups) {
       const key =
-        group.colorKey === "multicolor"
-          ? group.colors.slice().sort().join("")
+        group.colorKey === 'multicolor'
+          ? group.colors.slice().sort().join('')
           : group.colorKey;
       seen.add(key);
     }
@@ -45,26 +46,12 @@ function flattenPoint(
   };
   for (const group of point.groups) {
     const key =
-      group.colorKey === "multicolor"
-        ? group.colors.slice().sort().join("")
+      group.colorKey === 'multicolor'
+        ? group.colors.slice().sort().join('')
         : group.colorKey;
     flat[key] = ((flat[key] as number) ?? 0) + group.count;
   }
   return flat;
-}
-
-// Finds the ColorGroup for a given flat key
-function groupForKey(
-  groups: ColorGroup[],
-  key: string,
-): ColorGroup | undefined {
-  return groups.find((g) => {
-    const gKey =
-      g.colorKey === "multicolor"
-        ? g.colors.slice().sort().join("")
-        : g.colorKey;
-    return gKey === key;
-  });
 }
 
 export default function TypesChart({ data }: TypesChartProps) {
@@ -94,37 +81,28 @@ export default function TypesChart({ data }: TypesChartProps) {
         />
         <XAxis
           dataKey="category"
-          tick={{ fill: "#94a3b8", fontSize: 12 }}
-          axisLine={{ stroke: "#334155" }}
+          tick={{ fill: '#94a3b8', fontSize: 12 }}
+          axisLine={{ stroke: '#334155' }}
           tickLine={false}
         />
         <YAxis
           allowDecimals={false}
-          tick={{ fill: "#94a3b8", fontSize: 12 }}
+          tick={{ fill: '#94a3b8', fontSize: 12 }}
           axisLine={false}
           tickLine={false}
         />
         <Tooltip
-          cursor={{ fill: "rgba(255,255,255,0.04)" }}
-          contentStyle={{
-            backgroundColor: "#1e293b",
-            border: "1px solid #334155",
-            borderRadius: "8px",
-            color: "#f1f5f9",
-            fontSize: 13,
-          }}
+          content={<CustomTooltip />}
+          cursor={{ fill: 'rgba(255,255,255, 0.1)' }}
         />
         {colorKeys.map((key) => (
-          <Bar key={key} dataKey={key} radius={[4, 4, 0, 0]} maxBarSize={32}>
-            {flatData.map((point, i) => {
-              const originalPoint = data[i];
-              const group = groupForKey(originalPoint.groups, key);
-              const fill = group
-                ? barFill(group.colorKey, group.colors)
-                : "transparent";
-              return <Cell key={`${key}-${i}`} fill={fill} />;
-            })}
-          </Bar>
+          <Bar
+            key={key}
+            dataKey={key}
+            fill={getFillForKey(data, key)}
+            radius={[4, 4, 0, 0]}
+            maxBarSize={32}
+          />
         ))}
       </BarChart>
     </ResponsiveContainer>

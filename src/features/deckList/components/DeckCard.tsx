@@ -1,12 +1,12 @@
-import type { Deck } from "@/types";
-import { getDeckCardCount } from "@/store/deckStore";
+import type { Deck } from '@/types';
+import { getDeckCardCount } from '@/store/deckStore';
 
 const COLOR_SYMBOLS: Record<string, string> = {
-  W: "☀️",
-  U: "💧",
-  B: "💀",
-  R: "🔥",
-  G: "🌲",
+  W: '☀️',
+  U: '💧',
+  B: '💀',
+  R: '🔥',
+  G: '🌲',
 };
 
 interface DeckCardProps {
@@ -34,7 +34,7 @@ export default function DeckCard({
         <div className="flex gap-1 shrink-0">
           {deck.colorIdentity.map((c) => (
             <span key={c} className="text-lg leading-none">
-              {COLOR_SYMBOLS[c] ?? "⬜"}
+              {COLOR_SYMBOLS[c] ?? '⬜'}
             </span>
           ))}
         </div>
@@ -60,19 +60,19 @@ export default function DeckCard({
       <div className="flex gap-2 mt-auto pt-2 border-t border-slate-800">
         <button
           onClick={onOpen}
-          className="flex-1 text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors"
+          className="flex-1 text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors hover:cursor-pointer"
         >
           View
         </button>
         <button
           onClick={onEdit}
-          className="flex-1 text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors"
+          className="flex-1 text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors hover:cursor-pointer"
         >
           Edit
         </button>
         <button
           onClick={onDelete}
-          className="text-sm font-semibold bg-slate-800 hover:bg-red-900 text-slate-400 hover:text-red-300 px-3 py-2 rounded-lg transition-colors"
+          className="text-sm font-semibold bg-slate-800 hover:bg-red-900 text-slate-400 hover:text-red-300 px-3 py-2 rounded-lg transition-colors hover:cursor-pointer"
         >
           ✕
         </button>

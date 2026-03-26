@@ -6,16 +6,20 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
-} from "recharts";
+} from 'recharts';
+
 import type {
   CMCDataPoint,
   ColorGroup,
-} from "@/features/metrics/utils/deckMetrics";
-import { barFill } from "@/features/metrics/utils/chartColors";
+} from '@/features/metrics/types/metrics.types';
+
 import GradientDefs, {
   collectMulticolorGroups,
-} from "@/features/metrics/components/GradientDefs";
+} from '@/features/metrics/components/GradientDefs';
+
+import { getFillForKey } from '@/features/metrics/utils/chartColors';
+
+import CustomTooltip from './CustomTooltip';
 
 interface CMCChartProps {
   data: CMCDataPoint[];
@@ -26,8 +30,8 @@ function getAllColorKeys(data: CMCDataPoint[]): string[] {
   for (const point of data) {
     for (const group of point.groups) {
       const key =
-        group.colorKey === "multicolor"
-          ? group.colors.slice().sort().join("")
+        group.colorKey === 'multicolor'
+          ? group.colors.slice().sort().join('')
           : group.colorKey;
       seen.add(key);
     }
@@ -41,8 +45,8 @@ function flattenPoint(
   const flat: Record<string, number> & { cmc: number } = { cmc: point.cmc };
   for (const group of point.groups) {
     const key =
-      group.colorKey === "multicolor"
-        ? group.colors.slice().sort().join("")
+      group.colorKey === 'multicolor'
+        ? group.colors.slice().sort().join('')
         : group.colorKey;
     flat[key] = (flat[key] ?? 0) + group.count;
   }
@@ -55,8 +59,8 @@ function groupForKey(
 ): ColorGroup | undefined {
   return groups.find((g) => {
     const gKey =
-      g.colorKey === "multicolor"
-        ? g.colors.slice().sort().join("")
+      g.colorKey === 'multicolor'
+        ? g.colors.slice().sort().join('')
         : g.colorKey;
     return gKey === key;
   });
@@ -89,45 +93,36 @@ export default function CMCChart({ data }: CMCChartProps) {
         />
         <XAxis
           dataKey="cmc"
-          tick={{ fill: "#94a3b8", fontSize: 12 }}
-          axisLine={{ stroke: "#334155" }}
+          tick={{ fill: '#94a3b8', fontSize: 12 }}
+          axisLine={{ stroke: '#334155' }}
           tickLine={false}
           label={{
-            value: "Mana Value",
-            position: "insideBottom",
+            value: 'Mana Value',
+            position: 'insideBottom',
             offset: -4,
-            fill: "#64748b",
+            fill: '#64748b',
             fontSize: 11,
           }}
         />
         <YAxis
           allowDecimals={false}
-          tick={{ fill: "#94a3b8", fontSize: 12 }}
+          tick={{ fill: '#94a3b8', fontSize: 12 }}
           axisLine={false}
           tickLine={false}
         />
         <Tooltip
-          cursor={{ fill: "rgba(255,255,255,0.04)" }}
-          contentStyle={{
-            backgroundColor: "#1e293b",
-            border: "1px solid #334155",
-            borderRadius: "8px",
-            color: "#f1f5f9",
-            fontSize: 13,
-          }}
-          labelFormatter={(label) => (label != null ? `CMC ${label}` : "")}
+          content={<CustomTooltip />}
+          cursor={{ fill: 'rgba(255,255,255, 0.1)' }}
         />
+
         {colorKeys.map((key) => (
-          <Bar key={key} dataKey={key} radius={[4, 4, 0, 0]} maxBarSize={32}>
-            {flatData.map((point, i) => {
-              const originalPoint = data[i];
-              const group = groupForKey(originalPoint.groups, key);
-              const fill = group
-                ? barFill(group.colorKey, group.colors)
-                : "transparent";
-              return <Cell key={`${key}-${i}`} fill={fill} />;
-            })}
-          </Bar>
+          <Bar
+            key={key}
+            dataKey={key}
+            fill={getFillForKey(data, key)}
+            radius={[4, 4, 0, 0]}
+            maxBarSize={32}
+          />
         ))}
       </BarChart>
     </ResponsiveContainer>
