@@ -5,12 +5,12 @@ import type {
 } from '../types/metrics.types';
 
 export const MTG_COLORS: Record<string, string> = {
-  W: '#f9f1dc',
-  U: '#1971c2',
-  B: '#722795ff',
-  R: '#c92a2a',
-  G: '#2f9e44',
-  colorless: '#868e96',
+  W: '#f0d58c', // warm parchment — readable on dark, evokes white mana
+  U: '#1971c2', // blue — clean and distinct
+  B: '#6c3d9e', // deep purple — evokes black mana without disappearing
+  R: '#c92a2a', // red — strong and distinct
+  G: '#2f9e44', // green — strong and distinct
+  colorless: '#a89070', // warm taupe — neutral without blending into UI
 };
 
 export const MULTICOLOR_GOLD = '#f59f00';
