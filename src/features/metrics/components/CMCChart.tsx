@@ -8,10 +8,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-import type {
-  CMCDataPoint,
-  ColorGroup,
-} from '@/features/metrics/types/metrics.types';
+import type { CMCDataPoint } from '@/features/metrics/types/metrics.types';
 
 import GradientDefs, {
   collectMulticolorGroups,
