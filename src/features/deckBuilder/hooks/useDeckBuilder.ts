@@ -1,5 +1,7 @@
+// Modules
 import { useState, useCallback } from "react";
-import type { Deck, ScryfallCard } from "@/types";
+
+// Store
 import {
   createNewDeck,
   addCardToDeck,
@@ -8,7 +10,11 @@ import {
   deckStore,
 } from "@/store/deckStore";
 
+// Types
+import type { Deck, ScryfallCard } from "@/types";
+
 export function useDeckBuilder(existingDeck?: Deck) {
+  // State
   const [deck, setDeck] = useState<Deck>(existingDeck ?? createNewDeck(""));
   const [colorWarning, setColorWarning] = useState<string | null>(null);
 

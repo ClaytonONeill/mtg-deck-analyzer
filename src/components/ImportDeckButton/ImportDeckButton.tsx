@@ -1,20 +1,28 @@
+// Modules
 import { useRef, useState } from "react";
+
+// Store
 import { importDeckFromFile, deckStore } from "@/store/deckStore";
+
+// Types
 import type { Deck } from "@/types";
+
+type ConflictChoice = "keep" | "overwrite";
 
 interface ImportDeckButtonProps {
   onImported: (deck: Deck) => void;
 }
 
-type ConflictChoice = "keep" | "overwrite";
-
 export default function ImportDeckButton({
   onImported,
 }: ImportDeckButtonProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  // State
   const [error, setError] = useState<string | null>(null);
   const [conflictDeck, setConflictDeck] = useState<Deck | null>(null);
   const [incomingDeck, setIncomingDeck] = useState<Deck | null>(null);
+
+  // Refs
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
