@@ -1,3 +1,4 @@
+// Types
 import type { ScryfallCard } from "@/types";
 
 export const BASIC_LANDS: ScryfallCard[] = [

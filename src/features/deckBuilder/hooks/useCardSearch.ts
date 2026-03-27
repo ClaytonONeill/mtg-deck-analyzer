@@ -1,4 +1,7 @@
+// Modules
 import { useState, useCallback, useRef } from "react";
+
+// Types
 import type { ScryfallCard } from "@/types";
 
 const BASE = "https://api.scryfall.com";
@@ -43,7 +46,7 @@ export function useCardSearch() {
     }, 350);
   }, []);
 
-  // Fires immediately — use for Enter key
+  // Enter key handler
   const searchNow = useCallback(
     async (query: string, commanderOnly = false) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);

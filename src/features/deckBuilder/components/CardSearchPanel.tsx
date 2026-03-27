@@ -1,10 +1,16 @@
-import { useState } from 'react';
-import type { ScryfallCard } from '@/types';
-import { useCardSearch } from '@/features/deckBuilder/hooks/useCardSearch';
+// Modules
+import { useState } from "react";
 
-import CardImageTooltip from '@/components/CardImageTooltip/CardImageTooltip';
-import ManaCost from '@/components/ManaSymbol/ManaCost';
-import ColorPip from '@/components/ManaSymbol/ColorPip';
+// Hooks
+import { useCardSearch } from "@/features/deckBuilder/hooks/useCardSearch";
+
+// Components
+import CardImageTooltip from "@/components/CardImageTooltip/CardImageTooltip";
+import ManaCost from "@/components/ManaSymbol/ManaCost";
+import ColorPip from "@/components/ManaSymbol/ColorPip";
+
+// Types
+import type { ScryfallCard } from "@/types";
 
 interface CardSearchPanelProps {
   commanderOnly?: boolean;
@@ -17,12 +23,15 @@ export default function CardSearchPanel({
   commanderOnly = false,
   onSelectCard,
   label,
-  placeholder = 'Search cards...',
+  placeholder = "Search cards...",
 }: CardSearchPanelProps) {
-  const { results, loading, error, search, searchNow, clear } = useCardSearch();
-  const [query, setQuery] = useState('');
+  // State
+  const [query, setQuery] = useState("");
   const [hoveredCard, setHoveredCard] = useState<ScryfallCard | null>(null);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+
+  // Hook
+  const { results, loading, error, search, searchNow, clear } = useCardSearch();
 
   const handleChange = (val: string) => {
     setQuery(val);
@@ -30,12 +39,12 @@ export default function CardSearchPanel({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') searchNow(query, commanderOnly);
+    if (e.key === "Enter") searchNow(query, commanderOnly);
   };
 
   const handleSelect = (card: ScryfallCard) => {
     onSelectCard(card);
-    setQuery('');
+    setQuery("");
     clear();
     setHoveredCard(null);
     setAnchorRect(null);
@@ -105,7 +114,7 @@ export default function CardSearchPanel({
                   )}
                   {card.oracle_text && (
                     <span className="text-slate-500 text-[11px] italic truncate max-w-[280px]">
-                      {card.oracle_text.split('\n')[0]}
+                      {card.oracle_text.split("\n")[0]}
                     </span>
                   )}
                 </div>

@@ -1,33 +1,41 @@
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { deckStore, getDeckCardCount } from '@/store/deckStore';
+// Modules
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+
+// Stores
+import { deckStore, getDeckCardCount } from "@/store/deckStore";
+
+// Utils
 import {
   getTypeBreakdown,
   getCMCBreakdown,
-} from '@/features/metrics/utils/deckMetrics';
+} from "@/features/metrics/utils/deckMetrics";
 
-import TypesChart from '@/features/metrics/components/TypesChart';
-import CMCChart from '@/features/metrics/components/CMCChart';
-import ColorPip from '@/components/ManaSymbol/ColorPip';
+// Components
+import TypesChart from "@/features/metrics/components/TypesChart";
+import CMCChart from "@/features/metrics/components/CMCChart";
+import ColorPip from "@/components/ManaSymbol/ColorPip";
 
-type Tab = 'metrics' | 'objectives' | 'decks';
-type MetricView = 'types' | 'cmc';
+// Types
+type Tab = "metrics" | "objectives" | "decks";
+type MetricView = "types" | "cmc";
 
 export default function DeckDetailPage() {
+  // State
+  const [activeTab, setActiveTab] = useState<Tab>("metrics");
+  const [metricView, setMetricView] = useState<MetricView>("types");
+  const [includeLands, setIncludeLands] = useState(true);
+
   const { deckId } = useParams();
   const navigate = useNavigate();
   const deck = deckId ? deckStore.getById(deckId) : undefined;
 
-  const [activeTab, setActiveTab] = useState<Tab>('metrics');
-  const [metricView, setMetricView] = useState<MetricView>('types');
-  const [includeLands, setIncludeLands] = useState(true);
-
   if (!deck) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
-        Deck not found.{' '}
+        Deck not found.{" "}
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate("/")}
           className="ml-2 text-[#1971c2] hover:underline hover:cursor-pointer"
         >
           Go home
@@ -41,9 +49,9 @@ export default function DeckDetailPage() {
   const cmcData = getCMCBreakdown(deck, includeLands);
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'metrics', label: 'Metrics' },
-    { key: 'objectives', label: 'Objectives' },
-    { key: 'decks', label: 'Decks' },
+    { key: "metrics", label: "Metrics" },
+    { key: "objectives", label: "Objectives" },
+    { key: "decks", label: "Decks" },
   ];
 
   return (
@@ -51,7 +59,7 @@ export default function DeckDetailPage() {
       {/* Header */}
       <header className="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate("/")}
           className="text-slate-400 hover:text-white text-sm transition-colors hover:cursor-pointer"
         >
           ← Back
@@ -95,7 +103,7 @@ export default function DeckDetailPage() {
           <div className="flex flex-col items-end gap-1 shrink-0">
             <span
               className="text-3xl font-bold font-mono"
-              style={{ color: cardCount === 100 ? '#1971c2' : '#f1f5f9' }}
+              style={{ color: cardCount === 100 ? "#1971c2" : "#f1f5f9" }}
             >
               {cardCount}
             </span>
@@ -105,7 +113,7 @@ export default function DeckDetailPage() {
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${Math.min((cardCount / 100) * 100, 100)}%`,
-                  backgroundColor: '#1971c2',
+                  backgroundColor: "#1971c2",
                 }}
               />
             </div>
@@ -119,13 +127,13 @@ export default function DeckDetailPage() {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className="pb-3 text-sm font-semibold transition-colors relative hover:cursor-pointer"
-              style={{ color: activeTab === tab.key ? '#1971c2' : '#64748b' }}
+              style={{ color: activeTab === tab.key ? "#1971c2" : "#64748b" }}
             >
               {tab.label}
               {activeTab === tab.key && (
                 <span
                   className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                  style={{ backgroundColor: '#1971c2' }}
+                  style={{ backgroundColor: "#1971c2" }}
                 />
               )}
             </button>
@@ -133,24 +141,24 @@ export default function DeckDetailPage() {
         </div>
 
         {/* Tab content */}
-        {activeTab === 'metrics' && (
+        {activeTab === "metrics" && (
           <div className="flex flex-col gap-8">
             {/* Controls */}
             <div className="flex items-center justify-between">
               {/* Chart switcher */}
               <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
-                {(['types', 'cmc'] as MetricView[]).map((view) => (
+                {(["types", "cmc"] as MetricView[]).map((view) => (
                   <button
                     key={view}
                     onClick={() => setMetricView(view)}
                     className="px-4 py-1.5 rounded-md text-sm font-semibold transition-colors hover:cursor-pointer"
                     style={{
                       backgroundColor:
-                        metricView === view ? '#1971c2' : 'transparent',
-                      color: metricView === view ? '#fff' : '#64748b',
+                        metricView === view ? "#1971c2" : "transparent",
+                      color: metricView === view ? "#fff" : "#64748b",
                     }}
                   >
-                    {view === 'types' ? 'Types' : 'CMC Curve'}
+                    {view === "types" ? "Types" : "CMC Curve"}
                   </button>
                 ))}
               </div>
@@ -161,12 +169,12 @@ export default function DeckDetailPage() {
                   onClick={() => setIncludeLands((v) => !v)}
                   className="w-9 h-5 rounded-full transition-colors relative cursor-pointer"
                   style={{
-                    backgroundColor: includeLands ? '#1971c2' : '#334155',
+                    backgroundColor: includeLands ? "#1971c2" : "#334155",
                   }}
                 >
                   <span
                     className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200"
-                    style={{ left: includeLands ? '18px' : '2px' }}
+                    style={{ left: includeLands ? "18px" : "2px" }}
                   />
                 </div>
                 Include Lands
@@ -176,9 +184,9 @@ export default function DeckDetailPage() {
             {/* Chart */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
               <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-6">
-                {metricView === 'types' ? 'Card Types' : 'Mana Curve'}
+                {metricView === "types" ? "Card Types" : "Mana Curve"}
               </h2>
-              {metricView === 'types' ? (
+              {metricView === "types" ? (
                 <TypesChart data={typeData} />
               ) : (
                 <CMCChart data={cmcData} />
@@ -187,13 +195,13 @@ export default function DeckDetailPage() {
           </div>
         )}
 
-        {activeTab === 'objectives' && (
+        {activeTab === "objectives" && (
           <div className="flex items-center justify-center py-24 text-slate-500 text-sm">
             Objectives coming soon.
           </div>
         )}
 
-        {activeTab === 'decks' && (
+        {activeTab === "decks" && (
           <div className="flex items-center justify-center py-24 text-slate-500 text-sm">
             Decks tab coming soon.
           </div>

@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/refs */
+// Modules
 import { useEffect, useRef } from "react";
 
 export function usePortal() {

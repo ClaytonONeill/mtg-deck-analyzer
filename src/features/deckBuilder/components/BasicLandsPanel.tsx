@@ -1,6 +1,11 @@
-import type { Deck } from "@/types";
-import { BASIC_LANDS } from "@/features/deckBuilder/utils/basicLands";
+// Store
 import { addCardToDeck, removeCardFromDeck } from "@/store/deckStore";
+
+// Utils
+import { BASIC_LANDS } from "@/features/deckBuilder/utils/basicLands";
+
+// Types
+import type { Deck } from "@/types";
 
 interface BasicLandsPanelProps {
   deck: Deck;
