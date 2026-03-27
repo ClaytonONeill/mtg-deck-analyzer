@@ -1,11 +1,20 @@
+// Modules
 import { useNavigate, useParams } from "react-router-dom";
-import { deckStore, getDeckCardCount } from "@/store/deckStore";
+
+// Hooks
 import { useDeckBuilder } from "@/features/deckBuilder/hooks/useDeckBuilder";
+
+// Store
+import { deckStore, getDeckCardCount } from "@/store/deckStore";
+
+// Components
 import CardSearchPanel from "@/features/deckBuilder/components/CardSearchPanel";
 import BasicLandsPanel from "@/features/deckBuilder/components/BasicLandsPanel";
 import DeckEntryList from "@/features/deckBuilder/components/DeckEntryList";
 import ColorPip from "@/components/ManaSymbol/ColorPip";
 import ImportDeckButton from "@/components/ImportDeckButton/ImportDeckButton";
+
+// Types
 import type { Deck } from "@/types";
 
 export default function DeckBuilderPage() {

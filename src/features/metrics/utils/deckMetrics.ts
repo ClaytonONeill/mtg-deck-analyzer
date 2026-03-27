@@ -1,23 +1,24 @@
-import type { Deck, CardCategory } from '@/types';
+// Types
+import type { Deck, CardCategory } from "@/types";
 import type {
   ColorGroup,
   ColorKey,
   TypeDataPoint,
   CMCDataPoint,
-} from '../types/metrics.types';
+} from "../types/metrics.types";
 
 function getColorKey(colorIdentity: string[]): ColorKey {
-  if (colorIdentity.length === 0) return 'colorless';
+  if (colorIdentity.length === 0) return "colorless";
   if (colorIdentity.length === 1) return colorIdentity[0] as ColorKey;
-  return 'multicolor';
+  return "multicolor";
 }
 
 function mergeGroups(groups: ColorGroup[]): ColorGroup[] {
   const map = new Map<string, ColorGroup>();
   for (const g of groups) {
     const key =
-      g.colorKey === 'multicolor'
-        ? g.colors.slice().sort().join('')
+      g.colorKey === "multicolor"
+        ? g.colors.slice().sort().join("")
         : g.colorKey;
     if (map.has(key)) {
       map.get(key)!.count += g.count;
@@ -35,7 +36,7 @@ export function getTypeBreakdown(
   const map = new Map<CardCategory, ColorGroup[]>();
 
   for (const entry of deck.entries) {
-    if (!includeLands && entry.category === 'Land') continue;
+    if (!includeLands && entry.category === "Land") continue;
     const colorKey = getColorKey(entry.card.color_identity);
     const group: ColorGroup = {
       colorKey,
@@ -65,7 +66,7 @@ export function getCMCBreakdown(
   const map = new Map<number, ColorGroup[]>();
 
   for (const entry of deck.entries) {
-    if (!includeLands && entry.category === 'Land') continue;
+    if (!includeLands && entry.category === "Land") continue;
     const cmc = entry.card.cmc ?? 0;
     const colorKey = getColorKey(entry.card.color_identity);
     const group: ColorGroup = {
