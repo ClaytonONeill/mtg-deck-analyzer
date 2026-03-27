@@ -1,6 +1,6 @@
-import type { Deck, DeckEntry, ScryfallCard } from '../types';
+import type { Deck, DeckEntry, ScryfallCard } from "../types";
 
-const STORAGE_KEY = 'mtg_decks';
+const STORAGE_KEY = "mtg_decks";
 
 export const deckStore = {
   getAll(): Deck[] {
@@ -50,16 +50,16 @@ export function createNewDeck(name: string): Deck {
 
 export function inferCategory(
   card: ScryfallCard,
-): import('../types').CardCategory {
+): import("../types").CardCategory {
   const t = card.type_line.toLowerCase();
-  if (t.includes('creature')) return 'Creature';
-  if (t.includes('land')) return 'Land';
-  if (t.includes('instant')) return 'Instant';
-  if (t.includes('sorcery')) return 'Sorcery';
-  if (t.includes('enchantment')) return 'Enchantment';
-  if (t.includes('artifact')) return 'Artifact';
-  if (t.includes('planeswalker')) return 'Planeswalker';
-  return 'Other';
+  if (t.includes("creature")) return "Creature";
+  if (t.includes("land")) return "Land";
+  if (t.includes("instant")) return "Instant";
+  if (t.includes("sorcery")) return "Sorcery";
+  if (t.includes("enchantment")) return "Enchantment";
+  if (t.includes("artifact")) return "Artifact";
+  if (t.includes("planeswalker")) return "Planeswalker";
+  return "Other";
 }
 
 export function addCardToDeck(
@@ -105,4 +105,49 @@ export function isCardLegalForDeck(deck: Deck, card: ScryfallCard): boolean {
 export function getDeckCardCount(deck: Deck): number {
   const commanderCount = deck.commander ? 1 : 0;
   return deck.entries.reduce((sum, e) => sum + e.quantity, 0) + commanderCount;
+}
+
+export function exportDeck(deck: Deck): void {
+  const json = JSON.stringify(deck, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${deck.name.replace(/\s+/g, "_")}.json`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function importDeckFromFile(file: File): Promise<Deck> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target?.result as string);
+        if (!isValidDeck(parsed)) {
+          reject(new Error("Invalid deck file — missing required fields."));
+          return;
+        }
+        resolve(parsed as Deck);
+      } catch {
+        reject(
+          new Error("Could not parse file. Make sure it is a valid deck JSON."),
+        );
+      }
+    };
+    reader.onerror = () => reject(new Error("Failed to read file."));
+    reader.readAsText(file);
+  });
+}
+
+function isValidDeck(obj: unknown): boolean {
+  if (typeof obj !== "object" || obj === null) return false;
+  const d = obj as Record<string, unknown>;
+  return (
+    typeof d.id === "string" &&
+    typeof d.name === "string" &&
+    typeof d.createdAt === "string" &&
+    typeof d.updatedAt === "string" &&
+    Array.isArray(d.entries)
+  );
 }

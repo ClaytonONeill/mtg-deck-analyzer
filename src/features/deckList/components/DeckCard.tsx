@@ -1,6 +1,6 @@
-import type { Deck } from '@/types';
-import { getDeckCardCount } from '@/store/deckStore';
-import ColorPip from '@/components/ManaSymbol/ColorPip';
+import type { Deck } from "@/types";
+import { getDeckCardCount, exportDeck } from "@/store/deckStore";
+import ColorPip from "@/components/ManaSymbol/ColorPip";
 
 interface DeckCardProps {
   deck: Deck;
@@ -51,19 +51,25 @@ export default function DeckCard({
       <div className="flex gap-2 mt-auto pt-2 border-t border-slate-800">
         <button
           onClick={onOpen}
-          className="flex-1 text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors hover:cursor-pointer"
+          className="flex-1 text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors"
         >
           View
         </button>
         <button
           onClick={onEdit}
-          className="flex-1 text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors hover:cursor-pointer"
+          className="flex-1 text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors"
         >
           Edit
         </button>
         <button
+          onClick={() => exportDeck(deck)}
+          className="flex-1 text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors"
+        >
+          Export
+        </button>
+        <button
           onClick={onDelete}
-          className="text-sm font-semibold bg-slate-800 hover:bg-red-900 text-slate-400 hover:text-red-300 px-3 py-2 rounded-lg transition-colors hover:cursor-pointer"
+          className="text-sm font-semibold bg-slate-800 hover:bg-red-900 text-slate-400 hover:text-red-300 px-3 py-2 rounded-lg transition-colors"
         >
           ✕
         </button>
