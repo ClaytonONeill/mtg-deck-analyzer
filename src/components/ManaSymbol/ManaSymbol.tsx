@@ -1,5 +1,5 @@
 interface ManaSymbolProps {
-  symbol: string; // e.g. 'W', 'U', 'B', 'R', 'G', '2', 'X', 'T' etc.
+  symbol: string;
   size?: number; // px, defaults to 16
   className?: string;
 }
@@ -7,9 +7,9 @@ interface ManaSymbolProps {
 export default function ManaSymbol({
   symbol,
   size = 16,
-  className = '',
+  className = "",
 }: ManaSymbolProps) {
-  const clean = symbol.replace(/[{}]/g, '').toUpperCase();
+  const clean = symbol.replace(/[{}]/g, "").toUpperCase();
   return (
     <img
       src={`https://svgs.scryfall.io/card-symbols/${clean}.svg`}

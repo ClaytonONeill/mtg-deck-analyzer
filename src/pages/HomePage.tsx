@@ -1,6 +1,10 @@
+// Modules
 import { useNavigate } from "react-router-dom";
+
+// Store
 import { deckStore } from "@/store/deckStore";
 
+// Components
 import DeckCard from "@/features/deckList/components/DeckCard";
 import EmptyState from "@/features/deckList/components/EmptyState";
 

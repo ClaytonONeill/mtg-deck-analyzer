@@ -1,4 +1,5 @@
-import type { Deck, DeckEntry, ScryfallCard } from "../types";
+// Types
+import type { Deck, DeckEntry, ScryfallCard, CardCategory } from "../types";
 
 const STORAGE_KEY = "mtg_decks";
 
@@ -48,9 +49,7 @@ export function createNewDeck(name: string): Deck {
   };
 }
 
-export function inferCategory(
-  card: ScryfallCard,
-): import("../types").CardCategory {
+export function inferCategory(card: ScryfallCard): CardCategory {
   const t = card.type_line.toLowerCase();
   if (t.includes("creature")) return "Creature";
   if (t.includes("land")) return "Land";

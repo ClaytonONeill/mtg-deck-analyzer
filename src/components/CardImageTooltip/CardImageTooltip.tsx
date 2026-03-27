@@ -1,5 +1,10 @@
+// Modules
 import { createPortal } from "react-dom";
+
+// Hooks
 import { usePortal } from "@/hooks/usePortal";
+
+// Types
 import type { ScryfallCard } from "@/types";
 
 interface CardImageTooltipProps {

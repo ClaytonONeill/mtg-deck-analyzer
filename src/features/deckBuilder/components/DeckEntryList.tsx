@@ -1,17 +1,21 @@
-import type { CardCategory, Deck } from '@/types';
-import { removeCardFromDeck } from '@/store/deckStore';
+// Store
+import { removeCardFromDeck } from "@/store/deckStore";
 
-import ManaCost from '@/components/ManaSymbol/ManaCost';
+// Components
+import ManaCost from "@/components/ManaSymbol/ManaCost";
+
+// Types
+import type { CardCategory, Deck } from "@/types";
 
 const CATEGORY_ORDER: CardCategory[] = [
-  'Creature',
-  'Instant',
-  'Sorcery',
-  'Enchantment',
-  'Artifact',
-  'Planeswalker',
-  'Land',
-  'Other',
+  "Creature",
+  "Instant",
+  "Sorcery",
+  "Enchantment",
+  "Artifact",
+  "Planeswalker",
+  "Land",
+  "Other",
 ];
 
 interface DeckEntryListProps {

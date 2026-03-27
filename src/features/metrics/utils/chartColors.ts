@@ -1,3 +1,4 @@
+// Types
 import type {
   TypeDataPoint,
   ColorGroup,
@@ -67,4 +68,23 @@ export function getFillForKey(
     }
   }
   return "transparent";
+}
+
+// Collect all unique multicolor combinations across all data points
+export function collectMulticolorGroups(
+  dataPoints: { groups: ColorGroup[] }[],
+): ColorGroup[] {
+  const seen = new Set<string>();
+  const result: ColorGroup[] = [];
+  for (const point of dataPoints) {
+    for (const group of point.groups) {
+      if (group.colorKey !== "multicolor") continue;
+      const key = group.colors.slice().sort().join("");
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push(group);
+      }
+    }
+  }
+  return result;
 }
