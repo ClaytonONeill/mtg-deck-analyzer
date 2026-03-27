@@ -6,6 +6,7 @@ import type {
 
 export const MTG_COLORS: Record<string, string> = {
   W: "#f0d58c",
+  U: "#1971c2",
   B: "#6c3d9e",
   R: "#c92a2a",
   G: "#2f9e44",
