@@ -2,22 +2,21 @@ import type {
   TypeDataPoint,
   ColorGroup,
   CMCDataPoint,
-} from '../types/metrics.types';
+} from "../types/metrics.types";
 
 export const MTG_COLORS: Record<string, string> = {
-  W: '#f0d58c', // warm parchment — readable on dark, evokes white mana
-  U: '#1971c2', // blue — clean and distinct
-  B: '#6c3d9e', // deep purple — evokes black mana without disappearing
-  R: '#c92a2a', // red — strong and distinct
-  G: '#2f9e44', // green — strong and distinct
-  colorless: '#a89070', // warm taupe — neutral without blending into UI
+  W: "#f0d58c",
+  B: "#6c3d9e",
+  R: "#c92a2a",
+  G: "#2f9e44",
+  colorless: "#a89070",
 };
 
-export const MULTICOLOR_GOLD = '#f59f00';
+export const MULTICOLOR_GOLD = "#f59f00";
 
 // Returns a unique gradient ID for a given set of colors
 export function gradientId(colors: string[]): string {
-  return `grad-${colors.slice().sort().join('-')}`;
+  return `grad-${colors.slice().sort().join("-")}`;
 }
 
 // Builds stop definitions for a multi-color gradient
@@ -26,8 +25,8 @@ export function buildGradientStops(
 ): { offset: string; color: string }[] {
   if (colors.length === 1) {
     return [
-      { offset: '0%', color: MTG_COLORS[colors[0]] ?? MULTICOLOR_GOLD },
-      { offset: '100%', color: MTG_COLORS[colors[0]] ?? MULTICOLOR_GOLD },
+      { offset: "0%", color: MTG_COLORS[colors[0]] ?? MULTICOLOR_GOLD },
+      { offset: "100%", color: MTG_COLORS[colors[0]] ?? MULTICOLOR_GOLD },
     ];
   }
   return colors.map((c, i) => ({
@@ -37,8 +36,8 @@ export function buildGradientStops(
 }
 
 export function barFill(colorKey: string, colors: string[]): string {
-  if (colorKey === 'colorless') return MTG_COLORS.colorless;
-  if (colorKey === 'multicolor') return `url(#${gradientId(colors)})`;
+  if (colorKey === "colorless") return MTG_COLORS.colorless;
+  if (colorKey === "multicolor") return `url(#${gradientId(colors)})`;
   return MTG_COLORS[colorKey] ?? MULTICOLOR_GOLD;
 }
 
@@ -49,8 +48,8 @@ function groupForKey(
 ): ColorGroup | undefined {
   return groups.find((g) => {
     const gKey =
-      g.colorKey === 'multicolor'
-        ? g.colors.slice().sort().join('')
+      g.colorKey === "multicolor"
+        ? g.colors.slice().sort().join("")
         : g.colorKey;
     return gKey === key;
   });
@@ -66,5 +65,5 @@ export function getFillForKey(
       return barFill(group.colorKey, group.colors);
     }
   }
-  return 'transparent';
+  return "transparent";
 }
