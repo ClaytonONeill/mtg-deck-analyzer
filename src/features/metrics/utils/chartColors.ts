@@ -11,7 +11,7 @@ export const MTG_COLORS: Record<string, string> = {
   B: "#6c3d9e",
   R: "#c92a2a",
   G: "#2f9e44",
-  colorless: "#a89070",
+  colorless: "#6b6b69",
 };
 
 export const MULTICOLOR_GOLD = "#f59f00";
