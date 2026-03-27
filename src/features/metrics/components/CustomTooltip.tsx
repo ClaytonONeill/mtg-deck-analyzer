@@ -11,6 +11,12 @@ export default function CustomTooltip({
   label,
 }: TooltipContentProps<ValueType, NameType>) {
   if (active && payload && payload.length) {
+    const TOTAL_CATEGORY_COUNT = payload.reduce((acc, { value }) => {
+      const numericValue =
+        value === undefined || value === null ? 0 : Number(value);
+      return acc + (Number.isNaN(numericValue) ? 0 : numericValue);
+    }, 0);
+
     return (
       <div
         style={{
@@ -22,7 +28,9 @@ export default function CustomTooltip({
           padding: "8px",
         }}
       >
-        <p style={{ margin: 0, fontWeight: "bold" }}>{label}</p>
+        <p style={{ margin: 0, fontWeight: "bold" }}>
+          {label}: {TOTAL_CATEGORY_COUNT}
+        </p>
         {payload.map((entry: TooltipPayloadEntry, index: number) => (
           <p key={index} style={{ margin: 0, color: "#f1f5f9" }}>
             {entry.name &&
