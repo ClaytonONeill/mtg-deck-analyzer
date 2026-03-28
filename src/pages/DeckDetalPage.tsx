@@ -5,6 +5,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 // Stores
 import { deckStore, getDeckCardCount } from '@/store/deckStore';
 
+// Hooks
+import { useObjectives } from '@/features/objectives/hooks/useObjectives';
+
 // Utils
 import {
   getTypeBreakdown,
@@ -15,9 +18,13 @@ import {
 import TypesChart from '@/features/metrics/components/TypesChart';
 import CMCChart from '@/features/metrics/components/CMCChart';
 import ColorPip from '@/components/ManaSymbol/ColorPip';
+import ObjectivesTab from '@/features/objectives/components/ObjectivesTab';
+import CardGallery from '@/features/gallery/components/CardGallery';
 
 // Types
-type Tab = 'metrics' | 'objectives' | 'decks';
+import type { Deck } from '@/types';
+
+type Tab = 'metrics' | 'objectives' | 'gallery' | 'decks';
 type MetricView = 'types' | 'cmc';
 
 export default function DeckDetailPage() {
@@ -25,12 +32,44 @@ export default function DeckDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>('metrics');
   const [metricView, setMetricView] = useState<MetricView>('types');
   const [includeLands, setIncludeLands] = useState(true);
+  const [deck, setDeck] = useState<Deck | undefined>(() => {
+    const { deckId } = { deckId: window.location.pathname.split('/').pop() };
+    return deckId ? deckStore.getById(deckId) : undefined;
+  });
 
   const { deckId } = useParams();
   const navigate = useNavigate();
-  const deck = deckId ? deckStore.getById(deckId) : undefined;
 
-  if (!deck) {
+  // Re-read deck from store on mount using the param
+  const liveDeck = deckId ? deckStore.getById(deckId) : undefined;
+
+  const {
+    objectives,
+    entries,
+    createObjective,
+    deleteObjective,
+    assignObjective,
+    unassignObjective,
+    updateObjective,
+  } = useObjectives(
+    deck ??
+      liveDeck ?? {
+        id: '',
+        name: '',
+        commander: null,
+        partner: null,
+        colorIdentity: [],
+        entries: [],
+        objectives: [],
+        createdAt: '',
+        updatedAt: '',
+      },
+    (updated) => {
+      setDeck(updated);
+    },
+  );
+
+  if (!liveDeck && !deck) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
         Deck not found.{' '}
@@ -44,13 +83,15 @@ export default function DeckDetailPage() {
     );
   }
 
-  const cardCount = getDeckCardCount(deck);
-  const typeData = getTypeBreakdown(deck, includeLands);
-  const cmcData = getCMCBreakdown(deck, includeLands);
+  const activeDeck = deck ?? liveDeck!;
+  const cardCount = getDeckCardCount(activeDeck);
+  const typeData = getTypeBreakdown(activeDeck, includeLands);
+  const cmcData = getCMCBreakdown(activeDeck, includeLands);
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'metrics', label: 'Metrics' },
     { key: 'objectives', label: 'Objectives' },
+    { key: 'gallery', label: 'Gallery' },
     { key: 'decks', label: 'Decks' },
   ];
 
@@ -65,7 +106,7 @@ export default function DeckDetailPage() {
           ← Back
         </button>
         <button
-          onClick={() => navigate(`/build/${deck.id}`)}
+          onClick={() => navigate(`/build/${activeDeck.id}`)}
           className="text-sm font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors hover:cursor-pointer"
         >
           Edit Deck
@@ -77,9 +118,11 @@ export default function DeckDetailPage() {
         <div className="mb-8 flex items-start justify-between gap-4">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white">{deck.name}</h1>
+              <h1 className="text-2xl font-bold text-white">
+                {activeDeck.name}
+              </h1>
               <div className="flex gap-1">
-                {deck.colorIdentity.map((c) => (
+                {activeDeck.colorIdentity.map((c) => (
                   <ColorPip key={c} color={c} size={22} />
                 ))}
               </div>
@@ -87,24 +130,24 @@ export default function DeckDetailPage() {
             <div className="flex flex-col gap-1">
               <p className="text-slate-400 text-sm">
                 <span className="text-slate-500">Commander: </span>
-                {deck.commander?.name ?? (
+                {activeDeck.commander?.name ?? (
                   <span className="italic">None set</span>
                 )}
               </p>
-              {deck.partner && (
+              {activeDeck.partner && (
                 <p className="text-slate-400 text-sm">
                   <span className="text-slate-500">Partner: </span>
-                  {deck.partner.name}
+                  {activeDeck.partner.name}
                 </p>
               )}
             </div>
             <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
               <span>
-                Created {new Date(deck.createdAt).toLocaleDateString()}
+                Created {new Date(activeDeck.createdAt).toLocaleDateString()}
               </span>
               <span>·</span>
               <span>
-                Updated {new Date(deck.updatedAt).toLocaleDateString()}
+                Updated {new Date(activeDeck.updatedAt).toLocaleDateString()}
               </span>
             </div>
           </div>
@@ -153,9 +196,7 @@ export default function DeckDetailPage() {
         {/* Tab content */}
         {activeTab === 'metrics' && (
           <div className="flex flex-col gap-8">
-            {/* Controls */}
             <div className="flex items-center justify-between">
-              {/* Chart switcher */}
               <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
                 {(['types', 'cmc'] as MetricView[]).map((view) => (
                   <button
@@ -172,8 +213,6 @@ export default function DeckDetailPage() {
                   </button>
                 ))}
               </div>
-
-              {/* Land toggle */}
               <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
                 <div
                   onClick={() => setIncludeLands((v) => !v)}
@@ -190,8 +229,6 @@ export default function DeckDetailPage() {
                 Include Lands
               </label>
             </div>
-
-            {/* Chart */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
               <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-6">
                 {metricView === 'types' ? 'Card Types' : 'Mana Curve'}
@@ -206,9 +243,24 @@ export default function DeckDetailPage() {
         )}
 
         {activeTab === 'objectives' && (
-          <div className="flex items-center justify-center py-24 text-slate-500 text-sm">
-            Objectives coming soon.
-          </div>
+          <ObjectivesTab
+            deck={activeDeck}
+            objectives={objectives}
+            entries={entries}
+            onCreate={createObjective}
+            onDelete={deleteObjective}
+            onUpdate={updateObjective}
+            onUnassign={unassignObjective}
+          />
+        )}
+
+        {activeTab === 'gallery' && (
+          <CardGallery
+            entries={entries}
+            objectives={objectives}
+            onAssign={assignObjective}
+            onUnassign={unassignObjective}
+          />
         )}
 
         {activeTab === 'decks' && (
