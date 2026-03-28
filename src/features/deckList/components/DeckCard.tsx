@@ -1,11 +1,11 @@
 // Store
-import { getDeckCardCount, exportDeck } from "@/store/deckStore";
+import { getDeckCardCount, exportDeck } from '@/store/deckStore';
 
 // Components
-import ColorPip from "@/components/ManaSymbol/ColorPip";
+import ColorPip from '@/components/ManaSymbol/ColorPip';
 
 // Types
-import type { Deck } from "@/types";
+import type { Deck } from '@/types';
 
 interface DeckCardProps {
   deck: Deck;
@@ -46,6 +46,12 @@ export default function DeckCard({
             <span className="italic">None set</span>
           )}
         </p>
+        {deck.partner && (
+          <p>
+            <span className="text-slate-500">Partner: </span>
+            {deck.partner.name}
+          </p>
+        )}
         <p>
           <span className="text-slate-500">Cards: </span>
           {cardCount} / 100
