@@ -34,6 +34,7 @@ export interface Deck {
   id: string;
   name: string;
   commander: ScryfallCard | null;
+  partner: ScryfallCard | null;
   colorIdentity: string[];
   entries: DeckEntry[];
   createdAt: string;
