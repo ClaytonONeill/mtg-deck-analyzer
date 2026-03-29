@@ -32,6 +32,21 @@ export interface DeckEntry {
   type_line?: string;
 }
 
+export interface DeckVersion {
+  id: string;
+  name: string;
+  note: string;
+  swaps: {
+    removeCardId: string;
+    addCard: ScryfallCard;
+  }[];
+  objectiveOverrides: {
+    cardId: string;
+    objectiveIds: string[];
+  }[];
+  createdAt: string;
+}
+
 export interface Deck {
   id: string;
   name: string;
@@ -42,6 +57,7 @@ export interface Deck {
   createdAt: string;
   updatedAt: string;
   objectives: Objective[];
+  versions: DeckVersion[];
 }
 
 export interface Objective {
