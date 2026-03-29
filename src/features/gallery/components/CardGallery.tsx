@@ -1,13 +1,15 @@
 // Modules
-import { useState } from 'react';
+import { useState } from "react";
 
 // Types
-import type { DeckEntry, Objective, ScryfallCard } from '@/types';
+import type { DeckEntry, Objective, ScryfallCard } from "@/types";
+
+import { BASIC_LANDS } from "@/features/deckBuilder/utils/basicLands";
 
 // Components
-import ObjectivePill from '@/features/objectives/components/ObjectivePill';
-import SwapSidebar from '@/features/gallery/components/SwapSidebar';
-import SwapBanner from '@/features/gallery/components/SwapBanner';
+import ObjectivePill from "@/features/objectives/components/ObjectivePill";
+import SwapSidebar from "@/features/gallery/components/SwapSidebar";
+import SwapBanner from "@/features/gallery/components/SwapBanner";
 
 interface PendingSwap {
   removeCardId: string;
@@ -25,29 +27,29 @@ interface CardGalleryProps {
   onUndoSwaps: () => void;
 }
 
-type SortKey = 'type' | 'color' | 'cmc' | 'name';
+type SortKey = "type" | "color" | "cmc" | "name";
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'type', label: 'Type' },
-  { key: 'color', label: 'Color Identity' },
-  { key: 'cmc', label: 'Mana Value' },
-  { key: 'name', label: 'Name' },
+  { key: "type", label: "Type" },
+  { key: "color", label: "Color Identity" },
+  { key: "cmc", label: "Mana Value" },
+  { key: "name", label: "Name" },
 ];
 
-const COLOR_ORDER = ['W', 'U', 'B', 'R', 'G'];
+const COLOR_ORDER = ["W", "U", "B", "R", "G"];
 
 function sortEntries(entries: DeckEntry[], sort: SortKey): DeckEntry[] {
   return [...entries].sort((a, b) => {
     switch (sort) {
-      case 'name':
+      case "name":
         return a.card.name.localeCompare(b.card.name);
-      case 'cmc':
+      case "cmc":
         return a.card.cmc - b.card.cmc;
-      case 'type':
+      case "type":
         return a.category.localeCompare(b.category);
-      case 'color': {
-        const aFirst = COLOR_ORDER.indexOf(a.card.color_identity[0] ?? '');
-        const bFirst = COLOR_ORDER.indexOf(b.card.color_identity[0] ?? '');
+      case "color": {
+        const aFirst = COLOR_ORDER.indexOf(a.card.color_identity[0] ?? "");
+        const bFirst = COLOR_ORDER.indexOf(b.card.color_identity[0] ?? "");
         return aFirst - bFirst;
       }
       default:
@@ -66,13 +68,22 @@ export default function CardGallery({
   onSaveAsVersion,
   onUndoSwaps,
 }: CardGalleryProps) {
-  const [sort, setSort] = useState<SortKey>('type');
+  const [sort, setSort] = useState<SortKey>("type");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [popover, setPopover] = useState<string | null>(null);
   const [swapping, setSwapping] = useState<ScryfallCard | null>(null);
 
+  const BLACK_LIST = BASIC_LANDS.map(({ type_line }) => type_line);
+  const filteredEntries = entries.filter((entry) => {
+    const t_line = entry.card.type_line;
+    if (t_line) {
+      return !BLACK_LIST.includes(t_line);
+    }
+    return false;
+  });
+
   const safeObjectives = objectives ?? [];
-  const sorted = sortEntries(entries ?? [], sort);
+  const sorted = sortEntries(filteredEntries ?? [], sort);
 
   const swappedOutIds = new Set(pendingSwaps.map((s) => s.removeCardId));
 
@@ -103,8 +114,8 @@ export default function CardGallery({
               onClick={() => setSort(opt.key)}
               className="px-3 py-1.5 rounded-md text-xs font-semibold transition-colors hover:cursor-pointer"
               style={{
-                backgroundColor: sort === opt.key ? '#1971c2' : 'transparent',
-                color: sort === opt.key ? '#fff' : '#64748b',
+                backgroundColor: sort === opt.key ? "#1971c2" : "transparent",
+                color: sort === opt.key ? "#fff" : "#64748b",
               }}
             >
               {opt.label}
@@ -153,7 +164,7 @@ export default function CardGallery({
                     }
                     className="w-full rounded-xl cursor-pointer transition-transform duration-200 group-hover:scale-[1.02] shadow-lg border border-slate-700"
                     style={{
-                      borderColor: isSwappedOut ? '#ef4444' : undefined,
+                      borderColor: isSwappedOut ? "#ef4444" : undefined,
                     }}
                   />
                 ) : (
