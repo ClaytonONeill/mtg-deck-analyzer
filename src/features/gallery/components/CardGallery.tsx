@@ -4,6 +4,9 @@ import { useState } from 'react';
 // Types
 import type { DeckEntry, Objective } from '@/types';
 
+// Utils
+import { BASIC_LANDS } from '@/features/deckBuilder/utils/basicLands';
+
 // Components
 import ObjectivePill from '@/features/objectives/components/ObjectivePill';
 
@@ -57,8 +60,16 @@ export default function CardGallery({
   const [expanded, setExpanded] = useState<string | null>(null);
   const [popover, setPopover] = useState<string | null>(null);
 
+  const BLACK_LIST = BASIC_LANDS.map(({ type_line }) => type_line);
+  const filteredEntries = entries.filter((entry) => {
+    const t_line = entry.card.type_line;
+    if (t_line) {
+      return !BLACK_LIST.includes(t_line);
+    }
+    return false;
+  });
   const safeObjectives = objectives ?? [];
-  const sorted = sortEntries(entries ?? [], sort);
+  const sorted = sortEntries(filteredEntries ?? [], sort);
 
   return (
     <div className="flex flex-col gap-6">
@@ -83,6 +94,9 @@ export default function CardGallery({
           ))}
         </div>
       </div>
+      <p className="text-sm italic text-slate-500 selection:bg-slate-200">
+        * Basic land cards are filtered out automatically
+      </p>
 
       {/* Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

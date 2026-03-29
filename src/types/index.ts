@@ -29,6 +29,7 @@ export interface DeckEntry {
   quantity: number;
   category: CardCategory;
   objectiveIds: string[];
+  type_line?: string;
 }
 
 export interface Deck {
