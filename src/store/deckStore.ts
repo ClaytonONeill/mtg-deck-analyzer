@@ -46,6 +46,7 @@ export function createNewDeck(name: string): Deck {
     colorIdentity: [],
     entries: [],
     objectives: [],
+    versions: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

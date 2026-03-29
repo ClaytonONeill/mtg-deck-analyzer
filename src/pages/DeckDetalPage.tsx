@@ -20,6 +20,7 @@ import CMCChart from '@/features/metrics/components/CMCChart';
 import ColorPip from '@/components/ManaSymbol/ColorPip';
 import ObjectivesTab from '@/features/objectives/components/ObjectivesTab';
 import CardGallery from '@/features/gallery/components/CardGallery';
+import DeckVersionsTab from '@/features/deckVersions/components/DeckVersionsTab';
 
 // Types
 import type { Deck } from '@/types';
@@ -63,6 +64,7 @@ export default function DeckDetailPage() {
         objectives: [],
         createdAt: '',
         updatedAt: '',
+        versions: [],
       },
     (updated) => {
       setDeck(updated);
@@ -264,9 +266,7 @@ export default function DeckDetailPage() {
         )}
 
         {activeTab === 'deck_versions' && (
-          <div className="flex items-center justify-center py-24 text-slate-500 text-sm">
-            Decks versions tab coming soon.
-          </div>
+          <DeckVersionsTab deck={activeDeck} onDeckChange={setDeck} />
         )}
       </div>
     </div>
