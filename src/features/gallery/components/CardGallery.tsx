@@ -176,7 +176,7 @@ export default function CardGallery({
 
                     {/* Objective popover */}
                     {showPopover && (
-                      <div className="absolute bottom-full left-0 mb-1 z-20 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-2 flex flex-col gap-1 min-w-[140px]">
+                      <div className="absolute bottom-full left-0 mb-1 z-20 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-1 flex flex-col gap-1 w-max">
                         {unassigned.map((o) => (
                           <button
                             key={o.id}
