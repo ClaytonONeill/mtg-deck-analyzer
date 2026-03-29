@@ -28,7 +28,7 @@ type ChartView = 'types' | 'cmc';
 export default function VersionCompare({ deck }: VersionCompareProps) {
   const [leftId, setLeftId] = useState<CompareTarget>('main');
   const [rightId, setRightId] = useState<CompareTarget>(
-    deck.versions[0]?.id ?? 'main',
+    (deck.versions ?? [])[0]?.id ?? 'main',
   );
   const [chartView, setChartView] = useState<ChartView>('types');
   const [includeLands, setIncludeLands] = useState(true);
