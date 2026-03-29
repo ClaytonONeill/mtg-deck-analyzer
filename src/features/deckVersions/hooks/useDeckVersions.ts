@@ -7,6 +7,11 @@ import type { Deck, DeckVersion, ScryfallCard } from '@/types';
 // Store
 import { deckStore } from '@/store/deckStore';
 
+interface PendingSwap {
+  removeCardId: string;
+  addCard: ScryfallCard;
+}
+
 export function useDeckVersions(
   deck: Deck,
   onDeckChange: (deck: Deck) => void,
@@ -19,13 +24,13 @@ export function useDeckVersions(
     [deck],
   );
 
-  const createVersion = useCallback(
-    (name: string, note: string) => {
+  const saveAsVersion = useCallback(
+    (name: string, note: string, swaps: PendingSwap[]) => {
       const newVersion: DeckVersion = {
         id: crypto.randomUUID(),
         name: name.trim(),
         note: note.trim(),
-        swaps: [],
+        swaps,
         createdAt: new Date().toISOString(),
       };
       const updated: Deck = {
@@ -35,6 +40,7 @@ export function useDeckVersions(
       };
       deckStore.save(updated);
       onDeckChange(updated);
+      return newVersion.id;
     },
     [safeDeck, onDeckChange],
   );
@@ -44,46 +50,6 @@ export function useDeckVersions(
       const updated: Deck = {
         ...safeDeck,
         versions: safeDeck.versions.filter((v) => v.id !== versionId),
-        updatedAt: new Date().toISOString(),
-      };
-      deckStore.save(updated);
-      onDeckChange(updated);
-    },
-    [safeDeck, onDeckChange],
-  );
-
-  const addSwap = useCallback(
-    (versionId: string, removeCardId: string, addCard: ScryfallCard) => {
-      const updated: Deck = {
-        ...safeDeck,
-        versions: safeDeck.versions.map((v) =>
-          v.id === versionId
-            ? {
-                ...v,
-                swaps: [...v.swaps, { removeCardId, addCard }],
-              }
-            : v,
-        ),
-        updatedAt: new Date().toISOString(),
-      };
-      deckStore.save(updated);
-      onDeckChange(updated);
-    },
-    [safeDeck, onDeckChange],
-  );
-
-  const removeSwap = useCallback(
-    (versionId: string, swapIndex: number) => {
-      const updated: Deck = {
-        ...safeDeck,
-        versions: safeDeck.versions.map((v) =>
-          v.id === versionId
-            ? {
-                ...v,
-                swaps: v.swaps.filter((_, i) => i !== swapIndex),
-              }
-            : v,
-        ),
         updatedAt: new Date().toISOString(),
       };
       deckStore.save(updated);
@@ -111,10 +77,8 @@ export function useDeckVersions(
 
   return {
     versions: safeDeck.versions,
-    createVersion,
+    saveAsVersion,
     deleteVersion,
-    addSwap,
-    removeSwap,
     updateVersion,
   };
 }

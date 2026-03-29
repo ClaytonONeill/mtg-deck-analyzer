@@ -1,5 +1,5 @@
 // Modules
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 // Stores
@@ -7,12 +7,14 @@ import { deckStore, getDeckCardCount } from '@/store/deckStore';
 
 // Hooks
 import { useObjectives } from '@/features/objectives/hooks/useObjectives';
+import { useDeckVersions } from '@/features/deckVersions/hooks/useDeckVersions';
 
 // Utils
 import {
   getTypeBreakdown,
   getCMCBreakdown,
 } from '@/features/metrics/utils/deckMetrics';
+import { applyVersionToDeck } from '@/features/deckVersions/utils/versionUtils';
 
 // Components
 import TypesChart from '@/features/metrics/components/TypesChart';
@@ -20,30 +22,61 @@ import CMCChart from '@/features/metrics/components/CMCChart';
 import ColorPip from '@/components/ManaSymbol/ColorPip';
 import ObjectivesTab from '@/features/objectives/components/ObjectivesTab';
 import CardGallery from '@/features/gallery/components/CardGallery';
-import DeckVersionsTab from '@/features/deckVersions/components/DeckVersionsTab';
+import VersionCompare from '@/features/deckVersions/components/VersionCompare';
+import SaveVersionModal from '@/features/deckVersions/components/SaveVersionModal';
 
 // Types
-import type { Deck } from '@/types';
+import type { Deck, ScryfallCard } from '@/types';
 
-type Tab = 'metrics' | 'objectives' | 'gallery' | 'deck_versions';
-type MetricView = 'types' | 'cmc';
+interface PendingSwap {
+  removeCardId: string;
+  addCard: ScryfallCard;
+}
+
+type Tab = 'metrics' | 'objectives' | 'gallery';
+type MetricView = 'types' | 'cmc' | 'compare';
+type VersionId = 'main' | string;
+
+const EMPTY_DECK: Deck = {
+  id: '',
+  name: '',
+  commander: null,
+  partner: null,
+  colorIdentity: [],
+  entries: [],
+  objectives: [],
+  versions: [],
+  createdAt: '',
+  updatedAt: '',
+};
 
 export default function DeckDetailPage() {
-  // State
-  const [activeTab, setActiveTab] = useState<Tab>('metrics');
-  const [metricView, setMetricView] = useState<MetricView>('types');
-  const [includeLands, setIncludeLands] = useState(true);
-  const [deck, setDeck] = useState<Deck | undefined>(() => {
-    const { deckId } = { deckId: window.location.pathname.split('/').pop() };
-    return deckId ? deckStore.getById(deckId) : undefined;
-  });
-
+  // Routing
   const { deckId } = useParams();
   const navigate = useNavigate();
 
-  // Re-read deck from store on mount using the param
-  const liveDeck = deckId ? deckStore.getById(deckId) : undefined;
+  // Core deck state
+  const [deck, setDeck] = useState<Deck | undefined>(() =>
+    deckId ? deckStore.getById(deckId) : undefined,
+  );
 
+  // Tab + view state
+  const [activeTab, setActiveTab] = useState<Tab>('metrics');
+  const [metricView, setMetricView] = useState<MetricView>('types');
+  const [includeLands, setIncludeLands] = useState(true);
+
+  // Version selection
+  const [activeVersionId, setActiveVersionId] = useState<VersionId>('main');
+
+  // Pending swaps
+  const [pendingSwaps, setPendingSwaps] = useState<PendingSwap[]>([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+
+  // Derive active deck before hooks so it can be used as dependency
+  const liveDeck = deckId ? deckStore.getById(deckId) : undefined;
+  const activeDeck = deck ?? liveDeck;
+
+  // All hooks unconditionally before any early return
   const {
     objectives,
     entries,
@@ -52,26 +85,22 @@ export default function DeckDetailPage() {
     assignObjective,
     unassignObjective,
     updateObjective,
-  } = useObjectives(
-    deck ??
-      liveDeck ?? {
-        id: '',
-        name: '',
-        commander: null,
-        partner: null,
-        colorIdentity: [],
-        entries: [],
-        objectives: [],
-        createdAt: '',
-        updatedAt: '',
-        versions: [],
-      },
-    (updated) => {
-      setDeck(updated);
-    },
+  } = useObjectives(activeDeck ?? EMPTY_DECK, (updated) => setDeck(updated));
+
+  const { versions, saveAsVersion, deleteVersion } = useDeckVersions(
+    activeDeck ?? EMPTY_DECK,
+    (updated) => setDeck(updated),
   );
 
-  if (!liveDeck && !deck) {
+  const displayDeck = useMemo<Deck>(() => {
+    if (!activeDeck) return EMPTY_DECK;
+    if (activeVersionId === 'main') return activeDeck;
+    const version = versions.find((v) => v.id === activeVersionId);
+    return version ? applyVersionToDeck(activeDeck, version) : activeDeck;
+  }, [activeDeck, activeVersionId, versions]);
+
+  // Early return AFTER all hooks
+  if (!activeDeck) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
         Deck not found.{' '}
@@ -85,16 +114,28 @@ export default function DeckDetailPage() {
     );
   }
 
-  const activeDeck = deck ?? liveDeck!;
-  const cardCount = getDeckCardCount(activeDeck);
-  const typeData = getTypeBreakdown(activeDeck, includeLands);
-  const cmcData = getCMCBreakdown(activeDeck, includeLands);
+  const cardCount = getDeckCardCount(displayDeck);
+  const typeData = getTypeBreakdown(displayDeck, includeLands);
+  const cmcData = getCMCBreakdown(displayDeck, includeLands);
+
+  const versionOptions: { value: VersionId; label: string }[] = [
+    { value: 'main', label: `Main — ${activeDeck.name}` },
+    ...versions.map((v) => ({ value: v.id, label: v.name })),
+  ];
+
+  const activeVersionLabel =
+    versionOptions.find((o) => o.value === activeVersionId)?.label ?? 'Main';
+
+  const handleSaveVersion = (name: string, note: string) => {
+    saveAsVersion(name, note, pendingSwaps);
+    setPendingSwaps([]);
+    setShowSaveModal(false);
+  };
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'metrics', label: 'Metrics' },
     { key: 'objectives', label: 'Objectives' },
     { key: 'gallery', label: 'Gallery' },
-    { key: 'deck_versions', label: 'Deck Versions' },
   ];
 
   return (
@@ -117,7 +158,7 @@ export default function DeckDetailPage() {
 
       <div className="max-w-5xl mx-auto px-6 py-8">
         {/* Deck identity block */}
-        <div className="mb-8 flex items-start justify-between gap-4">
+        <div className="mb-6 flex items-start justify-between gap-4">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-white">
@@ -175,6 +216,47 @@ export default function DeckDetailPage() {
           </div>
         </div>
 
+        {/* Version selector */}
+        <div className="flex items-center gap-3 mb-8 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3">
+          <span className="text-xs text-slate-500 uppercase tracking-widest shrink-0">
+            Viewing
+          </span>
+          <select
+            value={activeVersionId}
+            onChange={(e) => setActiveVersionId(e.target.value as VersionId)}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#1971c2] transition-colors flex-1"
+          >
+            {versionOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          {activeVersionId !== 'main' && (
+            <>
+              <button
+                onClick={() => {
+                  deleteVersion(activeVersionId);
+                  setActiveVersionId('main');
+                }}
+                className="text-xs text-slate-500 hover:text-red-400 transition-colors shrink-0"
+              >
+                Delete Version
+              </button>
+              <span
+                className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
+                style={{
+                  backgroundColor: '#1971c222',
+                  color: '#1971c2',
+                  border: '1px solid #1971c255',
+                }}
+              >
+                {activeVersionLabel}
+              </span>
+            </>
+          )}
+        </div>
+
         {/* Tabs */}
         <div className="flex gap-6 border-b border-slate-800 mb-8">
           {tabs.map((tab) => (
@@ -195,12 +277,12 @@ export default function DeckDetailPage() {
           ))}
         </div>
 
-        {/* Tab content */}
+        {/* Metrics tab */}
         {activeTab === 'metrics' && (
           <div className="flex flex-col gap-8">
             <div className="flex items-center justify-between">
               <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
-                {(['types', 'cmc'] as MetricView[]).map((view) => (
+                {(['types', 'cmc', 'compare'] as MetricView[]).map((view) => (
                   <button
                     key={view}
                     onClick={() => setMetricView(view)}
@@ -211,42 +293,55 @@ export default function DeckDetailPage() {
                       color: metricView === view ? '#fff' : '#64748b',
                     }}
                   >
-                    {view === 'types' ? 'Types' : 'CMC Curve'}
+                    {view === 'types'
+                      ? 'Types'
+                      : view === 'cmc'
+                        ? 'CMC Curve'
+                        : 'Compare'}
                   </button>
                 ))}
               </div>
-              <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
-                <div
-                  onClick={() => setIncludeLands((v) => !v)}
-                  className="w-9 h-5 rounded-full transition-colors relative cursor-pointer"
-                  style={{
-                    backgroundColor: includeLands ? '#1971c2' : '#334155',
-                  }}
-                >
-                  <span
-                    className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200"
-                    style={{ left: includeLands ? '18px' : '2px' }}
-                  />
-                </div>
-                Include Lands
-              </label>
-            </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-6">
-                {metricView === 'types' ? 'Card Types' : 'Mana Curve'}
-              </h2>
-              {metricView === 'types' ? (
-                <TypesChart data={typeData} />
-              ) : (
-                <CMCChart data={cmcData} />
+
+              {metricView !== 'compare' && (
+                <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
+                  <div
+                    onClick={() => setIncludeLands((v) => !v)}
+                    className="w-9 h-5 rounded-full transition-colors relative cursor-pointer"
+                    style={{
+                      backgroundColor: includeLands ? '#1971c2' : '#334155',
+                    }}
+                  >
+                    <span
+                      className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200"
+                      style={{ left: includeLands ? '18px' : '2px' }}
+                    />
+                  </div>
+                  Include Lands
+                </label>
               )}
             </div>
+
+            {metricView !== 'compare' && (
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-6">
+                  {metricView === 'types' ? 'Card Types' : 'Mana Curve'}
+                </h2>
+                {metricView === 'types' ? (
+                  <TypesChart data={typeData} />
+                ) : (
+                  <CMCChart data={cmcData} />
+                )}
+              </div>
+            )}
+
+            {metricView === 'compare' && <VersionCompare deck={activeDeck} />}
           </div>
         )}
 
+        {/* Objectives tab */}
         {activeTab === 'objectives' && (
           <ObjectivesTab
-            deck={activeDeck}
+            deck={displayDeck}
             objectives={objectives}
             entries={entries}
             onCreate={createObjective}
@@ -256,19 +351,33 @@ export default function DeckDetailPage() {
           />
         )}
 
+        {/* Gallery tab */}
         {activeTab === 'gallery' && (
           <CardGallery
-            entries={entries}
+            entries={displayDeck.entries.map((e) => ({
+              ...e,
+              objectiveIds: e.objectiveIds ?? [],
+            }))}
             objectives={objectives}
+            pendingSwaps={pendingSwaps}
             onAssign={assignObjective}
             onUnassign={unassignObjective}
+            onAddSwap={(removeCardId, addCard) =>
+              setPendingSwaps((prev) => [...prev, { removeCardId, addCard }])
+            }
+            onSaveAsVersion={() => setShowSaveModal(true)}
+            onUndoSwaps={() => setPendingSwaps([])}
           />
         )}
-
-        {activeTab === 'deck_versions' && (
-          <DeckVersionsTab deck={activeDeck} onDeckChange={setDeck} />
-        )}
       </div>
+
+      {/* Save version modal */}
+      {showSaveModal && (
+        <SaveVersionModal
+          onSave={handleSaveVersion}
+          onCancel={() => setShowSaveModal(false)}
+        />
+      )}
     </div>
   );
 }

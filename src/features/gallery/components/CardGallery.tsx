@@ -2,19 +2,27 @@
 import { useState } from 'react';
 
 // Types
-import type { DeckEntry, Objective } from '@/types';
-
-// Utils
-import { BASIC_LANDS } from '@/features/deckBuilder/utils/basicLands';
+import type { DeckEntry, Objective, ScryfallCard } from '@/types';
 
 // Components
 import ObjectivePill from '@/features/objectives/components/ObjectivePill';
+import SwapSidebar from '@/features/gallery/components/SwapSidebar';
+import SwapBanner from '@/features/gallery/components/SwapBanner';
+
+interface PendingSwap {
+  removeCardId: string;
+  addCard: ScryfallCard;
+}
 
 interface CardGalleryProps {
   entries: DeckEntry[];
   objectives: Objective[];
+  pendingSwaps: PendingSwap[];
   onAssign: (cardId: string, objectiveId: string) => void;
   onUnassign: (cardId: string, objectiveId: string) => void;
+  onAddSwap: (removeCardId: string, addCard: ScryfallCard) => void;
+  onSaveAsVersion: () => void;
+  onUndoSwaps: () => void;
 }
 
 type SortKey = 'type' | 'color' | 'cmc' | 'name';
@@ -38,10 +46,8 @@ function sortEntries(entries: DeckEntry[], sort: SortKey): DeckEntry[] {
       case 'type':
         return a.category.localeCompare(b.category);
       case 'color': {
-        const aFirst =
-          COLOR_ORDER.indexOf(a.card.color_identity[0] ?? '') ?? 99;
-        const bFirst =
-          COLOR_ORDER.indexOf(b.card.color_identity[0] ?? '') ?? 99;
+        const aFirst = COLOR_ORDER.indexOf(a.card.color_identity[0] ?? '');
+        const bFirst = COLOR_ORDER.indexOf(b.card.color_identity[0] ?? '');
         return aFirst - bFirst;
       }
       default:
@@ -53,26 +59,38 @@ function sortEntries(entries: DeckEntry[], sort: SortKey): DeckEntry[] {
 export default function CardGallery({
   entries,
   objectives,
+  pendingSwaps,
   onAssign,
   onUnassign,
+  onAddSwap,
+  onSaveAsVersion,
+  onUndoSwaps,
 }: CardGalleryProps) {
   const [sort, setSort] = useState<SortKey>('type');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [popover, setPopover] = useState<string | null>(null);
+  const [swapping, setSwapping] = useState<ScryfallCard | null>(null);
 
-  const BLACK_LIST = BASIC_LANDS.map(({ type_line }) => type_line);
-  const filteredEntries = entries.filter((entry) => {
-    const t_line = entry.card.type_line;
-    if (t_line) {
-      return !BLACK_LIST.includes(t_line);
-    }
-    return false;
-  });
   const safeObjectives = objectives ?? [];
-  const sorted = sortEntries(filteredEntries ?? [], sort);
+  const sorted = sortEntries(entries ?? [], sort);
+
+  const swappedOutIds = new Set(pendingSwaps.map((s) => s.removeCardId));
+
+  const handleConfirmSwap = (replacement: ScryfallCard) => {
+    if (!swapping) return;
+    onAddSwap(swapping.id, replacement);
+    setSwapping(null);
+  };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
+      {/* Pending swaps banner */}
+      <SwapBanner
+        swaps={pendingSwaps}
+        onSaveAsVersion={onSaveAsVersion}
+        onUndo={onUndoSwaps}
+      />
+
       {/* Sort controls */}
       <div className="flex items-center gap-2">
         <span className="text-xs text-slate-500 uppercase tracking-widest mr-1">
@@ -94,28 +112,31 @@ export default function CardGallery({
           ))}
         </div>
       </div>
-      <p className="text-sm italic text-slate-500 selection:bg-slate-200">
-        * Basic land cards are filtered out automatically
-      </p>
 
       {/* Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {sorted.map((entry) => {
           const safeObjectiveIds = entry.objectiveIds ?? [];
-
           const cardObjectives = safeObjectives.filter((o) =>
             safeObjectiveIds.includes(o.id),
           );
           const unassigned = safeObjectives.filter(
             (o) => !safeObjectiveIds.includes(o.id),
           );
-
           const isExpanded = expanded === entry.card.id;
           const showPopover = popover === entry.card.id;
+          const isSwappedOut = swappedOutIds.has(entry.card.id);
           const imageUrl = entry.card.image_uris?.normal;
+          const pendingReplacement = pendingSwaps.find(
+            (s) => s.removeCardId === entry.card.id,
+          )?.addCard;
 
           return (
-            <div key={entry.card.id} className="flex flex-col gap-2">
+            <div
+              key={entry.card.id}
+              className="flex flex-col gap-2"
+              style={{ opacity: isSwappedOut ? 0.5 : 1 }}
+            >
               {/* Card image */}
               <div className="relative group">
                 {imageUrl ? (
@@ -127,9 +148,13 @@ export default function CardGallery({
                     }
                     alt={entry.card.name}
                     onClick={() =>
+                      !isSwappedOut &&
                       setExpanded(isExpanded ? null : entry.card.id)
                     }
                     className="w-full rounded-xl cursor-pointer transition-transform duration-200 group-hover:scale-[1.02] shadow-lg border border-slate-700"
+                    style={{
+                      borderColor: isSwappedOut ? '#ef4444' : undefined,
+                    }}
                   />
                 ) : (
                   <div className="w-full aspect-[5/7] rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center">
@@ -145,6 +170,15 @@ export default function CardGallery({
                     ×{entry.quantity}
                   </span>
                 )}
+
+                {/* Swapped out overlay */}
+                {isSwappedOut && (
+                  <div className="absolute inset-0 rounded-xl bg-red-950/60 flex items-center justify-center">
+                    <span className="text-red-300 text-xs font-semibold">
+                      Swapped Out
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Card name */}
@@ -152,7 +186,14 @@ export default function CardGallery({
                 {entry.card.name}
               </p>
 
-              {/* Objective pills + add button */}
+              {/* Pending replacement indicator */}
+              {pendingReplacement && (
+                <p className="text-green-400 text-xs px-0.5 truncate">
+                  → {pendingReplacement.name}
+                </p>
+              )}
+
+              {/* Objective pills + action buttons */}
               <div className="flex flex-wrap gap-1 px-0.5">
                 {cardObjectives.map((o) => (
                   <ObjectivePill
@@ -162,36 +203,56 @@ export default function CardGallery({
                   />
                 ))}
 
-                {/* Add objective button */}
-                {safeObjectives.length > 0 && unassigned.length > 0 && (
-                  <div className="relative">
-                    <button
-                      onClick={() =>
-                        setPopover(showPopover ? null : entry.card.id)
-                      }
-                      className="text-[10px] text-slate-500 hover:text-slate-300 border border-slate-700 hover:border-slate-500 rounded-full px-2 py-0.5 transition-colors"
-                    >
-                      + Add
-                    </button>
+                {/* Add objective */}
+                {safeObjectives.length > 0 &&
+                  unassigned.length > 0 &&
+                  !isSwappedOut && (
+                    <div className="relative">
+                      <button
+                        onClick={() =>
+                          setPopover(showPopover ? null : entry.card.id)
+                        }
+                        className="text-[10px] text-slate-500 hover:text-slate-300 border border-slate-700 hover:border-slate-500 rounded-full px-2 py-0.5 transition-colors"
+                      >
+                        + Label
+                      </button>
+                      {showPopover && (
+                        <div className="absolute bottom-full left-0 mb-1 z-20 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-2 flex flex-col gap-1 min-w-[140px]">
+                          {unassigned.map((o) => (
+                            <button
+                              key={o.id}
+                              onClick={() => {
+                                onAssign(entry.card.id, o.id);
+                                setPopover(null);
+                              }}
+                              className="text-left px-2 py-1 rounded hover:bg-slate-800 transition-colors"
+                            >
+                              <ObjectivePill objective={o} />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                    {/* Objective popover */}
-                    {showPopover && (
-                      <div className="absolute bottom-full left-0 mb-1 z-20 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-1 flex flex-col gap-1 w-max">
-                        {unassigned.map((o) => (
-                          <button
-                            key={o.id}
-                            onClick={() => {
-                              onAssign(entry.card.id, o.id);
-                              setPopover(null);
-                            }}
-                            className="text-left px-2 py-1 rounded hover:bg-slate-800 transition-colors"
-                          >
-                            <ObjectivePill objective={o} />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                {/* Swap button */}
+                {!isSwappedOut && (
+                  <button
+                    onClick={() => setSwapping(entry.card)}
+                    className="text-[10px] text-slate-500 hover:text-amber-400 border border-slate-700 hover:border-amber-600 rounded-full px-2 py-0.5 transition-colors"
+                  >
+                    ⇄ Swap
+                  </button>
+                )}
+
+                {/* Undo individual swap */}
+                {isSwappedOut && (
+                  <button
+                    onClick={() => onUndoSwaps()}
+                    className="text-[10px] text-red-400 hover:text-red-300 border border-red-800 rounded-full px-2 py-0.5 transition-colors"
+                  >
+                    Undo
+                  </button>
                 )}
               </div>
             </div>
@@ -218,6 +279,15 @@ export default function CardGallery({
             );
           })()}
         </div>
+      )}
+
+      {/* Swap sidebar */}
+      {swapping && (
+        <SwapSidebar
+          cardToSwap={swapping}
+          onConfirm={handleConfirmSwap}
+          onClose={() => setSwapping(null)}
+        />
       )}
     </div>
   );
