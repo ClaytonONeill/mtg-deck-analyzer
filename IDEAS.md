@@ -9,6 +9,10 @@ see metrics against different optimization strategies. The feature would include
 
 2. The ability to perform side-by-side comparisons between versions to see type and CMC analysis as well as objective completeness.
 
+### TODO
+
+Need to fix card swapping, the swaps are not saving into the new saved versions.
+
 ## Themes
 
 A user should have the ability to choose between a selection of themes to alter the appearance of the application. This selector should live in the header. Some possible selections could be:
