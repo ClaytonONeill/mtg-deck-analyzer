@@ -40,6 +40,10 @@ export interface DeckVersion {
     removeCardId: string;
     addCard: ScryfallCard;
   }[];
+  objectiveOverrides: {
+    cardId: string;
+    objectiveIds: string[];
+  }[];
   createdAt: string;
 }
 

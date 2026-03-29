@@ -19,7 +19,10 @@ export function useDeckVersions(
   const safeDeck = useMemo<Deck>(
     () => ({
       ...deck,
-      versions: deck.versions ?? [],
+      versions: (deck.versions ?? []).map((v) => ({
+        ...v,
+        objectiveOverrides: v.objectiveOverrides ?? [],
+      })),
     }),
     [deck],
   );
@@ -31,6 +34,7 @@ export function useDeckVersions(
         name: name.trim(),
         note: note.trim(),
         swaps,
+        objectiveOverrides: [],
         createdAt: new Date().toISOString(),
       };
       const updated: Deck = {
@@ -75,10 +79,69 @@ export function useDeckVersions(
     [safeDeck, onDeckChange],
   );
 
+  const assignObjectiveToVersion = useCallback(
+    (versionId: string, cardId: string, objectiveId: string) => {
+      const updated: Deck = {
+        ...safeDeck,
+        versions: safeDeck.versions.map((v) => {
+          if (v.id !== versionId) return v;
+
+          const safeOverrides = v.objectiveOverrides ?? [];
+          const existing = safeOverrides.find((o) => o.cardId === cardId);
+
+          const objectiveOverrides = existing
+            ? safeOverrides.map((o) =>
+                o.cardId === cardId && !o.objectiveIds.includes(objectiveId)
+                  ? { ...o, objectiveIds: [...o.objectiveIds, objectiveId] }
+                  : o,
+              )
+            : [...safeOverrides, { cardId, objectiveIds: [objectiveId] }];
+
+          return { ...v, objectiveOverrides };
+        }),
+        updatedAt: new Date().toISOString(),
+      };
+      deckStore.save(updated);
+      onDeckChange(updated);
+    },
+    [safeDeck, onDeckChange],
+  );
+
+  const unassignObjectiveFromVersion = useCallback(
+    (versionId: string, cardId: string, objectiveId: string) => {
+      const updated: Deck = {
+        ...safeDeck,
+        versions: safeDeck.versions.map((v) => {
+          if (v.id !== versionId) return v;
+
+          const safeOverrides = v.objectiveOverrides ?? [];
+          const objectiveOverrides = safeOverrides.map((o) =>
+            o.cardId === cardId
+              ? {
+                  ...o,
+                  objectiveIds: o.objectiveIds.filter(
+                    (id) => id !== objectiveId,
+                  ),
+                }
+              : o,
+          );
+
+          return { ...v, objectiveOverrides };
+        }),
+        updatedAt: new Date().toISOString(),
+      };
+      deckStore.save(updated);
+      onDeckChange(updated);
+    },
+    [safeDeck, onDeckChange],
+  );
+
   return {
     versions: safeDeck.versions,
     saveAsVersion,
     deleteVersion,
     updateVersion,
+    assignObjectiveToVersion,
+    unassignObjectiveFromVersion,
   };
 }

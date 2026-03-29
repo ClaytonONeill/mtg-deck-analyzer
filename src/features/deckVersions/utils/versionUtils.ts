@@ -7,6 +7,8 @@ import { inferCategory } from '@/store/deckStore';
 export function applyVersionToDeck(deck: Deck, version: DeckVersion): Deck {
   let entries: DeckEntry[] = deck.entries.map((e) => ({ ...e }));
 
+  const safeOverrides = version.objectiveOverrides ?? [];
+
   for (const swap of version.swaps) {
     // Remove the card being swapped out
     entries = entries
@@ -21,9 +23,16 @@ export function applyVersionToDeck(deck: Deck, version: DeckVersion): Deck {
     const existingIndex = entries.findIndex(
       (e) => e.card.id === swap.addCard.id,
     );
+
+    // Check if this swapped-in card has objective overrides
+    const override = safeOverrides.find((o) => o.cardId === swap.addCard.id);
+    const objectiveIds = override?.objectiveIds ?? [];
+
     if (existingIndex >= 0) {
       entries = entries.map((e, i) =>
-        i === existingIndex ? { ...e, quantity: e.quantity + 1 } : e,
+        i === existingIndex
+          ? { ...e, quantity: e.quantity + 1, objectiveIds }
+          : e,
       );
     } else {
       entries = [
@@ -32,16 +41,20 @@ export function applyVersionToDeck(deck: Deck, version: DeckVersion): Deck {
           card: swap.addCard,
           quantity: 1,
           category: inferCategory(swap.addCard),
-          objectiveIds: [],
+          objectiveIds,
         },
       ];
     }
   }
 
-  return {
-    ...deck,
-    entries,
-  };
+  // Apply overrides to cards that were NOT swapped — they exist in main deck
+  // but may have different objective assignments in this version
+  entries = entries.map((e) => {
+    const override = safeOverrides.find((o) => o.cardId === e.card.id);
+    return override ? { ...e, objectiveIds: override.objectiveIds } : e;
+  });
+
+  return { ...deck, entries };
 }
 
 export function getVersionLabel(

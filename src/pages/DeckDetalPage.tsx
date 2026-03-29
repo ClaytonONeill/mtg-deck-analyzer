@@ -72,14 +72,13 @@ export default function DeckDetailPage() {
   const [pendingSwaps, setPendingSwaps] = useState<PendingSwap[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
 
-  // Derive active deck before hooks so it can be used as dependency
+  // Derive active deck before hooks
   const liveDeck = deckId ? deckStore.getById(deckId) : undefined;
   const activeDeck = deck ?? liveDeck;
 
   // All hooks unconditionally before any early return
   const {
     objectives,
-    entries,
     createObjective,
     deleteObjective,
     assignObjective,
@@ -87,10 +86,13 @@ export default function DeckDetailPage() {
     updateObjective,
   } = useObjectives(activeDeck ?? EMPTY_DECK, (updated) => setDeck(updated));
 
-  const { versions, saveAsVersion, deleteVersion } = useDeckVersions(
-    activeDeck ?? EMPTY_DECK,
-    (updated) => setDeck(updated),
-  );
+  const {
+    versions,
+    saveAsVersion,
+    deleteVersion,
+    assignObjectiveToVersion,
+    unassignObjectiveFromVersion,
+  } = useDeckVersions(activeDeck ?? EMPTY_DECK, (updated) => setDeck(updated));
 
   const displayDeck = useMemo<Deck>(() => {
     if (!activeDeck) return EMPTY_DECK;
@@ -130,6 +132,24 @@ export default function DeckDetailPage() {
     saveAsVersion(name, note, pendingSwaps);
     setPendingSwaps([]);
     setShowSaveModal(false);
+  };
+
+  // Version-aware objective handlers — write to version overrides when viewing
+  // a version, write to main deck entries when viewing main
+  const handleAssignObjective = (cardId: string, objectiveId: string) => {
+    if (activeVersionId === 'main') {
+      assignObjective(cardId, objectiveId);
+    } else {
+      assignObjectiveToVersion(activeVersionId, cardId, objectiveId);
+    }
+  };
+
+  const handleUnassignObjective = (cardId: string, objectiveId: string) => {
+    if (activeVersionId === 'main') {
+      unassignObjective(cardId, objectiveId);
+    } else {
+      unassignObjectiveFromVersion(activeVersionId, cardId, objectiveId);
+    }
   };
 
   const tabs: { key: Tab; label: string }[] = [
@@ -343,11 +363,11 @@ export default function DeckDetailPage() {
           <ObjectivesTab
             deck={displayDeck}
             objectives={objectives}
-            entries={entries}
+            entries={displayDeck.entries}
             onCreate={createObjective}
             onDelete={deleteObjective}
             onUpdate={updateObjective}
-            onUnassign={unassignObjective}
+            onUnassign={handleUnassignObjective}
           />
         )}
 
@@ -360,8 +380,8 @@ export default function DeckDetailPage() {
             }))}
             objectives={objectives}
             pendingSwaps={pendingSwaps}
-            onAssign={assignObjective}
-            onUnassign={unassignObjective}
+            onAssign={handleAssignObjective}
+            onUnassign={handleUnassignObjective}
             onAddSwap={(removeCardId, addCard) =>
               setPendingSwaps((prev) => [...prev, { removeCardId, addCard }])
             }
