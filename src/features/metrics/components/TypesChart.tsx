@@ -7,17 +7,17 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from "recharts";
+} from 'recharts';
 
 // Utils
-import { getFillForKey, collectMulticolorGroups } from "../utils/chartColors";
+import { getFillForKey, collectMulticolorGroups } from '../utils/chartColors';
 
 // Components
-import CustomTooltip from "./CustomTooltip";
-import GradientDefs from "@/features/metrics/components/GradientDefs";
+import CustomTooltip from './CustomTooltip';
+import GradientDefs from '@/features/metrics/components/GradientDefs';
 
 // Types
-import type { TypeDataPoint } from "@/features/metrics/types/metrics.types";
+import type { TypeDataPoint } from '@/features/metrics/types/metrics.types';
 
 interface TypesChartProps {
   data: TypeDataPoint[];
@@ -29,8 +29,8 @@ function getAllColorKeys(data: TypeDataPoint[]): string[] {
   for (const point of data) {
     for (const group of point.groups) {
       const key =
-        group.colorKey === "multicolor"
-          ? group.colors.slice().sort().join("")
+        group.colorKey === 'multicolor'
+          ? group.colors.slice().sort().join('')
           : group.colorKey;
       seen.add(key);
     }
@@ -47,8 +47,8 @@ function flattenPoint(
   };
   for (const group of point.groups) {
     const key =
-      group.colorKey === "multicolor"
-        ? group.colors.slice().sort().join("")
+      group.colorKey === 'multicolor'
+        ? group.colors.slice().sort().join('')
         : group.colorKey;
     flat[key] = ((flat[key] as number) ?? 0) + group.count;
   }
@@ -82,13 +82,13 @@ export default function TypesChart({ data }: TypesChartProps) {
         />
         <XAxis
           dataKey="category"
-          tick={{ fill: "#94a3b8", fontSize: 12 }}
-          axisLine={{ stroke: "#334155" }}
+          tick={{ fill: '#94a3b8', fontSize: 12 }}
+          axisLine={{ stroke: '#334155' }}
           tickLine={false}
         />
         <YAxis
           allowDecimals={false}
-          tick={{ fill: "#94a3b8", fontSize: 12 }}
+          tick={{ fill: '#94a3b8', fontSize: 12 }}
           axisLine={false}
           tickLine={false}
         />
@@ -100,9 +100,10 @@ export default function TypesChart({ data }: TypesChartProps) {
               coordinate={undefined}
               accessibilityLayer={false}
               activeIndex={undefined}
+              chartType="types"
             />
           }
-          cursor={{ fill: "rgba(255,255,255, 0.1)" }}
+          cursor={{ fill: 'rgba(255,255,255, 0.1)' }}
         />
         {colorKeys.map((key) => (
           <Bar
