@@ -24,7 +24,7 @@ import CardGallery from '@/features/gallery/components/CardGallery';
 // Types
 import type { Deck } from '@/types';
 
-type Tab = 'metrics' | 'objectives' | 'gallery' | 'decks';
+type Tab = 'metrics' | 'objectives' | 'gallery' | 'deck_versions';
 type MetricView = 'types' | 'cmc';
 
 export default function DeckDetailPage() {
@@ -92,7 +92,7 @@ export default function DeckDetailPage() {
     { key: 'metrics', label: 'Metrics' },
     { key: 'objectives', label: 'Objectives' },
     { key: 'gallery', label: 'Gallery' },
-    { key: 'decks', label: 'Decks' },
+    { key: 'deck_versions', label: 'Deck Versions' },
   ];
 
   return (
@@ -263,9 +263,9 @@ export default function DeckDetailPage() {
           />
         )}
 
-        {activeTab === 'decks' && (
+        {activeTab === 'deck_versions' && (
           <div className="flex items-center justify-center py-24 text-slate-500 text-sm">
-            Decks tab coming soon.
+            Decks versions tab coming soon.
           </div>
         )}
       </div>
