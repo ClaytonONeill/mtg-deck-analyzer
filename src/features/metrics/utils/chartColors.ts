@@ -3,22 +3,22 @@ import type {
   TypeDataPoint,
   ColorGroup,
   CMCDataPoint,
-} from "../types/metrics.types";
+} from '../types/metrics.types';
 
 export const MTG_COLORS: Record<string, string> = {
-  W: "#f0d58c",
-  U: "#1971c2",
-  B: "#6c3d9e",
-  R: "#c92a2a",
-  G: "#2f9e44",
-  colorless: "#6b6b69",
+  W: '#f0d58c',
+  U: '#1971c2',
+  B: '#6c3d9e',
+  R: '#c92a2a',
+  G: '#2f9e44',
+  colorless: '#949494ff',
 };
 
-export const MULTICOLOR_GOLD = "#f59f00";
+export const MULTICOLOR_GOLD = '#f59f00';
 
 // Returns a unique gradient ID for a given set of colors
 export function gradientId(colors: string[]): string {
-  return `grad-${colors.slice().sort().join("-")}`;
+  return `grad-${colors.slice().sort().join('-')}`;
 }
 
 // Builds stop definitions for a multi-color gradient
@@ -27,8 +27,8 @@ export function buildGradientStops(
 ): { offset: string; color: string }[] {
   if (colors.length === 1) {
     return [
-      { offset: "0%", color: MTG_COLORS[colors[0]] ?? MULTICOLOR_GOLD },
-      { offset: "100%", color: MTG_COLORS[colors[0]] ?? MULTICOLOR_GOLD },
+      { offset: '0%', color: MTG_COLORS[colors[0]] ?? MULTICOLOR_GOLD },
+      { offset: '100%', color: MTG_COLORS[colors[0]] ?? MULTICOLOR_GOLD },
     ];
   }
   return colors.map((c, i) => ({
@@ -38,8 +38,8 @@ export function buildGradientStops(
 }
 
 export function barFill(colorKey: string, colors: string[]): string {
-  if (colorKey === "colorless") return MTG_COLORS.colorless;
-  if (colorKey === "multicolor") return `url(#${gradientId(colors)})`;
+  if (colorKey === 'colorless') return MTG_COLORS.colorless;
+  if (colorKey === 'multicolor') return `url(#${gradientId(colors)})`;
   return MTG_COLORS[colorKey] ?? MULTICOLOR_GOLD;
 }
 
@@ -50,8 +50,8 @@ function groupForKey(
 ): ColorGroup | undefined {
   return groups.find((g) => {
     const gKey =
-      g.colorKey === "multicolor"
-        ? g.colors.slice().sort().join("")
+      g.colorKey === 'multicolor'
+        ? g.colors.slice().sort().join('')
         : g.colorKey;
     return gKey === key;
   });
@@ -67,7 +67,7 @@ export function getFillForKey(
       return barFill(group.colorKey, group.colors);
     }
   }
-  return "transparent";
+  return 'transparent';
 }
 
 // Collect all unique multicolor combinations across all data points
@@ -78,8 +78,8 @@ export function collectMulticolorGroups(
   const result: ColorGroup[] = [];
   for (const point of dataPoints) {
     for (const group of point.groups) {
-      if (group.colorKey !== "multicolor") continue;
-      const key = group.colors.slice().sort().join("");
+      if (group.colorKey !== 'multicolor') continue;
+      const key = group.colors.slice().sort().join('');
       if (!seen.has(key)) {
         seen.add(key);
         result.push(group);

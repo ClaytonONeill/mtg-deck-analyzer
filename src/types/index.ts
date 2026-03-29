@@ -28,6 +28,8 @@ export interface DeckEntry {
   card: ScryfallCard;
   quantity: number;
   category: CardCategory;
+  objectiveIds: string[];
+  type_line?: string;
 }
 
 export interface Deck {
@@ -45,13 +47,6 @@ export interface Deck {
 export interface Objective {
   id: string;
   label: string;
-  color: string; // for visual grouping
-}
-
-// Extend DeckEntry
-export interface DeckEntry {
-  card: ScryfallCard;
-  quantity: number;
-  category: CardCategory;
-  objectiveIds: string[];
+  description: string;
+  color: string;
 }

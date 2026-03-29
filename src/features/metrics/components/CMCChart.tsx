@@ -7,20 +7,20 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from "recharts";
+} from 'recharts';
 
 // Utils
 import {
   getFillForKey,
   collectMulticolorGroups,
-} from "@/features/metrics/utils/chartColors";
+} from '@/features/metrics/utils/chartColors';
 
 // Component
-import CustomTooltip from "./CustomTooltip";
-import GradientDefs from "@/features/metrics/components/GradientDefs";
+import CustomTooltip from './CustomTooltip';
+import GradientDefs from '@/features/metrics/components/GradientDefs';
 
 // Types
-import type { CMCDataPoint } from "@/features/metrics/types/metrics.types";
+import type { CMCDataPoint } from '@/features/metrics/types/metrics.types';
 
 interface CMCChartProps {
   data: CMCDataPoint[];
@@ -31,8 +31,8 @@ function getAllColorKeys(data: CMCDataPoint[]): string[] {
   for (const point of data) {
     for (const group of point.groups) {
       const key =
-        group.colorKey === "multicolor"
-          ? group.colors.slice().sort().join("")
+        group.colorKey === 'multicolor'
+          ? group.colors.slice().sort().join('')
           : group.colorKey;
       seen.add(key);
     }
@@ -46,8 +46,8 @@ function flattenPoint(
   const flat: Record<string, number> & { cmc: number } = { cmc: point.cmc };
   for (const group of point.groups) {
     const key =
-      group.colorKey === "multicolor"
-        ? group.colors.slice().sort().join("")
+      group.colorKey === 'multicolor'
+        ? group.colors.slice().sort().join('')
         : group.colorKey;
     flat[key] = (flat[key] ?? 0) + group.count;
   }
@@ -81,20 +81,20 @@ export default function CMCChart({ data }: CMCChartProps) {
         />
         <XAxis
           dataKey="cmc"
-          tick={{ fill: "#94a3b8", fontSize: 12 }}
-          axisLine={{ stroke: "#334155" }}
+          tick={{ fill: '#94a3b8', fontSize: 12 }}
+          axisLine={{ stroke: '#334155' }}
           tickLine={false}
           label={{
-            value: "Mana Value",
-            position: "insideBottom",
+            value: 'Mana Value',
+            position: 'insideBottom',
             offset: -4,
-            fill: "#64748b",
+            fill: '#64748b',
             fontSize: 11,
           }}
         />
         <YAxis
           allowDecimals={false}
-          tick={{ fill: "#94a3b8", fontSize: 12 }}
+          tick={{ fill: '#94a3b8', fontSize: 12 }}
           axisLine={false}
           tickLine={false}
         />
@@ -106,9 +106,10 @@ export default function CMCChart({ data }: CMCChartProps) {
               coordinate={undefined}
               accessibilityLayer={false}
               activeIndex={undefined}
+              chartType="cmc"
             />
           }
-          cursor={{ fill: "rgba(255,255,255, 0.1)" }}
+          cursor={{ fill: 'rgba(255,255,255, 0.1)' }}
         />
 
         {colorKeys.map((key) => (
