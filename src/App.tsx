@@ -2,6 +2,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Components
+import Header from "@/components/Header/Header";
 import ErrorBoundary from "@/components/ErrorBoundary/ErrorBoundary";
 
 // Pages
@@ -14,6 +15,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <ErrorBoundary>
+        <Header />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/build" element={<DeckBuilderPage />} />

@@ -539,7 +539,7 @@ export default function CardGallery({
               </div>
 
               {/* Card name */}
-              <p className="text-white text-xs font-medium truncate px-0.5">
+              <p className="text-white text-sm font-medium truncate px-0.5">
                 {entry.card.name}
               </p>
 

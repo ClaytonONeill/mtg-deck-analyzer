@@ -53,7 +53,7 @@ export default function SwapSidebar({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <div className="flex flex-col gap-0.5">
-            <p className="text-xs text-slate-500 uppercase tracking-widest">
+            <p className="text-sm text-slate-500 uppercase tracking-widest">
               Swapping out
             </p>
             <p className="text-white font-semibold text-sm">
@@ -165,14 +165,14 @@ export default function SwapSidebar({
                       <img
                         src={entry.card.image_uris.small}
                         alt={entry.card.name}
-                        className="w-10 rounded-lg shrink-0"
+                        className="w-14 rounded-lg shrink-0"
                       />
                     )}
                     <div className="flex flex-col gap-1 min-w-0">
-                      <p className="text-white text-sm font-semibold truncate">
+                      <p className="text-white text-md font-semibold truncate">
                         {entry.card.name}
                       </p>
-                      <p className="text-slate-500 text-xs">
+                      <p className="text-slate-500 text-sm">
                         {entry.card.type_line}
                       </p>
                       <div className="flex items-center gap-1.5 flex-wrap">

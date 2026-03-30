@@ -9,7 +9,6 @@ import { deckStore } from "@/store/deckStore";
 
 // Components
 import ManaCost from "@/components/ManaSymbol/ManaCost";
-import ColorPip from "@/components/ManaSymbol/ColorPip";
 
 interface WishlistCardProps {
   entry: WishlistEntry;
@@ -27,65 +26,73 @@ export default function WishlistCard({
   onUpdateNote,
 }: WishlistCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const [editingNote, setEditingNote] = useState(false);
   const [noteVal, setNoteVal] = useState(entry.note);
+  const [noteDirty, setNoteDirty] = useState(false);
 
   const allDecks = deckStore.getAll();
   const taggedDecks = allDecks.filter((d) => entry.deckIds.includes(d.id));
   const untagged = allDecks.filter((d) => !entry.deckIds.includes(d.id));
 
+  const handleNoteBlur = () => {
+    if (noteDirty) {
+      onUpdateNote(entry.id, noteVal);
+      setNoteDirty(false);
+    }
+  };
+
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-      <div className="flex gap-3 p-3">
-        {/* Card image */}
-        <div className="shrink-0 w-16">
-          {entry.card.image_uris?.small ? (
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full">
+      <div className="flex gap-4 p-4">
+        <div className="shrink-0 w-48">
+          {entry.card.image_uris?.normal ? (
             <img
-              src={entry.card.image_uris.small}
+              src={entry.card.image_uris.normal}
               alt={entry.card.name}
-              className="w-full rounded-lg cursor-pointer hover:scale-105 transition-transform"
+              className="w-full rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-lg border border-slate-700"
               onClick={() => setExpanded((v) => !v)}
             />
           ) : (
-            <div className="w-full aspect-5/7 rounded-lg bg-slate-800 flex items-center justify-center">
-              <span className="text-slate-500 text-[10px] text-center px-1">
+            <div className="w-full aspect-5/7 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center">
+              <span className="text-slate-500 text-xs text-center px-2">
                 {entry.card.name}
               </span>
             </div>
           )}
         </div>
 
-        {/* Card info */}
-        <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+        {/* Right content */}
+        <div className="flex flex-col gap-3 flex-1 min-w-0">
+          {/* Title row */}
           <div className="flex items-start justify-between gap-2">
-            <p className="text-white font-semibold text-sm truncate">
-              {entry.card.name}
-            </p>
-            <button
-              onClick={() => onRemove(entry.id)}
-              className="text-slate-600 hover:text-red-400 transition-colors shrink-0 text-xs"
-            >
-              ✕
-            </button>
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <h3 className="text-white font-bold text-base truncate">
+                {entry.card.name}
+              </h3>
+              <p className="text-slate-400 text-sm">{entry.card.type_line}</p>
+            </div>
+
+            {/* Mana cost */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => onRemove(entry.id)}
+                className="text-slate-600 hover:text-red-400 transition-colors text-sm ml-1"
+              >
+                ✕
+              </button>
+            </div>
           </div>
-
-          <p className="text-slate-500 text-xs">{entry.card.type_line}</p>
-
-          <div className="flex items-center gap-2 flex-wrap">
+          <div>
             {entry.card.cmc > 0 && (
-              <ManaCost cost={entry.card.mana_cost} size={12} />
+              <ManaCost cost={entry.card.mana_cost} size={16} />
             )}
-            {(entry.card.color_identity ?? []).map((c) => (
-              <ColorPip key={c} color={c} size={14} />
-            ))}
           </div>
 
           {/* Deck tags */}
-          <div className="flex flex-wrap gap-1 mt-0.5">
+          <div className="flex flex-wrap gap-1.5">
             {taggedDecks.map((d) => (
               <span
                 key={d.id}
-                className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
                 style={{
                   backgroundColor: "#1971c222",
                   color: "#1971c2",
@@ -95,14 +102,13 @@ export default function WishlistCard({
                 {d.name}
                 <button
                   onClick={() => onUntagDeck(entry.id, d.id)}
-                  className="hover:opacity-70 transition-opacity"
+                  className="hover:opacity-70 transition-opacity leading-none"
                 >
                   ×
                 </button>
               </span>
             ))}
 
-            {/* Tag deck dropdown */}
             {untagged.length > 0 && (
               <select
                 defaultValue=""
@@ -112,10 +118,10 @@ export default function WishlistCard({
                     e.target.value = "";
                   }
                 }}
-                className="text-[10px] text-slate-500 bg-slate-800 border border-slate-700 rounded-full px-2 py-0.5 focus:outline-none focus:border-[#1971c2] transition-colors cursor-pointer"
+                className="text-xs text-slate-400 bg-slate-800 border border-slate-700 rounded-full px-2.5 py-1 focus:outline-none focus:border-[#1971c2] transition-colors cursor-pointer"
               >
                 <option value="" disabled>
-                  + Deck
+                  + Add to Deck
                 </option>
                 {untagged.map((d) => (
                   <option key={d.id} value={d.id}>
@@ -126,52 +132,29 @@ export default function WishlistCard({
             )}
           </div>
 
-          {/* Note */}
-          {editingNote ? (
-            <div className="flex gap-1 mt-1">
-              <input
-                type="text"
-                value={noteVal}
-                onChange={(e) => setNoteVal(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    onUpdateNote(entry.id, noteVal);
-                    setEditingNote(false);
-                  }
-                  if (e.key === "Escape") setEditingNote(false);
-                }}
-                autoFocus
-                className="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-[#1971c2] transition-colors"
-              />
-              <button
-                onClick={() => {
-                  onUpdateNote(entry.id, noteVal);
-                  setEditingNote(false);
-                }}
-                className="text-xs text-[#1971c2] hover:text-blue-400 px-1"
-              >
-                Save
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setEditingNote(true)}
-              className="text-left text-xs text-slate-500 hover:text-slate-300 transition-colors mt-0.5 truncate"
-            >
-              {entry.note ? entry.note : "+ Add note"}
-            </button>
-          )}
+          {/* Note textarea */}
+          <textarea
+            value={noteVal}
+            onChange={(e) => {
+              setNoteVal(e.target.value);
+              setNoteDirty(true);
+            }}
+            onBlur={handleNoteBlur}
+            placeholder="Add note..."
+            rows={3}
+            className="w-full h-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#1971c2] transition-colors resize-none"
+          />
         </div>
       </div>
 
-      {/* Expanded image */}
-      {expanded && entry.card.image_uris?.normal && (
+      {/* Expanded image overlay */}
+      {expanded && entry.card.image_uris?.large && (
         <div
           className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center"
           onClick={() => setExpanded(false)}
         >
           <img
-            src={entry.card.image_uris.normal}
+            src={entry.card.image_uris.large}
             alt={entry.card.name}
             className="max-h-[90vh] rounded-2xl shadow-2xl border border-slate-700"
             onClick={(e) => e.stopPropagation()}

@@ -166,13 +166,13 @@ export default function DeckDetailPage() {
     { key: "metrics", label: "Metrics" },
     { key: "objectives", label: "Objectives" },
     { key: "gallery", label: "Gallery" },
-    { key: "wishlist", label: "Wishlist" },
+    { key: "wishlist", label: `${activeDeck.name} Wishlist` },
   ];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Header */}
-      <header className="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+      <div className=" px-6 py-4 flex items-center justify-between">
         <button
           onClick={() => navigate("/")}
           className="text-slate-400 hover:text-white text-sm transition-colors hover:cursor-pointer"
@@ -185,7 +185,7 @@ export default function DeckDetailPage() {
         >
           Edit Deck
         </button>
-      </header>
+      </div>
 
       <div className="max-w-5xl mx-auto px-6 py-8">
         {/* Deck identity block */}
