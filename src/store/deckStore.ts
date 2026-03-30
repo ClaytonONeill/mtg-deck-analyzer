@@ -1,10 +1,10 @@
 // Types
-import type { Deck, DeckEntry, ScryfallCard, CardCategory } from '@/types';
+import type { Deck, DeckEntry, ScryfallCard, CardCategory } from "@/types";
 
 // Utils
-import { mergeColorIdentities } from '@/features/deckBuilder/utils/partnerUtils';
+import { mergeColorIdentities } from "@/features/deckBuilder/utils/partnerUtils";
 
-const STORAGE_KEY = 'mtg_decks';
+const STORAGE_KEY = "mtg_decks";
 
 export const deckStore = {
   getAll(): Deck[] {
@@ -53,15 +53,15 @@ export function createNewDeck(name: string): Deck {
 }
 
 export function inferCategory(card: ScryfallCard): CardCategory {
-  const t = card.type_line.toLowerCase();
-  if (t.includes('creature')) return 'Creature';
-  if (t.includes('land')) return 'Land';
-  if (t.includes('instant')) return 'Instant';
-  if (t.includes('sorcery')) return 'Sorcery';
-  if (t.includes('enchantment')) return 'Enchantment';
-  if (t.includes('artifact')) return 'Artifact';
-  if (t.includes('planeswalker')) return 'Planeswalker';
-  return 'Other';
+  const t = card.type_line ? card.type_line.toLowerCase() : "";
+  if (t.includes("creature")) return "Creature";
+  if (t.includes("land")) return "Land";
+  if (t.includes("instant")) return "Instant";
+  if (t.includes("sorcery")) return "Sorcery";
+  if (t.includes("enchantment")) return "Enchantment";
+  if (t.includes("artifact")) return "Artifact";
+  if (t.includes("planeswalker")) return "Planeswalker";
+  return "Other";
 }
 
 export function setCommander(deck: Deck, card: ScryfallCard): Deck {
@@ -134,11 +134,11 @@ export function getDeckCardCount(deck: Deck): number {
 
 export function exportDeck(deck: Deck): void {
   const json = JSON.stringify(deck, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
+  const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
+  const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `${deck.name.replace(/\s+/g, '_')}.json`;
+  anchor.download = `${deck.name.replace(/\s+/g, "_")}.json`;
   anchor.click();
   URL.revokeObjectURL(url);
 }
@@ -150,29 +150,29 @@ export async function importDeckFromFile(file: File): Promise<Deck> {
       try {
         const parsed = JSON.parse(e.target?.result as string);
         if (!isValidDeck(parsed)) {
-          reject(new Error('Invalid deck file — missing required fields.'));
+          reject(new Error("Invalid deck file — missing required fields."));
           return;
         }
         resolve(parsed as Deck);
       } catch {
         reject(
-          new Error('Could not parse file. Make sure it is a valid deck JSON.'),
+          new Error("Could not parse file. Make sure it is a valid deck JSON."),
         );
       }
     };
-    reader.onerror = () => reject(new Error('Failed to read file.'));
+    reader.onerror = () => reject(new Error("Failed to read file."));
     reader.readAsText(file);
   });
 }
 
 function isValidDeck(obj: unknown): boolean {
-  if (typeof obj !== 'object' || obj === null) return false;
+  if (typeof obj !== "object" || obj === null) return false;
   const d = obj as Record<string, unknown>;
   return (
-    typeof d.id === 'string' &&
-    typeof d.name === 'string' &&
-    typeof d.createdAt === 'string' &&
-    typeof d.updatedAt === 'string' &&
+    typeof d.id === "string" &&
+    typeof d.name === "string" &&
+    typeof d.createdAt === "string" &&
+    typeof d.updatedAt === "string" &&
     Array.isArray(d.entries)
   );
 }
