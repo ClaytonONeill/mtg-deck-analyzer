@@ -7,20 +7,23 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from 'recharts';
+} from "recharts";
+
+// Hooks
+import { useChartSelection } from "../hooks/useChartSelection";
 
 // Utils
 import {
   getFillForKey,
   collectMulticolorGroups,
-} from '@/features/metrics/utils/chartColors';
+} from "@/features/metrics/utils/chartColors";
 
 // Component
-import CustomTooltip from './CustomTooltip';
-import GradientDefs from '@/features/metrics/components/GradientDefs';
+import CustomTooltip from "./CustomTooltip";
+import GradientDefs from "@/features/metrics/components/GradientDefs";
 
 // Types
-import type { CMCDataPoint } from '@/features/metrics/types/metrics.types';
+import type { CMCDataPoint } from "@/features/metrics/types/metrics.types";
 
 interface CMCChartProps {
   data: CMCDataPoint[];
@@ -31,8 +34,8 @@ function getAllColorKeys(data: CMCDataPoint[]): string[] {
   for (const point of data) {
     for (const group of point.groups) {
       const key =
-        group.colorKey === 'multicolor'
-          ? group.colors.slice().sort().join('')
+        group.colorKey === "multicolor"
+          ? group.colors.slice().sort().join("")
           : group.colorKey;
       seen.add(key);
     }
@@ -46,8 +49,8 @@ function flattenPoint(
   const flat: Record<string, number> & { cmc: number } = { cmc: point.cmc };
   for (const group of point.groups) {
     const key =
-      group.colorKey === 'multicolor'
-        ? group.colors.slice().sort().join('')
+      group.colorKey === "multicolor"
+        ? group.colors.slice().sort().join("")
         : group.colorKey;
     flat[key] = (flat[key] ?? 0) + group.count;
   }
@@ -55,9 +58,11 @@ function flattenPoint(
 }
 
 export default function CMCChart({ data }: CMCChartProps) {
+  const { setSelectedCategory, isStacked } = useChartSelection();
+
   if (data.length === 0) {
     return (
-      <div className="h-[300px] flex items-center justify-center text-slate-500 text-sm">
+      <div className="h-75 flex items-center justify-center text-slate-500 text-sm">
         No cards in deck yet.
       </div>
     );
@@ -72,6 +77,7 @@ export default function CMCChart({ data }: CMCChartProps) {
       <BarChart
         data={flatData}
         margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
+        barGap={isStacked ? 0 : 2}
       >
         <GradientDefs groups={multicolorGroups} />
         <CartesianGrid
@@ -81,20 +87,13 @@ export default function CMCChart({ data }: CMCChartProps) {
         />
         <XAxis
           dataKey="cmc"
-          tick={{ fill: '#94a3b8', fontSize: 12 }}
-          axisLine={{ stroke: '#334155' }}
+          tick={{ fill: "#94a3b8", fontSize: 12 }}
+          axisLine={{ stroke: "#334155" }}
           tickLine={false}
-          label={{
-            value: 'Mana Value',
-            position: 'insideBottom',
-            offset: -4,
-            fill: '#64748b',
-            fontSize: 11,
-          }}
         />
         <YAxis
           allowDecimals={false}
-          tick={{ fill: '#94a3b8', fontSize: 12 }}
+          tick={{ fill: "#94a3b8", fontSize: 12 }}
           axisLine={false}
           tickLine={false}
         />
@@ -109,16 +108,23 @@ export default function CMCChart({ data }: CMCChartProps) {
               chartType="cmc"
             />
           }
-          cursor={{ fill: 'rgba(255,255,255, 0.1)' }}
+          cursor={{ fill: "rgba(255,255,255, 0.1)" }}
         />
-
+        ;
         {colorKeys.map((key) => (
           <Bar
             key={key}
             dataKey={key}
+            // Logic: if isStacked is true, they share "a". If false, no stackId.
+            stackId={isStacked ? "a" : undefined}
             fill={getFillForKey(data, key)}
-            radius={[4, 4, 0, 0]}
-            maxBarSize={32}
+            radius={isStacked ? [0, 0, 0, 0] : [4, 4, 0, 0]}
+            maxBarSize={isStacked ? 32 : 12}
+            style={{ cursor: "pointer" }}
+            onClick={(entry) => {
+              if (entry?.payload)
+                setSelectedCategory(entry.payload.cmc.toString());
+            }}
           />
         ))}
       </BarChart>

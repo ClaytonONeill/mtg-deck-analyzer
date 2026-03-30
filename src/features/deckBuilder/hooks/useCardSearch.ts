@@ -25,7 +25,6 @@ async function fetchCards(
 }
 
 export function useCardSearch() {
-  console.log("testing for calls");
   const [results, setResults] = useState<ScryfallCard[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
