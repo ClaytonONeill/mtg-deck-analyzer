@@ -19,12 +19,20 @@ export default function HomePage() {
         <h1 className="text-xl font-bold tracking-tight text-white">
           MTG Deck Analyzer
         </h1>
-        <button
-          onClick={() => navigate("/build")}
-          className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors hover:cursor-pointer"
-        >
-          + New Deck
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate("/wishlist")}
+            className="text-sm font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors hover:cursor-pointer"
+          >
+            ✨ Wishlist
+          </button>
+          <button
+            onClick={() => navigate("/build")}
+            className="bg-[#1971c2] hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors hover:cursor-pointer"
+          >
+            + New Deck
+          </button>
+        </div>
       </header>
 
       {/* Body */}

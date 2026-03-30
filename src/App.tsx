@@ -8,6 +8,7 @@ import ErrorBoundary from "@/components/ErrorBoundary/ErrorBoundary";
 import HomePage from "@/pages/HomePage";
 import DeckBuilderPage from "@/pages/DeckBuilderPage";
 import DeckDetailPage from "@/pages/DeckDetailPage";
+import WishlistPage from "@/pages/WishlistPage";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/build" element={<DeckBuilderPage />} />
           <Route path="/build/:deckId" element={<DeckBuilderPage />} />
           <Route path="/deck/:deckId" element={<DeckDetailPage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </ErrorBoundary>
