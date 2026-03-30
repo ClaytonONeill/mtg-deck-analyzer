@@ -14,19 +14,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Header */}
-      <header className="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold tracking-tight text-white">
-          MTG Deck Analyzer
-        </h1>
-        <button
-          onClick={() => navigate("/build")}
-          className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors hover:cursor-pointer"
-        >
-          + New Deck
-        </button>
-      </header>
-
       {/* Body */}
       <main className="max-w-5xl mx-auto px-6 py-10">
         {decks.length === 0 ? (

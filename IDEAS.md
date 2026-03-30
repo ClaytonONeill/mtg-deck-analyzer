@@ -1,5 +1,19 @@
 # Future Updates to the App
 
+## Responsive Styling and General Mobile Optimization
+
+The app works well (enough) on a desktop/laptop - but struggles on a mobile device. Time should be spent to
+correct all of the spacing issues that occur when viewing on a phone.
+
+## Auto Save Deck Build on Card Add
+
+## Dual Mana Pips and Basic Land Cards
+
+I need to have support dual mana pips (like white/blue mana - can be seen in a lot of mimic cards) as well as have the basic
+land cards in public folder for when users interact with the `Types` or `CMC` charts when lands are turned on.
+
+Currently, there are "missing image" icons showing for these items and that should be corrected.
+
 ## Deck Versioning (Done)
 
 This feature would allow users to swap out certain cards from a fully-built deck to

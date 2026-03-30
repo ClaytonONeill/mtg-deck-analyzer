@@ -1,21 +1,21 @@
 // Modules
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from "react-router-dom";
 
 // Hooks
-import { useDeckBuilder } from '@/features/deckBuilder/hooks/useDeckBuilder';
+import { useDeckBuilder } from "@/features/deckBuilder/hooks/useDeckBuilder";
 
 // Store
-import { deckStore, getDeckCardCount } from '@/store/deckStore';
+import { deckStore, getDeckCardCount } from "@/store/deckStore";
 
 // Components
-import CardSearchPanel from '@/features/deckBuilder/components/CardSearchPanel';
-import BasicLandsPanel from '@/features/deckBuilder/components/BasicLandsPanel';
-import DeckEntryList from '@/features/deckBuilder/components/DeckEntryList';
-import ColorPip from '@/components/ManaSymbol/ColorPip';
-import ImportDeckButton from '@/components/ImportDeckButton/ImportDeckButton';
+import CardSearchPanel from "@/features/deckBuilder/components/CardSearchPanel";
+import BasicLandsPanel from "@/features/deckBuilder/components/BasicLandsPanel";
+import DeckEntryList from "@/features/deckBuilder/components/DeckEntryList";
+import ColorPip from "@/components/ManaSymbol/ColorPip";
+import ImportDeckButton from "@/components/ImportDeckButton/ImportDeckButton";
 
 // Types
-import type { Deck } from '@/types';
+import type { Deck } from "@/types";
 
 export default function DeckBuilderPage() {
   const { deckId } = useParams();
@@ -42,21 +42,21 @@ export default function DeckBuilderPage() {
   const cardCount = getDeckCardCount(deck);
 
   const handleSave = () => {
-    if (saveDeck()) navigate('/');
+    if (saveDeck()) navigate("/");
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Header */}
-      <header className="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+      <header className=" px-6 py-4 flex items-center justify-between">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate("/")}
           className="text-slate-400 hover:text-white text-sm transition-colors hover:cursor-pointer"
         >
           ← Back
         </button>
         <h1 className="text-lg font-bold text-white">
-          {existing ? 'Edit Deck' : 'Build New Deck'}
+          {existing ? "Edit Deck" : "Build New Deck"}
         </h1>
         <div className="flex items-center gap-2">
           <ImportDeckButton
@@ -65,7 +65,7 @@ export default function DeckBuilderPage() {
           <button
             onClick={handleSave}
             disabled={!deck.name.trim()}
-            className="bg-[#1971c2] hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors hover:cursor-pointer"
+            className="bg-[#19c25f] hover:bg-emerald-400 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors hover:cursor-pointer"
           >
             Save Deck
           </button>
@@ -124,12 +124,12 @@ export default function DeckBuilderPage() {
                 label={
                   requiredPartnerName
                     ? `Partner — must be ${requiredPartnerName}`
-                    : 'Partner Commander'
+                    : "Partner Commander"
                 }
                 placeholder={
                   requiredPartnerName
                     ? `Search for ${requiredPartnerName}...`
-                    : 'Search for a partner commander...'
+                    : "Search for a partner commander..."
                 }
                 onSelectCard={setPartner}
               />
@@ -212,7 +212,7 @@ export default function DeckBuilderPage() {
             </h2>
             <span
               className="text-sm font-mono"
-              style={{ color: cardCount === 100 ? '#1971c2' : undefined }}
+              style={{ color: cardCount === 100 ? "#1971c2" : undefined }}
             >
               {cardCount} / 100
             </span>
