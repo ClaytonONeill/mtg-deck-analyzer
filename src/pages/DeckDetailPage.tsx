@@ -1,6 +1,7 @@
 // Modules
 import { useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { Layers, BarChart2 } from "lucide-react"; // Added for icons
 
 // Stores
 import { deckStore, getDeckCardCount } from "@/store/deckStore";
@@ -9,6 +10,10 @@ import { deckStore, getDeckCardCount } from "@/store/deckStore";
 import { useObjectives } from "@/features/objectives/hooks/useObjectives";
 import { useDeckVersions } from "@/features/deckVersions/hooks/useDeckVersions";
 import { useWishlist } from "@/hooks/useWishlist";
+import { useChartSelection } from "@/features/metrics/hooks/useChartSelection";
+
+// Context
+import { ChartSelectionProvider } from "@/features/metrics/context/ChartSelectionContext";
 
 // Utils
 import {
@@ -53,6 +58,40 @@ const EMPTY_DECK: Deck = {
   updatedAt: "",
 };
 
+/**
+ * Helper component for the Stacked/Individual toggle
+ */
+function ChartDisplayToggle() {
+  const { isStacked, setIsStacked } = useChartSelection();
+
+  return (
+    <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 p-1 rounded-lg ml-4">
+      <button
+        onClick={() => setIsStacked(true)}
+        className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all hover:cursor-pointer ${
+          isStacked
+            ? "bg-[#1971c2] text-white shadow-sm"
+            : "text-slate-500 hover:text-slate-300"
+        }`}
+      >
+        <Layers size={14} />
+        Stacked
+      </button>
+      <button
+        onClick={() => setIsStacked(false)}
+        className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all hover:cursor-pointer ${
+          !isStacked
+            ? "bg-[#1971c2] text-white shadow-sm"
+            : "text-slate-500 hover:text-slate-300"
+        }`}
+      >
+        <BarChart2 size={14} />
+        Individual
+      </button>
+    </div>
+  );
+}
+
 export default function DeckDetailPage() {
   // Routing
   const { deckId } = useParams();
@@ -67,9 +106,6 @@ export default function DeckDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>("metrics");
   const [metricView, setMetricView] = useState<MetricView>("types");
   const [includeLands, setIncludeLands] = useState(true);
-  const [selectedChartCategory, setSelectedChartCategory] = useState<
-    null | string
-  >(null);
 
   // Version selection
   const [activeVersionId, setActiveVersionId] = useState<VersionId>("main");
@@ -113,18 +149,6 @@ export default function DeckDetailPage() {
     return version ? applyVersionToDeck(activeDeck, version) : activeDeck;
   }, [activeDeck, activeVersionId, versions]);
 
-  const selectedCategoryEntries = useMemo(() => {
-    if (!selectedChartCategory) return [];
-
-    return displayDeck.entries.filter((entry) => {
-      // Basic logic: check if the card's type_line contains the category name
-      // You might need to adjust this depending on how getTypeBreakdown() labels categories
-      return entry.card.type_line
-        .toLowerCase()
-        .includes(selectedChartCategory.toLowerCase());
-    });
-  }, [selectedChartCategory, displayDeck.entries]);
-
   if (!activeDeck) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
@@ -157,8 +181,6 @@ export default function DeckDetailPage() {
     setShowSaveModal(false);
   };
 
-  // Version-aware objective handlers — write to version overrides when viewing
-  // a version, write to main deck entries when viewing main
   const handleAssignObjective = (cardId: string, objectiveId: string) => {
     if (activeVersionId === "main") {
       assignObjective(cardId, objectiveId);
@@ -239,7 +261,6 @@ export default function DeckDetailPage() {
             </div>
           </div>
 
-          {/* Card count */}
           <div className="flex flex-col items-end gap-1 shrink-0">
             <span
               className="text-3xl font-bold font-mono"
@@ -321,68 +342,77 @@ export default function DeckDetailPage() {
           ))}
         </div>
 
-        {/* Metrics tab */}
+        {/* Metrics tab - Wrapped in Provider */}
         {activeTab === "metrics" && (
-          <div className="flex flex-col gap-8">
-            <div className="flex items-center justify-between">
-              <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
-                {(["types", "cmc", "compare"] as MetricView[]).map((view) => (
-                  <button
-                    key={view}
-                    onClick={() => setMetricView(view)}
-                    className="px-4 py-1.5 rounded-md text-sm font-semibold transition-colors hover:cursor-pointer"
-                    style={{
-                      backgroundColor:
-                        metricView === view ? "#1971c2" : "transparent",
-                      color: metricView === view ? "#fff" : "#64748b",
-                    }}
-                  >
-                    {view === "types"
-                      ? "Types"
-                      : view === "cmc"
-                        ? "CMC Curve"
-                        : "Compare"}
-                  </button>
-                ))}
+          <ChartSelectionProvider entries={displayDeck.entries}>
+            <div className="flex flex-col gap-8">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
+                    {(["types", "cmc", "compare"] as MetricView[]).map(
+                      (view) => (
+                        <button
+                          key={view}
+                          onClick={() => setMetricView(view)}
+                          className="px-4 py-1.5 rounded-md text-sm font-semibold transition-colors hover:cursor-pointer"
+                          style={{
+                            backgroundColor:
+                              metricView === view ? "#1971c2" : "transparent",
+                            color: metricView === view ? "#fff" : "#64748b",
+                          }}
+                        >
+                          {view === "types"
+                            ? "Types"
+                            : view === "cmc"
+                              ? "Mana Curve"
+                              : "Compare"}
+                        </button>
+                      ),
+                    )}
+                  </div>
+
+                  {/* Add the Toggle here */}
+                  {metricView !== "compare" && <ChartDisplayToggle />}
+                </div>
+
+                {metricView !== "compare" && (
+                  <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
+                    <div
+                      onClick={() => setIncludeLands((v) => !v)}
+                      className="w-9 h-5 rounded-full transition-colors relative cursor-pointer"
+                      style={{
+                        backgroundColor: includeLands ? "#1971c2" : "#334155",
+                      }}
+                    >
+                      <span
+                        className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200"
+                        style={{ left: includeLands ? "18px" : "2px" }}
+                      />
+                    </div>
+                    Include Lands
+                  </label>
+                )}
               </div>
 
               {metricView !== "compare" && (
-                <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
-                  <div
-                    onClick={() => setIncludeLands((v) => !v)}
-                    className="w-9 h-5 rounded-full transition-colors relative cursor-pointer"
-                    style={{
-                      backgroundColor: includeLands ? "#1971c2" : "#334155",
-                    }}
-                  >
-                    <span
-                      className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200"
-                      style={{ left: includeLands ? "18px" : "2px" }}
-                    />
-                  </div>
-                  Include Lands
-                </label>
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                  <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-6">
+                    {metricView === "types" ? "Card Types" : "Mana Curve"}
+                  </h2>
+                  {metricView === "types" ? (
+                    <TypesChart data={typeData} />
+                  ) : (
+                    <CMCChart data={cmcData} />
+                  )}
+                </div>
               )}
+
+              {metricView === "compare" && <VersionCompare deck={activeDeck} />}
             </div>
 
-            {metricView !== "compare" && (
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-6">
-                  {metricView === "types" ? "Card Types" : "Mana Curve"}
-                </h2>
-                {metricView === "types" ? (
-                  <TypesChart
-                    data={typeData}
-                    onBarClick={setSelectedChartCategory}
-                  />
-                ) : (
-                  <CMCChart data={cmcData} />
-                )}
-              </div>
-            )}
-
-            {metricView === "compare" && <VersionCompare deck={activeDeck} />}
-          </div>
+            {/* The singleton Modal instance for the metrics tab */}
+            <SelectedCategoryModal />
+          </ChartSelectionProvider>
         )}
 
         {/* Objectives tab */}
@@ -404,7 +434,7 @@ export default function DeckDetailPage() {
             deckId={activeDeck.id}
             entries={displayDeck.entries.map((e) => ({
               ...e,
-              objectiveIds: e.objectiveIds ?? [], // TODO: Fail safe for older test decks lacking this property - look to remove in final release...
+              objectiveIds: e.objectiveIds ?? [],
             }))}
             objectives={objectives}
             pendingSwaps={pendingSwaps}
@@ -417,6 +447,7 @@ export default function DeckDetailPage() {
             onUndoSwaps={() => setPendingSwaps([])}
           />
         )}
+
         {/* Wishlist tab */}
         {activeTab === "wishlist" && (
           <WishlistDeckFilter
@@ -430,18 +461,10 @@ export default function DeckDetailPage() {
         )}
       </div>
 
-      {/* Save version modal */}
       {showSaveModal && (
         <SaveVersionModal
           onSave={handleSaveVersion}
           onCancel={() => setShowSaveModal(false)}
-        />
-      )}
-      {selectedChartCategory && (
-        <SelectedCategoryModal
-          category={selectedChartCategory}
-          entries={selectedCategoryEntries}
-          onClose={() => setSelectedChartCategory(null)}
         />
       )}
     </div>

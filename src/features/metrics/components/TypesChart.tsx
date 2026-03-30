@@ -9,6 +9,9 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+// Hooks
+import { useChartSelection } from "../hooks/useChartSelection";
+
 // Utils
 import { getFillForKey, collectMulticolorGroups } from "../utils/chartColors";
 
@@ -21,10 +24,8 @@ import type { TypeDataPoint } from "@/features/metrics/types/metrics.types";
 
 interface TypesChartProps {
   data: TypeDataPoint[];
-  onBarClick: (type: string) => void;
 }
 
-// Flatten all color groups across all categories to determine bar keys
 function getAllColorKeys(data: TypeDataPoint[]): string[] {
   const seen = new Set<string>();
   for (const point of data) {
@@ -39,7 +40,6 @@ function getAllColorKeys(data: TypeDataPoint[]): string[] {
   return Array.from(seen);
 }
 
-// Flatten groups into a keyed record for Recharts
 function flattenPoint(
   point: TypeDataPoint,
 ): Record<string, number | string> & { category: string } {
@@ -56,7 +56,9 @@ function flattenPoint(
   return flat;
 }
 
-export default function TypesChart({ data, onBarClick }: TypesChartProps) {
+export default function TypesChart({ data }: TypesChartProps) {
+  const { setSelectedCategory, isStacked } = useChartSelection();
+
   if (data.length === 0) {
     return (
       <div className="h-75 flex items-center justify-center text-slate-500 text-sm">
@@ -74,6 +76,7 @@ export default function TypesChart({ data, onBarClick }: TypesChartProps) {
       <BarChart
         data={flatData}
         margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
+        barGap={isStacked ? 0 : 2}
       >
         <GradientDefs groups={multicolorGroups} />
         <CartesianGrid
@@ -106,18 +109,19 @@ export default function TypesChart({ data, onBarClick }: TypesChartProps) {
           }
           cursor={{ fill: "rgba(255,255,255, 0.1)" }}
         />
+        ;
         {colorKeys.map((key) => (
           <Bar
             key={key}
             dataKey={key}
+            stackId={isStacked ? "a" : undefined}
             fill={getFillForKey(data, key)}
-            radius={[4, 4, 0, 0]}
-            maxBarSize={32}
+            radius={isStacked ? [0, 0, 0, 0] : [4, 4, 0, 0]}
+            maxBarSize={isStacked ? 32 : 12}
             style={{ cursor: "pointer" }}
             onClick={(entry) => {
-              if (entry && entry.payload && entry.payload.category) {
-                onBarClick(entry.payload.category);
-              }
+              if (entry?.payload?.category)
+                setSelectedCategory(entry.payload.category);
             }}
           />
         ))}
