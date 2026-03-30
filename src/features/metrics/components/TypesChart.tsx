@@ -7,20 +7,21 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from 'recharts';
+} from "recharts";
 
 // Utils
-import { getFillForKey, collectMulticolorGroups } from '../utils/chartColors';
+import { getFillForKey, collectMulticolorGroups } from "../utils/chartColors";
 
 // Components
-import CustomTooltip from './CustomTooltip';
-import GradientDefs from '@/features/metrics/components/GradientDefs';
+import CustomTooltip from "./CustomTooltip";
+import GradientDefs from "@/features/metrics/components/GradientDefs";
 
 // Types
-import type { TypeDataPoint } from '@/features/metrics/types/metrics.types';
+import type { TypeDataPoint } from "@/features/metrics/types/metrics.types";
 
 interface TypesChartProps {
   data: TypeDataPoint[];
+  onBarClick: (type: string) => void;
 }
 
 // Flatten all color groups across all categories to determine bar keys
@@ -29,8 +30,8 @@ function getAllColorKeys(data: TypeDataPoint[]): string[] {
   for (const point of data) {
     for (const group of point.groups) {
       const key =
-        group.colorKey === 'multicolor'
-          ? group.colors.slice().sort().join('')
+        group.colorKey === "multicolor"
+          ? group.colors.slice().sort().join("")
           : group.colorKey;
       seen.add(key);
     }
@@ -47,18 +48,18 @@ function flattenPoint(
   };
   for (const group of point.groups) {
     const key =
-      group.colorKey === 'multicolor'
-        ? group.colors.slice().sort().join('')
+      group.colorKey === "multicolor"
+        ? group.colors.slice().sort().join("")
         : group.colorKey;
     flat[key] = ((flat[key] as number) ?? 0) + group.count;
   }
   return flat;
 }
 
-export default function TypesChart({ data }: TypesChartProps) {
+export default function TypesChart({ data, onBarClick }: TypesChartProps) {
   if (data.length === 0) {
     return (
-      <div className="h-[300px] flex items-center justify-center text-slate-500 text-sm">
+      <div className="h-75 flex items-center justify-center text-slate-500 text-sm">
         No cards in deck yet.
       </div>
     );
@@ -82,13 +83,13 @@ export default function TypesChart({ data }: TypesChartProps) {
         />
         <XAxis
           dataKey="category"
-          tick={{ fill: '#94a3b8', fontSize: 12 }}
-          axisLine={{ stroke: '#334155' }}
+          tick={{ fill: "#94a3b8", fontSize: 12 }}
+          axisLine={{ stroke: "#334155" }}
           tickLine={false}
         />
         <YAxis
           allowDecimals={false}
-          tick={{ fill: '#94a3b8', fontSize: 12 }}
+          tick={{ fill: "#94a3b8", fontSize: 12 }}
           axisLine={false}
           tickLine={false}
         />
@@ -103,7 +104,7 @@ export default function TypesChart({ data }: TypesChartProps) {
               chartType="types"
             />
           }
-          cursor={{ fill: 'rgba(255,255,255, 0.1)' }}
+          cursor={{ fill: "rgba(255,255,255, 0.1)" }}
         />
         {colorKeys.map((key) => (
           <Bar
@@ -112,6 +113,12 @@ export default function TypesChart({ data }: TypesChartProps) {
             fill={getFillForKey(data, key)}
             radius={[4, 4, 0, 0]}
             maxBarSize={32}
+            style={{ cursor: "pointer" }}
+            onClick={(entry) => {
+              if (entry && entry.payload && entry.payload.category) {
+                onBarClick(entry.payload.category);
+              }
+            }}
           />
         ))}
       </BarChart>

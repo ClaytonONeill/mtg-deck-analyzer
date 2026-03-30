@@ -26,6 +26,7 @@ import CardGallery from "@/features/gallery/components/CardGallery";
 import VersionCompare from "@/features/deckVersions/components/VersionCompare";
 import SaveVersionModal from "@/features/deckVersions/components/SaveVersionModal";
 import WishlistDeckFilter from "@/features/wishlist/components/WishlistDeckFilter";
+import SelectedCategoryModal from "@/features/metrics/components/SelectedCategoryModal";
 
 // Types
 import type { Deck, ScryfallCard } from "@/types";
@@ -66,6 +67,9 @@ export default function DeckDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>("metrics");
   const [metricView, setMetricView] = useState<MetricView>("types");
   const [includeLands, setIncludeLands] = useState(true);
+  const [selectedChartCategory, setSelectedChartCategory] = useState<
+    null | string
+  >(null);
 
   // Version selection
   const [activeVersionId, setActiveVersionId] = useState<VersionId>("main");
@@ -74,11 +78,9 @@ export default function DeckDetailPage() {
   const [pendingSwaps, setPendingSwaps] = useState<PendingSwap[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
 
-  // Derive active deck before hooks
   const liveDeck = deckId ? deckStore.getById(deckId) : undefined;
   const activeDeck = deck ?? liveDeck;
 
-  // All hooks unconditionally before any early return
   const {
     objectives,
     createObjective,
@@ -111,7 +113,18 @@ export default function DeckDetailPage() {
     return version ? applyVersionToDeck(activeDeck, version) : activeDeck;
   }, [activeDeck, activeVersionId, versions]);
 
-  // Early return AFTER all hooks
+  const selectedCategoryEntries = useMemo(() => {
+    if (!selectedChartCategory) return [];
+
+    return displayDeck.entries.filter((entry) => {
+      // Basic logic: check if the card's type_line contains the category name
+      // You might need to adjust this depending on how getTypeBreakdown() labels categories
+      return entry.card.type_line
+        .toLowerCase()
+        .includes(selectedChartCategory.toLowerCase());
+    });
+  }, [selectedChartCategory, displayDeck.entries]);
+
   if (!activeDeck) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
@@ -358,7 +371,10 @@ export default function DeckDetailPage() {
                   {metricView === "types" ? "Card Types" : "Mana Curve"}
                 </h2>
                 {metricView === "types" ? (
-                  <TypesChart data={typeData} />
+                  <TypesChart
+                    data={typeData}
+                    onBarClick={setSelectedChartCategory}
+                  />
                 ) : (
                   <CMCChart data={cmcData} />
                 )}
@@ -388,7 +404,7 @@ export default function DeckDetailPage() {
             deckId={activeDeck.id}
             entries={displayDeck.entries.map((e) => ({
               ...e,
-              objectiveIds: e.objectiveIds ?? [],
+              objectiveIds: e.objectiveIds ?? [], // TODO: Fail safe for older test decks lacking this property - look to remove in final release...
             }))}
             objectives={objectives}
             pendingSwaps={pendingSwaps}
@@ -419,6 +435,13 @@ export default function DeckDetailPage() {
         <SaveVersionModal
           onSave={handleSaveVersion}
           onCancel={() => setShowSaveModal(false)}
+        />
+      )}
+      {selectedChartCategory && (
+        <SelectedCategoryModal
+          category={selectedChartCategory}
+          entries={selectedCategoryEntries}
+          onClose={() => setSelectedChartCategory(null)}
         />
       )}
     </div>

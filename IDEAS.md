@@ -1,5 +1,10 @@
 # Future Updates to the App
 
+## Responsive Styling and General Mobile Optimization
+
+The app works well (enough) on a desktop/laptop - but struggles on a mobile device. Time should be spent to
+correct all of the spacing issues that occur when viewing on a phone.
+
 ## Deck Versioning (Done)
 
 This feature would allow users to swap out certain cards from a fully-built deck to
