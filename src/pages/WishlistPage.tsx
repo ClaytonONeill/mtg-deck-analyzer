@@ -1,15 +1,344 @@
 // Modules
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Hooks
-import { useWishlist } from "@/hooks/useWishlist";
+import { useWishlist } from '@/hooks/useWishlist';
 
 // Store
-import { deckStore } from "@/store/deckStore";
+import { deckStore } from '@/store/deckStore';
+
+// Types
+import type { CardCategory, WishlistEntry } from '@/types';
 
 // Components
-import WishlistAddPanel from "@/features/wishlist/components/WishlistAddPanel";
-import WishlistCard from "@/features/wishlist/components/WishlistCard";
+import WishlistAddPanel from '@/features/wishlist/components/WishlistAddPanel';
+import WishlistCard from '@/features/wishlist/components/WishlistCard';
+
+type SortKey = 'name' | 'cmc' | 'color' | 'type';
+type SortDirection = 'asc' | 'desc';
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'name', label: 'Name' },
+  { key: 'cmc', label: 'Mana Value' },
+  { key: 'color', label: 'Color Identity' },
+  { key: 'type', label: 'Type' },
+];
+
+const COLOR_ORDER = ['W', 'U', 'B', 'R', 'G'];
+
+const CATEGORY_ORDER: CardCategory[] = [
+  'Creature',
+  'Instant',
+  'Sorcery',
+  'Enchantment',
+  'Artifact',
+  'Planeswalker',
+  'Land',
+  'Other',
+];
+
+interface ActiveFilters {
+  colors: string[];
+  types: CardCategory[];
+  objectives: string[];
+  decks: string[];
+  cmc: { min: number | null; max: number | null };
+}
+
+const EMPTY_FILTERS: ActiveFilters = {
+  colors: [],
+  types: [],
+  objectives: [],
+  decks: [],
+  cmc: { min: null, max: null },
+};
+
+function activeFilterCount(filters: ActiveFilters): number {
+  return (
+    filters.colors.length +
+    filters.types.length +
+    filters.objectives.length +
+    filters.decks.length +
+    (filters.cmc.min !== null ? 1 : 0) +
+    (filters.cmc.max !== null ? 1 : 0)
+  );
+}
+
+function toggle<T>(arr: T[], val: T): T[] {
+  return arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
+}
+
+function inferCategory(typeLine: string): CardCategory {
+  const t = typeLine.toLowerCase();
+  if (t.includes('creature')) return 'Creature';
+  if (t.includes('land')) return 'Land';
+  if (t.includes('instant')) return 'Instant';
+  if (t.includes('sorcery')) return 'Sorcery';
+  if (t.includes('enchantment')) return 'Enchantment';
+  if (t.includes('artifact')) return 'Artifact';
+  if (t.includes('planeswalker')) return 'Planeswalker';
+  return 'Other';
+}
+
+function sortEntries(
+  entries: WishlistEntry[],
+  sort: SortKey,
+  direction: SortDirection,
+): WishlistEntry[] {
+  const mult = direction === 'asc' ? 1 : -1;
+  return [...entries].sort((a, b) => {
+    switch (sort) {
+      case 'name':
+        return mult * a.card.name.localeCompare(b.card.name);
+      case 'cmc':
+        return mult * (a.card.cmc - b.card.cmc);
+      case 'type': {
+        const aCat = CATEGORY_ORDER.indexOf(inferCategory(a.card.type_line));
+        const bCat = CATEGORY_ORDER.indexOf(inferCategory(b.card.type_line));
+        return mult * (aCat - bCat);
+      }
+      case 'color': {
+        const aFirst = COLOR_ORDER.indexOf(
+          (a.card.color_identity ?? [])[0] ?? '',
+        );
+        const bFirst = COLOR_ORDER.indexOf(
+          (b.card.color_identity ?? [])[0] ?? '',
+        );
+        return mult * (aFirst - bFirst);
+      }
+      default:
+        return 0;
+    }
+  });
+}
+
+function applyFilters(
+  entries: WishlistEntry[],
+  filters: ActiveFilters,
+): WishlistEntry[] {
+  return entries.filter((entry) => {
+    // Color
+    if (filters.colors.length > 0) {
+      const cardColors = entry.card.color_identity ?? [];
+      const matches =
+        cardColors.some((c) => filters.colors.includes(c)) ||
+        (cardColors.length === 0 && filters.colors.includes('C'));
+      if (!matches) return false;
+    }
+
+    // Type
+    if (filters.types.length > 0) {
+      if (!filters.types.includes(inferCategory(entry.card.type_line)))
+        return false;
+    }
+
+    // CMC
+    if (filters.cmc.min !== null && entry.card.cmc < filters.cmc.min)
+      return false;
+    if (filters.cmc.max !== null && entry.card.cmc > filters.cmc.max)
+      return false;
+
+    // Decks
+    if (filters.decks.length > 0) {
+      const hasAny = filters.decks.some((id) => entry.deckIds.includes(id));
+      if (!hasAny) return false;
+    }
+
+    // Objectives — wishlist entries don't have objectives but guard for future
+    if (filters.objectives.length > 0) return false;
+
+    return true;
+  });
+}
+
+// Filter popover
+function FilterPopover({
+  draft,
+  allDecks,
+  onChange,
+  onApply,
+  onClear,
+  onClose,
+}: {
+  draft: ActiveFilters;
+  allDecks: { id: string; name: string }[];
+  onChange: (f: ActiveFilters) => void;
+  onApply: () => void;
+  onClear: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div className="fixed inset-0 z-20" onClick={onClose} />
+      <div className="absolute top-full left-0 mt-2 z-30 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-5 w-80 flex flex-col gap-5">
+        {/* Color */}
+        <div className="flex flex-col gap-2">
+          <p className="text-xs text-slate-400 uppercase tracking-widest">
+            Color Identity
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            {COLOR_ORDER.map((c) => (
+              <button
+                key={c}
+                onClick={() =>
+                  onChange({ ...draft, colors: toggle(draft.colors, c) })
+                }
+                className="w-8 h-8 rounded-full text-xs font-bold border-2 transition-all"
+                style={{
+                  borderColor: draft.colors.includes(c) ? '#1971c2' : '#334155',
+                  backgroundColor: draft.colors.includes(c)
+                    ? '#1971c222'
+                    : 'transparent',
+                  color: '#f1f5f9',
+                }}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Type */}
+        <div className="flex flex-col gap-2">
+          <p className="text-xs text-slate-400 uppercase tracking-widest">
+            Card Type
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {CATEGORY_ORDER.map((cat) => (
+              <button
+                key={cat}
+                onClick={() =>
+                  onChange({ ...draft, types: toggle(draft.types, cat) })
+                }
+                className="text-xs px-2.5 py-1 rounded-full border transition-all"
+                style={{
+                  borderColor: draft.types.includes(cat)
+                    ? '#1971c2'
+                    : '#334155',
+                  backgroundColor: draft.types.includes(cat)
+                    ? '#1971c222'
+                    : 'transparent',
+                  color: draft.types.includes(cat) ? '#1971c2' : '#94a3b8',
+                }}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* CMC */}
+        <div className="flex flex-col gap-2">
+          <p className="text-xs text-slate-400 uppercase tracking-widest">
+            Mana Value (CMC)
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={0}
+              placeholder="Min"
+              value={draft.cmc.min ?? ''}
+              onChange={(e) =>
+                onChange({
+                  ...draft,
+                  cmc: {
+                    ...draft.cmc,
+                    min: e.target.value === '' ? null : Number(e.target.value),
+                  },
+                })
+              }
+              className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#1971c2] transition-colors"
+            />
+            <span className="text-slate-500 text-sm">—</span>
+            <input
+              type="number"
+              min={0}
+              placeholder="Max"
+              value={draft.cmc.max ?? ''}
+              onChange={(e) =>
+                onChange({
+                  ...draft,
+                  cmc: {
+                    ...draft.cmc,
+                    max: e.target.value === '' ? null : Number(e.target.value),
+                  },
+                })
+              }
+              className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#1971c2] transition-colors"
+            />
+          </div>
+        </div>
+
+        {/* Deck filter */}
+        {allDecks.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-slate-400 uppercase tracking-widest">
+              Decks
+            </p>
+            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
+              {allDecks.map((deck) => {
+                const checked = draft.decks.includes(deck.id);
+                return (
+                  <label
+                    key={deck.id}
+                    className="flex items-center gap-2 cursor-pointer"
+                    onClick={() =>
+                      onChange({
+                        ...draft,
+                        decks: toggle(draft.decks, deck.id),
+                      })
+                    }
+                  >
+                    <div
+                      className="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all"
+                      style={{
+                        borderColor: checked ? '#1971c2' : '#475569',
+                        backgroundColor: checked ? '#1971c2' : 'transparent',
+                      }}
+                    >
+                      {checked && (
+                        <span className="text-white text-[10px] leading-none font-bold">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor: '#1971c222',
+                        color: '#1971c2',
+                        border: '1px solid #1971c255',
+                      }}
+                    >
+                      {deck.name}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-2 pt-1 border-t border-slate-800">
+          <button
+            onClick={onApply}
+            className="flex-1 bg-[#1971c2] hover:bg-blue-500 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+          >
+            Apply
+          </button>
+          <button
+            onClick={onClear}
+            className="text-sm text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
 
 export default function WishlistPage() {
   const navigate = useNavigate();
@@ -19,25 +348,69 @@ export default function WishlistPage() {
   const allDecks = deckStore.getAll();
   const existingCardIds = entries.map((e) => e.card.id);
 
+  // Sort state
+  const [sort, setSort] = useState<SortKey>('name');
+  const [sortDir, setSortDir] = useState<SortDirection>('asc');
+
+  // Filter state — draft vs active same pattern as gallery
+  const [draftFilters, setDraftFilters] =
+    useState<ActiveFilters>(EMPTY_FILTERS);
+  const [activeFilters, setActiveFilters] =
+    useState<ActiveFilters>(EMPTY_FILTERS);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const filterCount = activeFilterCount(activeFilters);
+
+  const handleOpenFilters = () => {
+    setDraftFilters({ ...activeFilters });
+    setShowFilters(true);
+  };
+
+  const handleApplyFilters = () => {
+    setActiveFilters({ ...draftFilters });
+    setShowFilters(false);
+  };
+
+  const handleClearFilters = () => {
+    setDraftFilters(EMPTY_FILTERS);
+    setActiveFilters(EMPTY_FILTERS);
+    setShowFilters(false);
+  };
+
+  const filtered = useMemo(
+    () => applyFilters(entries, activeFilters),
+    [entries, activeFilters],
+  );
+
+  const sorted = useMemo(
+    () => sortEntries(filtered, sort, sortDir),
+    [filtered, sort, sortDir],
+  );
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Header */}
-      <header className=" px-6 py-4 flex items-center justify-between">
+      <header className="px-6 py-4 flex items-center justify-between">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate('/')}
           className="text-slate-400 hover:text-white text-sm transition-colors hover:cursor-pointer"
         >
           ← Back
         </button>
         <h1 className="text-lg font-bold text-white">Wishlist</h1>
         <span className="text-sm text-slate-500">
-          {entries.length} card{entries.length !== 1 ? "s" : ""}
+          {entries.length} card{entries.length !== 1 ? 's' : ''}
         </span>
       </header>
 
       <div className="max-w-4xl mx-auto px-6 py-8 flex flex-col gap-8">
         {/* Add panel */}
-        <WishlistAddPanel onAdd={addCard} existingCardIds={existingCardIds} />
+        <WishlistAddPanel
+          onAdd={addCard}
+          onTagDeck={tagDeck}
+          existingCardIds={existingCardIds}
+          allDecks={allDecks}
+        />
 
         {/* Empty state */}
         {entries.length === 0 && (
@@ -51,43 +424,110 @@ export default function WishlistPage() {
           </div>
         )}
 
-        {/* Full list */}
+        {/* List */}
         {entries.length > 0 && (
-          <div className="flex flex-col gap-4">
-            <h2 className="text-xs text-slate-500 uppercase tracking-widest">
-              All wishlisted cards
-            </h2>
+          <div className="flex flex-col gap-5">
+            {/* Controls */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-xs text-slate-500 uppercase tracking-widest">
+                Sort by
+              </span>
 
-            {/* Deck filter tabs if decks exist */}
-            {allDecks.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {entries.map((entry) => (
-                  <WishlistCard
-                    key={entry.id}
-                    entry={entry}
-                    onRemove={removeEntry}
-                    onTagDeck={tagDeck}
-                    onUntagDeck={untagDeck}
-                    onUpdateNote={updateNote}
-                  />
+              {/* Sort key */}
+              <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
+                {SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setSort(opt.key)}
+                    className="px-3 py-1.5 rounded-md text-xs font-semibold transition-colors hover:cursor-pointer"
+                    style={{
+                      backgroundColor:
+                        sort === opt.key ? '#1971c2' : 'transparent',
+                      color: sort === opt.key ? '#fff' : '#64748b',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
                 ))}
+              </div>
+
+              {/* Sort direction */}
+              <button
+                onClick={() =>
+                  setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+                }
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                {sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}
+              </button>
+
+              {/* Filter button */}
+              <div className="relative">
+                <button
+                  onClick={handleOpenFilters}
+                  className="flex items-center gap-1.5 text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors"
+                  style={{
+                    borderColor: filterCount > 0 ? '#1971c2' : '#334155',
+                    color: filterCount > 0 ? '#1971c2' : '#94a3b8',
+                    backgroundColor:
+                      filterCount > 0 ? '#1971c211' : 'transparent',
+                  }}
+                >
+                  Filter
+                  {filterCount > 0 && (
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                      style={{ backgroundColor: '#1971c2', color: '#fff' }}
+                    >
+                      {filterCount}
+                    </span>
+                  )}
+                </button>
+
+                {showFilters && (
+                  <FilterPopover
+                    draft={draftFilters}
+                    allDecks={allDecks}
+                    onChange={setDraftFilters}
+                    onApply={handleApplyFilters}
+                    onClear={handleClearFilters}
+                    onClose={() => setShowFilters(false)}
+                  />
+                )}
+              </div>
+
+              {/* Result count */}
+              <span className="text-xs text-slate-500 ml-auto">
+                {sorted.length} of {entries.length} cards
+              </span>
+            </div>
+
+            {/* Empty filter state */}
+            {sorted.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-slate-500 text-sm gap-2">
+                <p>No cards match the current filters.</p>
+                <button
+                  onClick={handleClearFilters}
+                  className="text-[#1971c2] hover:underline text-xs"
+                >
+                  Clear filters
+                </button>
               </div>
             )}
 
-            {allDecks.length === 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {entries.map((entry) => (
-                  <WishlistCard
-                    key={entry.id}
-                    entry={entry}
-                    onRemove={removeEntry}
-                    onTagDeck={tagDeck}
-                    onUntagDeck={untagDeck}
-                    onUpdateNote={updateNote}
-                  />
-                ))}
-              </div>
-            )}
+            {/* Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+              {sorted.map((entry) => (
+                <WishlistCard
+                  key={entry.id}
+                  entry={entry}
+                  onRemove={removeEntry}
+                  onTagDeck={tagDeck}
+                  onUntagDeck={untagDeck}
+                  onUpdateNote={updateNote}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
