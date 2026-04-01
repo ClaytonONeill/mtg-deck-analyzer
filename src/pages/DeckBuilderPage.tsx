@@ -55,9 +55,6 @@ export default function DeckBuilderPage() {
         >
           ← Back
         </button>
-        <h1 className="text-lg font-bold text-white">
-          {existing ? "Edit Deck" : "Build New Deck"}
-        </h1>
         <div className="flex items-center gap-2">
           <ImportDeckButton
             onImported={(deck: Deck) => navigate(`/deck/${deck.id}`)}
@@ -71,7 +68,9 @@ export default function DeckBuilderPage() {
           </button>
         </div>
       </header>
-
+      <h1 className="text-3xl font-bold text-white text-center m-4">
+        {existing ? "Edit Deck" : "Build New Deck"}
+      </h1>
       <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
         {/* Left — inputs */}
         <div className="flex flex-col gap-8">
