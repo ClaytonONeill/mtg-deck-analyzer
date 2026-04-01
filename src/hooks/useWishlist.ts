@@ -1,11 +1,11 @@
 // Modules
-import { useState, useCallback } from "react";
+import { useState, useCallback } from 'react';
 
 // Types
-import type { ScryfallCard, WishlistEntry } from "@/types";
+import type { ScryfallCard, WishlistEntry } from '@/types';
 
 // Store
-import { wishlistStore } from "@/store/wishlistStore";
+import { wishlistStore } from '@/store/wishlistStore';
 
 export function useWishlist() {
   const [entries, setEntries] = useState<WishlistEntry[]>(() =>
@@ -17,9 +17,10 @@ export function useWishlist() {
   }, []);
 
   const addCard = useCallback(
-    (card: ScryfallCard, note: string = "") => {
-      wishlistStore.add(card, note);
+    (card: ScryfallCard, note: string = '') => {
+      const entry = wishlistStore.add(card, note);
       refresh();
+      return entry;
     },
     [refresh],
   );
