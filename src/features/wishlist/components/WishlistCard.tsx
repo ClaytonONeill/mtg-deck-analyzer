@@ -1,14 +1,14 @@
 // Modules
-import { useState } from 'react';
+import { useState } from "react";
 
 // Types
-import type { WishlistEntry } from '@/types';
+import type { WishlistEntry } from "@/types";
 
 // Store
-import { deckStore } from '@/store/deckStore';
+import { deckStore } from "@/store/deckStore";
 
 // Components
-import ManaCost from '@/components/ManaSymbol/ManaCost';
+import ManaCost from "@/components/ManaSymbol/ManaCost";
 
 interface WishlistCardProps {
   entry: WishlistEntry;
@@ -45,12 +45,12 @@ export default function WishlistCard({
       {/* Stacked on mobile, side-by-side on sm+ */}
       <div className="flex flex-col sm:flex-row gap-0 sm:gap-4 sm:p-4">
         {/* Card image */}
-        <div className="shrink-0 w-full sm:w-56 md:w-48 self-start">
+        <div className="shrink-0 w-full sm:w-56 md:w-48 self-start flex justify-center">
           {entry.card.image_uris?.normal ? (
             <img
               src={entry.card.image_uris.normal}
               alt={entry.card.name}
-              className="w-full sm:rounded-xl cursor-pointer sm:hover:scale-105 transition-transform shadow-lg sm:border sm:border-slate-700"
+              className="w-3/4 sm:rounded-xl cursor-pointer sm:hover:scale-105 transition-transform shadow-lg sm:border sm:border-slate-700"
               onClick={() => setExpanded((v) => !v)}
             />
           ) : (
@@ -92,9 +92,9 @@ export default function WishlistCard({
                 key={d.id}
                 className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
                 style={{
-                  backgroundColor: '#1971c222',
-                  color: '#1971c2',
-                  border: '1px solid #1971c255',
+                  backgroundColor: "#1971c222",
+                  color: "#1971c2",
+                  border: "1px solid #1971c255",
                 }}
               >
                 {d.name}
@@ -113,7 +113,7 @@ export default function WishlistCard({
                 onChange={(e) => {
                   if (e.target.value) {
                     onTagDeck(entry.id, e.target.value);
-                    e.target.value = '';
+                    e.target.value = "";
                   }
                 }}
                 className="text-xs text-slate-400 bg-slate-800 border border-slate-700 rounded-full px-2.5 py-1 focus:outline-none focus:border-[#1971c2] transition-colors cursor-pointer max-w-full min-w-0"

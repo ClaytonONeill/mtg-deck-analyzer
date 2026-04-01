@@ -65,7 +65,7 @@ function ChartDisplayToggle() {
   const { isStacked, setIsStacked } = useChartSelection();
 
   return (
-    <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 p-1 rounded-lg ml-4">
+    <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 p-1 rounded-lg lg:ml-4 w-fit">
       <button
         onClick={() => setIsStacked(true)}
         className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all hover:cursor-pointer ${
@@ -346,9 +346,9 @@ export default function DeckDetailPage() {
         {activeTab === "metrics" && (
           <ChartSelectionProvider entries={displayDeck.entries}>
             <div className="flex flex-col gap-8">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-wrap gap-1 bg-slate-800 p-1 rounded-lg w-fit">
                     {(["types", "cmc", "compare"] as MetricView[]).map(
                       (view) => (
                         <button
@@ -371,7 +371,6 @@ export default function DeckDetailPage() {
                     )}
                   </div>
 
-                  {/* Add the Toggle here */}
                   {metricView !== "compare" && <ChartDisplayToggle />}
                 </div>
 
@@ -410,7 +409,6 @@ export default function DeckDetailPage() {
               {metricView === "compare" && <VersionCompare deck={activeDeck} />}
             </div>
 
-            {/* The singleton Modal instance for the metrics tab */}
             <SelectedCategoryModal />
           </ChartSelectionProvider>
         )}
