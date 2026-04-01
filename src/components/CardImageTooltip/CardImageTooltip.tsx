@@ -18,6 +18,14 @@ export default function CardImageTooltip({
 }: CardImageTooltipProps) {
   const portal = usePortal();
 
+  // Minimum screen size (in px) to allow card image tooltip to display
+  const MIN_SCREEN_SIZE = 1020;
+
+  // Disable on small screens — tooltip renders off-screen and hover
+  // doesn't work reliably on touch devices anyway
+  if (typeof window !== "undefined" && window.innerWidth < MIN_SCREEN_SIZE)
+    return null;
+
   if (!card || !anchorRect || !card.image_uris?.normal) return null;
 
   const top = anchorRect.top + window.scrollY;
