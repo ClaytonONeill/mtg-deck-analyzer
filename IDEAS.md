@@ -62,3 +62,9 @@ Users should be able to sort by multiple properties, such as `Type` and `Color` 
 ## User Log-in
 
 This will likely be one of the last updates. We are going to build out the back end and persist user data in a DB so we no longer need the export deck function to save decks and view them on different machines.
+
+### Make Sure Wishlists are Attached to Decks/Users
+
+## Move Filter Logic to Shareable Component
+
+The wishlist and the gallery share basically the same filtering logic with only one minor difference. The shared logic should be moved to its own file and shared across the pages.

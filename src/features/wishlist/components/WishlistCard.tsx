@@ -1,14 +1,14 @@
 // Modules
-import { useState } from "react";
+import { useState } from 'react';
 
 // Types
-import type { WishlistEntry } from "@/types";
+import type { WishlistEntry } from '@/types';
 
 // Store
-import { deckStore } from "@/store/deckStore";
+import { deckStore } from '@/store/deckStore';
 
 // Components
-import ManaCost from "@/components/ManaSymbol/ManaCost";
+import ManaCost from '@/components/ManaSymbol/ManaCost';
 
 interface WishlistCardProps {
   entry: WishlistEntry;
@@ -41,18 +41,20 @@ export default function WishlistCard({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full">
-      <div className="flex gap-4 p-4">
-        <div className="shrink-0 w-48">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full h-full overflow-hidden xs:border-red-200">
+      {/* Stacked on mobile, side-by-side on sm+ */}
+      <div className="flex flex-col sm:flex-row gap-0 sm:gap-4 sm:p-4">
+        {/* Card image */}
+        <div className="shrink-0 w-full sm:w-56 md:w-48 self-start">
           {entry.card.image_uris?.normal ? (
             <img
               src={entry.card.image_uris.normal}
               alt={entry.card.name}
-              className="w-full rounded-xl cursor-pointer hover:scale-105 transition-transform shadow-lg border border-slate-700"
+              className="w-full sm:rounded-xl cursor-pointer sm:hover:scale-105 transition-transform shadow-lg sm:border sm:border-slate-700"
               onClick={() => setExpanded((v) => !v)}
             />
           ) : (
-            <div className="w-full aspect-5/7 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center">
+            <div className="w-full aspect-[5/7] bg-slate-800 sm:rounded-xl sm:border sm:border-slate-700 flex items-center justify-center">
               <span className="text-slate-500 text-xs text-center px-2">
                 {entry.card.name}
               </span>
@@ -61,7 +63,7 @@ export default function WishlistCard({
         </div>
 
         {/* Right content */}
-        <div className="flex flex-col gap-3 flex-1 min-w-0">
+        <div className="flex flex-col gap-3 flex-1 min-w-0 p-4 sm:p-0">
           {/* Title row */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-col gap-0.5 min-w-0">
@@ -70,33 +72,29 @@ export default function WishlistCard({
               </h3>
               <p className="text-slate-400 text-sm">{entry.card.type_line}</p>
             </div>
+            <button
+              onClick={() => onRemove(entry.id)}
+              className="text-slate-600 hover:text-red-400 transition-colors text-sm shrink-0 ml-1"
+            >
+              ✕
+            </button>
+          </div>
 
-            {/* Mana cost */}
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => onRemove(entry.id)}
-                className="text-slate-600 hover:text-red-400 transition-colors text-sm ml-1"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          <div>
-            {entry.card.cmc > 0 && (
-              <ManaCost cost={entry.card.mana_cost} size={16} />
-            )}
-          </div>
+          {/* Mana cost */}
+          {entry.card.cmc > 0 && (
+            <ManaCost cost={entry.card.mana_cost} size={16} />
+          )}
 
           {/* Deck tags */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 min-w-0">
             {taggedDecks.map((d) => (
               <span
                 key={d.id}
-                className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
+                className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
                 style={{
-                  backgroundColor: "#1971c222",
-                  color: "#1971c2",
-                  border: "1px solid #1971c255",
+                  backgroundColor: '#1971c222',
+                  color: '#1971c2',
+                  border: '1px solid #1971c255',
                 }}
               >
                 {d.name}
@@ -115,10 +113,10 @@ export default function WishlistCard({
                 onChange={(e) => {
                   if (e.target.value) {
                     onTagDeck(entry.id, e.target.value);
-                    e.target.value = "";
+                    e.target.value = '';
                   }
                 }}
-                className="text-xs text-slate-400 bg-slate-800 border border-slate-700 rounded-full px-2.5 py-1 focus:outline-none focus:border-[#1971c2] transition-colors cursor-pointer"
+                className="text-xs text-slate-400 bg-slate-800 border border-slate-700 rounded-full px-2.5 py-1 focus:outline-none focus:border-[#1971c2] transition-colors cursor-pointer max-w-full min-w-0"
               >
                 <option value="" disabled>
                   + Add to Deck
