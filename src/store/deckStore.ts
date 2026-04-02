@@ -10,27 +10,32 @@ import { mergeColorIdentities } from "@/features/deckBuilder/utils/partnerUtils"
 const STORAGE_KEY = "mtg_decks";
 
 export const deckStore = {
-  getAll(): Deck[] {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
+  async getAll(): Promise<Deck[]> {
+    const { data, error } = await supabase
+      .from("decks")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("deckStore.getAll error:", error);
       return [];
     }
+
+    return (data ?? []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      commander: row.commander ?? null,
+      partner: row.partner ?? null,
+      colorIdentity: row.color_identity ?? [],
+      entries: row.entries ?? [],
+      objectives: row.objectives ?? [],
+      versions: row.versions ?? [],
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
   },
 
   async save(deck: Deck): Promise<void> {
-    // TODO: Write to localStorage as before as we migrate app - remove after migration
-    const decks = this.getAll();
-    const idx = decks.findIndex((d) => d.id === deck.id);
-    if (idx >= 0) {
-      decks[idx] = { ...deck, updatedAt: new Date().toISOString() };
-    } else {
-      decks.push(deck);
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(decks));
-
-    // Also write to Supabase
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -59,9 +64,9 @@ export const deckStore = {
     );
 
     if (error) {
-      console.error("deckStore.save Supabase error:", error);
+      console.error("deckStore.save error:", error);
     } else {
-      console.log("deckStore.save Supabase success:", deck.name);
+      console.log("deckStore.save success:", deck.name);
     }
   },
 
