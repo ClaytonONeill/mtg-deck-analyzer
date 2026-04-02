@@ -1,14 +1,14 @@
 // Modules
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from "react";
 
 // Types
-import type { Deck, Objective } from '@/types';
+import type { Deck, Objective } from "@/types";
 
 // Utils
-import { assignObjectiveColor } from '@/features/objectives/utils/objectivePalette';
+import { assignObjectiveColor } from "@/features/objectives/utils/objectivePalette";
 
 // Store
-import { deckStore } from '@/store/deckStore';
+import { deckStore } from "@/store/deckStore";
 
 export function useObjectives(deck: Deck, onDeckChange: (deck: Deck) => void) {
   // Migration guard — memoized so callbacks don't re-create on every render
@@ -25,7 +25,7 @@ export function useObjectives(deck: Deck, onDeckChange: (deck: Deck) => void) {
   );
 
   const createObjective = useCallback(
-    (label: string, description: string) => {
+    async (label: string, description: string) => {
       const existingColors = safeDeck.objectives.map((o) => o.color);
       const newObjective: Objective = {
         id: crypto.randomUUID(),
@@ -38,14 +38,14 @@ export function useObjectives(deck: Deck, onDeckChange: (deck: Deck) => void) {
         objectives: [...safeDeck.objectives, newObjective],
         updatedAt: new Date().toISOString(),
       };
-      deckStore.save(updated);
+      await deckStore.save(updated);
       onDeckChange(updated);
     },
     [safeDeck, onDeckChange],
   );
 
   const deleteObjective = useCallback(
-    (objectiveId: string) => {
+    async (objectiveId: string) => {
       const updated: Deck = {
         ...safeDeck,
         objectives: safeDeck.objectives.filter((o) => o.id !== objectiveId),
@@ -55,14 +55,14 @@ export function useObjectives(deck: Deck, onDeckChange: (deck: Deck) => void) {
         })),
         updatedAt: new Date().toISOString(),
       };
-      deckStore.save(updated);
+      await deckStore.save(updated);
       onDeckChange(updated);
     },
     [safeDeck, onDeckChange],
   );
 
   const assignObjective = useCallback(
-    (cardId: string, objectiveId: string) => {
+    async (cardId: string, objectiveId: string) => {
       const updated: Deck = {
         ...safeDeck,
         entries: safeDeck.entries.map((e) =>
@@ -72,14 +72,14 @@ export function useObjectives(deck: Deck, onDeckChange: (deck: Deck) => void) {
         ),
         updatedAt: new Date().toISOString(),
       };
-      deckStore.save(updated);
+      await deckStore.save(updated);
       onDeckChange(updated);
     },
     [safeDeck, onDeckChange],
   );
 
   const unassignObjective = useCallback(
-    (cardId: string, objectiveId: string) => {
+    async (cardId: string, objectiveId: string) => {
       const updated: Deck = {
         ...safeDeck,
         entries: safeDeck.entries.map((e) =>
@@ -92,14 +92,14 @@ export function useObjectives(deck: Deck, onDeckChange: (deck: Deck) => void) {
         ),
         updatedAt: new Date().toISOString(),
       };
-      deckStore.save(updated);
+      await deckStore.save(updated);
       onDeckChange(updated);
     },
     [safeDeck, onDeckChange],
   );
 
   const updateObjective = useCallback(
-    (objectiveId: string, label: string, description: string) => {
+    async (objectiveId: string, label: string, description: string) => {
       const updated: Deck = {
         ...safeDeck,
         objectives: safeDeck.objectives.map((o) =>
@@ -109,7 +109,7 @@ export function useObjectives(deck: Deck, onDeckChange: (deck: Deck) => void) {
         ),
         updatedAt: new Date().toISOString(),
       };
-      deckStore.save(updated);
+      await deckStore.save(updated);
       onDeckChange(updated);
     },
     [safeDeck, onDeckChange],
