@@ -1,7 +1,7 @@
 // Modules
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Layers, BarChart2 } from "lucide-react"; // Added for icons
+import { Layers, BarChart2 } from "lucide-react";
 
 // Stores
 import { deckStore, getDeckCardCount } from "@/store/deckStore";
@@ -58,9 +58,6 @@ const EMPTY_DECK: Deck = {
   updatedAt: "",
 };
 
-/**
- * Helper component for the Stacked/Individual toggle
- */
 function ChartDisplayToggle() {
   const { isStacked, setIsStacked } = useChartSelection();
 
@@ -93,29 +90,57 @@ function ChartDisplayToggle() {
 }
 
 export default function DeckDetailPage() {
-  // Routing
   const { deckId } = useParams();
   const navigate = useNavigate();
 
-  // Core deck state
-  const [deck, setDeck] = useState<Deck | undefined>(() =>
-    deckId ? deckStore.getById(deckId) : undefined,
-  );
+  const [deck, setDeck] = useState<Deck | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Tab + view state
   const [activeTab, setActiveTab] = useState<Tab>("metrics");
   const [metricView, setMetricView] = useState<MetricView>("types");
   const [includeLands, setIncludeLands] = useState(true);
 
-  // Version selection
   const [activeVersionId, setActiveVersionId] = useState<VersionId>("main");
 
-  // Pending swaps
   const [pendingSwaps, setPendingSwaps] = useState<PendingSwap[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
 
-  const liveDeck = deckId ? deckStore.getById(deckId) : undefined;
-  const activeDeck = deck ?? liveDeck;
+  const activeDeck = deck;
+
+  useEffect(() => {
+    if (!deckId) return;
+
+    let isMounted = true;
+
+    const fetchDeck = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const result = await deckStore.getById(deckId);
+        if (!isMounted) return;
+
+        if (!result) {
+          setError("Deck not found");
+        } else {
+          setDeck(result);
+        }
+      } catch {
+        if (isMounted) setError("Failed to load deck");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchDeck();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [deckId]);
+
+  const safeDeck = activeDeck ?? EMPTY_DECK;
 
   const {
     objectives,
@@ -124,7 +149,7 @@ export default function DeckDetailPage() {
     assignObjective,
     unassignObjective,
     updateObjective,
-  } = useObjectives(activeDeck ?? EMPTY_DECK, (updated) => setDeck(updated));
+  } = useObjectives(safeDeck, (updated) => setDeck(updated));
 
   const {
     versions,
@@ -132,7 +157,7 @@ export default function DeckDetailPage() {
     deleteVersion,
     assignObjectiveToVersion,
     unassignObjectiveFromVersion,
-  } = useDeckVersions(activeDeck ?? EMPTY_DECK, (updated) => setDeck(updated));
+  } = useDeckVersions(safeDeck, (updated) => setDeck(updated));
 
   const {
     entries: wishlistEntries,
@@ -149,13 +174,21 @@ export default function DeckDetailPage() {
     return version ? applyVersionToDeck(activeDeck, version) : activeDeck;
   }, [activeDeck, activeVersionId, versions]);
 
-  if (!activeDeck) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
-        Deck not found.{" "}
+        Loading deck...
+      </div>
+    );
+  }
+
+  if (error || !activeDeck) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
+        {error ?? "Deck not found."}
         <button
           onClick={() => navigate("/")}
-          className="ml-2 text-[#1971c2] hover:underline hover:cursor-pointer"
+          className="ml-2 text-[#1971c2] hover:underline"
         >
           Go home
         </button>
@@ -207,7 +240,7 @@ export default function DeckDetailPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Header */}
-      <div className=" px-6 py-4 flex items-center justify-between">
+      <div className="px-6 py-4 flex items-center justify-between">
         <button
           onClick={() => navigate("/")}
           className="text-slate-400 hover:text-white text-sm transition-colors hover:cursor-pointer"
@@ -236,6 +269,7 @@ export default function DeckDetailPage() {
                 ))}
               </div>
             </div>
+
             <div className="flex flex-col gap-1">
               <p className="text-slate-400 text-sm">
                 <span className="text-slate-500">Commander: </span>
@@ -243,6 +277,7 @@ export default function DeckDetailPage() {
                   <span className="italic">None set</span>
                 )}
               </p>
+
               {activeDeck.partner && (
                 <p className="text-slate-400 text-sm">
                   <span className="text-slate-500">Partner: </span>
@@ -250,6 +285,7 @@ export default function DeckDetailPage() {
                 </p>
               )}
             </div>
+
             <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
               <span>
                 Created {new Date(activeDeck.createdAt).toLocaleDateString()}
@@ -269,6 +305,7 @@ export default function DeckDetailPage() {
               {cardCount}
             </span>
             <span className="text-slate-500 text-xs">/ 100 cards</span>
+
             <div className="w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden mt-1">
               <div
                 className="h-full rounded-full transition-all duration-500"
@@ -286,6 +323,7 @@ export default function DeckDetailPage() {
           <span className="text-xs text-slate-500 uppercase tracking-widest shrink-0">
             Viewing
           </span>
+
           <select
             value={activeVersionId}
             onChange={(e) => setActiveVersionId(e.target.value as VersionId)}
@@ -297,6 +335,7 @@ export default function DeckDetailPage() {
               </option>
             ))}
           </select>
+
           {activeVersionId !== "main" && (
             <>
               <button
@@ -308,6 +347,7 @@ export default function DeckDetailPage() {
               >
                 Delete Version
               </button>
+
               <span
                 className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
                 style={{
@@ -329,7 +369,9 @@ export default function DeckDetailPage() {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className="pb-3 text-sm font-semibold transition-colors relative hover:cursor-pointer"
-              style={{ color: activeTab === tab.key ? "#1971c2" : "#64748b" }}
+              style={{
+                color: activeTab === tab.key ? "#1971c2" : "#64748b",
+              }}
             >
               {tab.label}
               {activeTab === tab.key && (
@@ -342,7 +384,7 @@ export default function DeckDetailPage() {
           ))}
         </div>
 
-        {/* Metrics tab - Wrapped in Provider */}
+        {/* Metrics tab */}
         {activeTab === "metrics" && (
           <ChartSelectionProvider entries={displayDeck.entries}>
             <div className="flex flex-col gap-8">
@@ -398,6 +440,7 @@ export default function DeckDetailPage() {
                   <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-6">
                     {metricView === "types" ? "Card Types" : "Mana Curve"}
                   </h2>
+
                   {metricView === "types" ? (
                     <TypesChart data={typeData} />
                   ) : (
