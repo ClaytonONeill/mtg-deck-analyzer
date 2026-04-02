@@ -41,8 +41,8 @@ export default function DeckBuilderPage() {
 
   const cardCount = getDeckCardCount(deck);
 
-  const handleSave = () => {
-    if (saveDeck()) navigate("/");
+  const handleSave = async () => {
+    if (await saveDeck()) navigate("/");
   };
 
   return (

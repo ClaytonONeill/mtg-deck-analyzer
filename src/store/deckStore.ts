@@ -1,6 +1,9 @@
 // Types
 import type { Deck, DeckEntry, ScryfallCard, CardCategory } from "@/types";
 
+// Lib
+import { supabase } from "@/lib/supabase";
+
 // Utils
 import { mergeColorIdentities } from "@/features/deckBuilder/utils/partnerUtils";
 
@@ -16,7 +19,8 @@ export const deckStore = {
     }
   },
 
-  save(deck: Deck): void {
+  async save(deck: Deck): Promise<void> {
+    // TODO: Write to localStorage as before as we migrate app - remove after migration
     const decks = this.getAll();
     const idx = decks.findIndex((d) => d.id === deck.id);
     if (idx >= 0) {
@@ -25,6 +29,40 @@ export const deckStore = {
       decks.push(deck);
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(decks));
+
+    // Also write to Supabase
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      console.warn(
+        "deckStore.save: no authenticated user, skipping Supabase write",
+      );
+      return;
+    }
+
+    const { error } = await supabase.from("decks").upsert(
+      {
+        id: deck.id,
+        user_id: user.id,
+        name: deck.name,
+        commander: deck.commander,
+        partner: deck.partner,
+        color_identity: deck.colorIdentity,
+        entries: deck.entries,
+        objectives: deck.objectives,
+        versions: deck.versions,
+        created_at: deck.createdAt,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+
+    if (error) {
+      console.error("deckStore.save Supabase error:", error);
+    } else {
+      console.log("deckStore.save Supabase success:", deck.name);
+    }
   },
 
   delete(id: string): void {
