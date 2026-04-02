@@ -7,8 +7,6 @@ import { supabase } from "@/lib/supabase";
 // Utils
 import { mergeColorIdentities } from "@/features/deckBuilder/utils/partnerUtils";
 
-const STORAGE_KEY = "mtg_decks";
-
 export const deckStore = {
   async getAll(): Promise<Deck[]> {
     const { data, error } = await supabase
@@ -70,13 +68,47 @@ export const deckStore = {
     }
   },
 
-  delete(id: string): void {
-    const decks = this.getAll().filter((d) => d.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(decks));
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase.from("decks").delete().eq("id", id);
+
+    if (error) {
+      console.error("deckStore.delete error:", error);
+      throw new Error("Failed to delete deck");
+    } else {
+      console.log("deckStore.delete success for id:", id);
+    }
   },
 
-  getById(id: string): Deck | undefined {
-    return this.getAll().find((d) => d.id === id);
+  async getById(id: string): Promise<Deck | undefined> {
+    const { data, error } = await supabase
+      .from("decks")
+      .select("*")
+      .eq("id", id)
+      .single(); // Returns a single object instead of an array
+
+    if (error) {
+      // Handle the case where the record simply doesn't exist
+      if (error.code === "PGRST116") return undefined;
+
+      console.error("deckStore.getById error:", error);
+      return undefined;
+    }
+
+    if (!data) return undefined;
+
+    // Mapping the database row to your Deck interface
+    return {
+      id: data.id,
+      name: data.name,
+      commander: data.commander ?? null,
+      partner: data.partner ?? null,
+      colorIdentity: data.color_identity ?? [],
+      entries: data.entries ?? [],
+      objectives: data.objectives ?? [],
+      versions: data.versions ?? [],
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
   },
 };
 
