@@ -1,5 +1,5 @@
 // Modules
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 // Types
 import type { ScryfallCard, WishlistEntry } from '@/types';
@@ -8,51 +8,54 @@ import type { ScryfallCard, WishlistEntry } from '@/types';
 import { wishlistStore } from '@/store/wishlistStore';
 
 export function useWishlist() {
-  const [entries, setEntries] = useState<WishlistEntry[]>(() =>
-    wishlistStore.getAll(),
-  );
+  const [entries, setEntries] = useState<WishlistEntry[]>([]);
 
-  const refresh = useCallback(() => {
-    setEntries(wishlistStore.getAll());
+  const refresh = useCallback(async () => {
+    const data = await wishlistStore.getAll();
+    setEntries(data);
   }, []);
 
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
   const addCard = useCallback(
-    (card: ScryfallCard, note: string = '') => {
-      const entry = wishlistStore.add(card, note);
-      refresh();
+    async (card: ScryfallCard, note: string = '') => {
+      const entry = await wishlistStore.add(card, note);
+      await refresh();
       return entry;
     },
     [refresh],
   );
 
   const removeEntry = useCallback(
-    (entryId: string) => {
-      wishlistStore.remove(entryId);
-      refresh();
+    async (entryId: string) => {
+      await wishlistStore.remove(entryId);
+      await refresh();
     },
     [refresh],
   );
 
   const tagDeck = useCallback(
-    (entryId: string, deckId: string) => {
-      wishlistStore.tagDeck(entryId, deckId);
-      refresh();
+    async (entryId: string, deckId: string) => {
+      await wishlistStore.tagDeck(entryId, deckId);
+      await refresh();
     },
     [refresh],
   );
 
   const untagDeck = useCallback(
-    (entryId: string, deckId: string) => {
-      wishlistStore.untagDeck(entryId, deckId);
-      refresh();
+    async (entryId: string, deckId: string) => {
+      await wishlistStore.untagDeck(entryId, deckId);
+      await refresh();
     },
     [refresh],
   );
 
   const updateNote = useCallback(
-    (entryId: string, note: string) => {
-      wishlistStore.updateNote(entryId, note);
-      refresh();
+    async (entryId: string, note: string) => {
+      await wishlistStore.updateNote(entryId, note);
+      await refresh();
     },
     [refresh],
   );

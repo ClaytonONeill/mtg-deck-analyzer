@@ -28,8 +28,12 @@ export default function WishlistCard({
   const [noteVal, setNoteVal] = useState(entry.note);
   const [noteDirty, setNoteDirty] = useState(false);
 
-  const taggedDecks = allDecks.filter((d) => entry.deckIds.includes(d.id));
-  const untagged = allDecks.filter((d) => !entry.deckIds.includes(d.id));
+  const taggedDecks = allDecks.filter((d) =>
+    (entry.deckIds ?? []).includes(d.id),
+  );
+  const untagged = allDecks.filter(
+    (d) => !(entry.deckIds ?? []).includes(d.id),
+  );
 
   const handleNoteBlur = () => {
     if (noteDirty) {
