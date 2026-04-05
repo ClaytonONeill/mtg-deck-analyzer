@@ -1,13 +1,13 @@
 // Modules
-import { useRef, useState } from "react";
+import { useRef, useState } from 'react';
 
 // Store
-import { importDeckFromFile, deckStore } from "@/store/deckStore";
+import { importDeckFromFile, deckStore } from '@/store/deckStore';
 
 // Types
-import type { Deck } from "@/types";
+import type { Deck } from '@/types';
 
-type ConflictChoice = "keep" | "overwrite";
+type ConflictChoice = 'keep' | 'overwrite';
 
 interface ImportDeckButtonProps {
   onImported: (deck: Deck) => void;
@@ -31,7 +31,7 @@ export default function ImportDeckButton({
 
     try {
       const deck = await importDeckFromFile(file);
-      const exists = deckStore.getById(deck.id);
+      const exists = (await deckStore.getById(deck.id)) ?? null;
 
       if (exists) {
         setConflictDeck(exists);
@@ -41,17 +41,17 @@ export default function ImportDeckButton({
         onImported(deck);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Import failed.");
+      setError(err instanceof Error ? err.message : 'Import failed.');
     } finally {
       // reset input so same file can be re-imported
-      if (inputRef.current) inputRef.current.value = "";
+      if (inputRef.current) inputRef.current.value = '';
     }
   };
 
   const resolveConflict = (choice: ConflictChoice) => {
     if (!incomingDeck) return;
 
-    if (choice === "overwrite") {
+    if (choice === 'overwrite') {
       deckStore.save(incomingDeck);
       onImported(incomingDeck);
     } else {
@@ -96,25 +96,25 @@ export default function ImportDeckButton({
               Deck Already Exists
             </h2>
             <p className="text-slate-400 text-sm mb-6">
-              A deck named{" "}
+              A deck named{' '}
               <span className="text-white font-semibold">
                 "{conflictDeck.name}"
-              </span>{" "}
+              </span>{' '}
               already exists in your library. What would you like to do?
             </p>
 
             <div className="flex flex-col gap-3">
               <button
-                onClick={() => resolveConflict("overwrite")}
+                onClick={() => resolveConflict('overwrite')}
                 className="w-full bg-[#1971c2] hover:bg-blue-500 text-white font-semibold py-3 rounded-lg transition-colors text-sm"
               >
                 Overwrite existing deck
               </button>
               <button
-                onClick={() => resolveConflict("keep")}
+                onClick={() => resolveConflict('keep')}
                 className="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 rounded-lg transition-colors text-sm"
               >
-                Keep both{" "}
+                Keep both{' '}
                 <span className="text-slate-400 font-normal">
                   (imported copy renamed)
                 </span>
