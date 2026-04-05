@@ -1,12 +1,13 @@
 // Types
-import type { WishlistEntry } from "@/types";
+import type { Deck, WishlistEntry } from '@/types';
 
 // Components
-import WishlistCard from "@/features/wishlist/components/WishlistCard";
+import WishlistCard from '@/features/wishlist/components/WishlistCard';
 
 interface WishlistDeckFilterProps {
   deckId: string;
   entries: WishlistEntry[];
+  allDecks: Deck[];
   onRemove: (id: string) => void;
   onTagDeck: (entryId: string, deckId: string) => void;
   onUntagDeck: (entryId: string, deckId: string) => void;
@@ -16,6 +17,7 @@ interface WishlistDeckFilterProps {
 export default function WishlistDeckFilter({
   deckId,
   entries,
+  allDecks,
   onRemove,
   onTagDeck,
   onUntagDeck,
@@ -40,7 +42,7 @@ export default function WishlistDeckFilter({
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-slate-500 uppercase tracking-widest">
-        {deckEntries.length} card{deckEntries.length !== 1 ? "s" : ""}{" "}
+        {deckEntries.length} card{deckEntries.length !== 1 ? 's' : ''}{' '}
         wishlisted for this deck
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -48,6 +50,7 @@ export default function WishlistDeckFilter({
           <WishlistCard
             key={entry.id}
             entry={entry}
+            allDecks={allDecks}
             onRemove={onRemove}
             onTagDeck={onTagDeck}
             onUntagDeck={onUntagDeck}

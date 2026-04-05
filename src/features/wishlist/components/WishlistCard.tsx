@@ -1,17 +1,15 @@
 // Modules
-import { useState } from "react";
+import { useState } from 'react';
 
 // Types
-import type { WishlistEntry } from "@/types";
-
-// Store
-import { deckStore } from "@/store/deckStore";
+import type { Deck, WishlistEntry } from '@/types';
 
 // Components
-import ManaCost from "@/components/ManaSymbol/ManaCost";
+import ManaCost from '@/components/ManaSymbol/ManaCost';
 
 interface WishlistCardProps {
   entry: WishlistEntry;
+  allDecks: Deck[];
   onRemove: (id: string) => void;
   onTagDeck: (entryId: string, deckId: string) => void;
   onUntagDeck: (entryId: string, deckId: string) => void;
@@ -20,6 +18,7 @@ interface WishlistCardProps {
 
 export default function WishlistCard({
   entry,
+  allDecks,
   onRemove,
   onTagDeck,
   onUntagDeck,
@@ -29,7 +28,6 @@ export default function WishlistCard({
   const [noteVal, setNoteVal] = useState(entry.note);
   const [noteDirty, setNoteDirty] = useState(false);
 
-  const allDecks = deckStore.getAll();
   const taggedDecks = allDecks.filter((d) => entry.deckIds.includes(d.id));
   const untagged = allDecks.filter((d) => !entry.deckIds.includes(d.id));
 
@@ -41,8 +39,7 @@ export default function WishlistCard({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full h-full overflow-hidden xs:border-red-200">
-      {/* Stacked on mobile, side-by-side on sm+ */}
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full h-full overflow-hidden">
       <div className="flex flex-col sm:flex-row gap-0 sm:gap-4 sm:p-4">
         {/* Card image */}
         <div className="shrink-0 w-full sm:w-56 md:w-48 self-start flex justify-center">
@@ -92,9 +89,9 @@ export default function WishlistCard({
                 key={d.id}
                 className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
                 style={{
-                  backgroundColor: "#1971c222",
-                  color: "#1971c2",
-                  border: "1px solid #1971c255",
+                  backgroundColor: '#1971c222',
+                  color: '#1971c2',
+                  border: '1px solid #1971c255',
                 }}
               >
                 {d.name}
@@ -113,7 +110,7 @@ export default function WishlistCard({
                 onChange={(e) => {
                   if (e.target.value) {
                     onTagDeck(entry.id, e.target.value);
-                    e.target.value = "";
+                    e.target.value = '';
                   }
                 }}
                 className="text-xs text-slate-400 bg-slate-800 border border-slate-700 rounded-full px-2.5 py-1 focus:outline-none focus:border-[#1971c2] transition-colors cursor-pointer max-w-full min-w-0"
