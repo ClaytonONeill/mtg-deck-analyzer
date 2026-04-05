@@ -11,6 +11,14 @@ seeing as the UI is pretty slow (relatively) now that it is reading/writing to t
 
 Loading needs to be more robust than just a simple text line, skeleton is your friend here.
 
+## BUG: Stale chart bar modal items on click in version compare mode
+
+When clicking on a chart bar in version compare, the contents of the modal that appears is stale to the first chart you interact with. This means cards that were added in the new version do not display and it can be confusing.
+
+## BUG: Cards should show name not ID in swap UI
+
+When you swap a card in the gallery, at the top it shows the GUID of the card that is being swapped, not the name - this should show the name.
+
 ## Responsive Styling and General Mobile Optimization
 
 The app works well (enough) on a desktop/laptop - but struggles on a mobile device. Time should be spent to
