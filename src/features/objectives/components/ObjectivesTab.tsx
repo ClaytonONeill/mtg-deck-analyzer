@@ -1,12 +1,12 @@
 // Modules
-import { useState } from 'react';
+import { useState, useMemo } from "react";
 
 // Types
-import type { Deck, DeckEntry, Objective } from '@/types';
+import type { Deck, DeckEntry, Objective } from "@/types";
 
 // Components
-import ObjectivePill from '@/features/objectives/components/ObjectivePill';
-import ObjectiveManager from '@/features/objectives/components/ObjectiveManager';
+import ObjectivePill from "@/features/objectives/components/ObjectivePill";
+import ObjectiveManager from "@/features/objectives/components/ObjectiveManager";
 
 interface ObjectivesTabProps {
   deck: Deck;
@@ -18,7 +18,7 @@ interface ObjectivesTabProps {
   onUnassign: (cardId: string, objectiveId: string) => void;
 }
 
-type ObjectivesView = 'manage' | 'cards';
+type ObjectivesView = "manage" | "cards";
 
 export default function ObjectivesTab({
   objectives,
@@ -28,32 +28,41 @@ export default function ObjectivesTab({
   onUpdate,
   onUnassign,
 }: ObjectivesTabProps) {
-  const [view, setView] = useState<ObjectivesView>('manage');
+  const [view, setView] = useState<ObjectivesView>("manage");
 
-  const unassignedEntries = entries.filter(
-    (e) => (e.objectiveIds ?? []).length === 0,
+  const safeEntries = useMemo(
+    () =>
+      entries.map((e) => ({
+        ...e,
+        objectiveIds: e.objectiveIds ?? [],
+      })),
+    [entries],
+  );
+
+  const unassignedEntries = safeEntries.filter(
+    (e) => e.objectiveIds.length === 0,
   );
 
   return (
     <div className="flex flex-col gap-6">
       {/* Sub-nav */}
       <div className="flex gap-1 bg-slate-800 p-1 rounded-lg self-start">
-        {(['manage', 'cards'] as ObjectivesView[]).map((v) => (
+        {(["manage", "cards"] as ObjectivesView[]).map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}
             className="px-4 py-1.5 rounded-md text-sm font-semibold transition-colors"
             style={{
-              backgroundColor: view === v ? '#1971c2' : 'transparent',
-              color: view === v ? '#fff' : '#64748b',
+              backgroundColor: view === v ? "#1971c2" : "transparent",
+              color: view === v ? "#fff" : "#64748b",
             }}
           >
-            {v === 'manage' ? 'Manage Objectives' : 'Cards by Objective'}
+            {v === "manage" ? "Manage Objectives" : "Cards by Objective"}
           </button>
         ))}
       </div>
 
-      {view === 'manage' && (
+      {view === "manage" && (
         <ObjectiveManager
           objectives={objectives}
           onCreate={onCreate}
@@ -62,7 +71,7 @@ export default function ObjectivesTab({
         />
       )}
 
-      {view === 'cards' && (
+      {view === "cards" && (
         <div className="flex flex-col gap-8">
           {objectives.length === 0 && (
             <p className="text-slate-500 text-sm text-center py-8">
@@ -72,15 +81,15 @@ export default function ObjectivesTab({
 
           {/* One section per objective */}
           {objectives.map((objective) => {
-            const assigned = entries.filter((e) =>
-              (e.objectiveIds ?? []).includes(objective.id),
+            const assigned = safeEntries.filter((e) =>
+              e.objectiveIds.includes(objective.id),
             );
             return (
               <div key={objective.id} className="flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <ObjectivePill objective={objective} size="md" />
                   <span className="text-slate-500 text-xs">
-                    {assigned.length} card{assigned.length !== 1 ? 's' : ''}
+                    {assigned.length} card{assigned.length !== 1 ? "s" : ""}
                   </span>
                 </div>
                 {objective.description && (
@@ -131,7 +140,7 @@ export default function ObjectivesTab({
               </span>
               <span className="text-slate-500 text-xs">
                 {unassignedEntries.length} card
-                {unassignedEntries.length !== 1 ? 's' : ''}
+                {unassignedEntries.length !== 1 ? "s" : ""}
               </span>
             </div>
             {unassignedEntries.length === 0 ? (

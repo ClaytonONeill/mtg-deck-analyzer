@@ -1,69 +1,139 @@
 // Types
-import type { WishlistEntry, ScryfallCard } from "@/types";
+import type { WishlistEntry, ScryfallCard } from '@/types';
 
-const STORAGE_KEY = "mtg_wishlist";
+// Lib
+import { supabase } from '@/lib/supabase';
 
-function getAll(): WishlistEntry[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function save(entries: WishlistEntry[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+function rowToEntry(row: Record<string, unknown>): WishlistEntry {
+  return {
+    id: row.id as string,
+    card: row.card as ScryfallCard,
+    deckIds: (row.deck_ids as string[]) ?? [],
+    note: (row.note as string) ?? '',
+    addedAt: row.added_at as string,
+  };
 }
 
 export const wishlistStore = {
-  getAll,
+  async getAll(): Promise<WishlistEntry[]> {
+    const { data, error } = await supabase
+      .from('wishlist_entries')
+      .select('*')
+      .order('added_at', { ascending: false });
 
-  add(card: ScryfallCard, note: string = ""): WishlistEntry {
-    const entries = getAll();
-    const existing = entries.find((e) => e.card.id === card.id);
-    if (existing) return existing;
+    if (error) {
+      console.error('wishlistStore.getAll error:', error);
+      return [];
+    }
 
-    const entry: WishlistEntry = {
+    return (data ?? []).map(rowToEntry);
+  },
+
+  async add(card: ScryfallCard, note: string = ''): Promise<WishlistEntry> {
+    // Check for existing entry for this card
+    const { data: existing } = await supabase
+      .from('wishlist_entries')
+      .select('*')
+      .eq('card->>id', card.id)
+      .maybeSingle();
+
+    if (existing) return rowToEntry(existing);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error('wishlistStore.add: no authenticated user');
+
+    const entry = {
       id: crypto.randomUUID(),
+      user_id: user.id,
       card,
-      deckIds: [],
+      deck_ids: [],
       note,
-      addedAt: new Date().toISOString(),
+      added_at: new Date().toISOString(),
     };
-    save([...entries, entry]);
-    return entry;
+
+    const { error } = await supabase.from('wishlist_entries').insert(entry);
+
+    if (error) console.error('wishlistStore.add error:', error);
+
+    return {
+      id: entry.id,
+      card: entry.card,
+      deckIds: entry.deck_ids,
+      note: entry.note,
+      addedAt: entry.added_at,
+    };
   },
 
-  remove(entryId: string): void {
-    save(getAll().filter((e) => e.id !== entryId));
+  async remove(entryId: string): Promise<void> {
+    const { error } = await supabase
+      .from('wishlist_entries')
+      .delete()
+      .eq('id', entryId);
+
+    if (error) console.error('wishlistStore.remove error:', error);
   },
 
-  tagDeck(entryId: string, deckId: string): void {
-    save(
-      getAll().map((e) =>
-        e.id === entryId && !e.deckIds.includes(deckId)
-          ? { ...e, deckIds: [...e.deckIds, deckId] }
-          : e,
-      ),
-    );
+  async tagDeck(entryId: string, deckId: string): Promise<void> {
+    const { data, error: fetchError } = await supabase
+      .from('wishlist_entries')
+      .select('deck_ids')
+      .eq('id', entryId)
+      .single();
+
+    if (fetchError || !data) return;
+
+    const current = (data.deck_ids as string[]) ?? [];
+    if (current.includes(deckId)) return;
+
+    const { error } = await supabase
+      .from('wishlist_entries')
+      .update({ deck_ids: [...current, deckId] })
+      .eq('id', entryId);
+
+    if (error) console.error('wishlistStore.tagDeck error:', error);
   },
 
-  untagDeck(entryId: string, deckId: string): void {
-    save(
-      getAll().map((e) =>
-        e.id === entryId
-          ? { ...e, deckIds: e.deckIds.filter((id) => id !== deckId) }
-          : e,
-      ),
-    );
+  async untagDeck(entryId: string, deckId: string): Promise<void> {
+    const { data, error: fetchError } = await supabase
+      .from('wishlist_entries')
+      .select('deck_ids')
+      .eq('id', entryId)
+      .single();
+
+    if (fetchError || !data) return;
+
+    const current = (data.deck_ids as string[]) ?? [];
+
+    const { error } = await supabase
+      .from('wishlist_entries')
+      .update({ deck_ids: current.filter((id) => id !== deckId) })
+      .eq('id', entryId);
+
+    if (error) console.error('wishlistStore.untagDeck error:', error);
   },
 
-  updateNote(entryId: string, note: string): void {
-    save(getAll().map((e) => (e.id === entryId ? { ...e, note } : e)));
+  async updateNote(entryId: string, note: string): Promise<void> {
+    const { error } = await supabase
+      .from('wishlist_entries')
+      .update({ note })
+      .eq('id', entryId);
+
+    if (error) console.error('wishlistStore.updateNote error:', error);
   },
 
-  getForDeck(deckId: string): WishlistEntry[] {
-    return getAll().filter((e) => e.deckIds.includes(deckId));
+  async getForDeck(deckId: string): Promise<WishlistEntry[]> {
+    const { data, error } = await supabase
+      .from('wishlist_entries')
+      .select('*')
+      .contains('deck_ids', [deckId]);
+
+    if (error) {
+      console.error('wishlistStore.getForDeck error:', error);
+      return [];
+    }
+
+    return (data ?? []).map(rowToEntry);
   },
 };

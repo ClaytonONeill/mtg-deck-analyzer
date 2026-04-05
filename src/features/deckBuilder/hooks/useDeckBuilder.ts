@@ -1,5 +1,5 @@
 // Modules
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
 // Store
 import {
@@ -11,19 +11,19 @@ import {
   setCommander as storeSetCommander,
   setPartner as storeSetPartner,
   removePartner as storeRemovePartner,
-} from '@/store/deckStore';
+} from "@/store/deckStore";
 
 // Utils
 import {
   getPartnerInfo,
   isValidPartner,
-} from '@/features/deckBuilder/utils/partnerUtils';
+} from "@/features/deckBuilder/utils/partnerUtils";
 
 // Types
-import type { Deck, ScryfallCard } from '@/types';
+import type { Deck, ScryfallCard } from "@/types";
 
 export function useDeckBuilder(existingDeck?: Deck) {
-  const [deck, setDeck] = useState<Deck>(existingDeck ?? createNewDeck(''));
+  const [deck, setDeck] = useState<Deck>(existingDeck ?? createNewDeck(""));
   const [colorWarning, setColorWarning] = useState<string | null>(null);
   const [partnerWarning, setPartnerWarning] = useState<string | null>(null);
 
@@ -74,9 +74,9 @@ export function useDeckBuilder(existingDeck?: Deck) {
     setDeck((d) => removeCardFromDeck(d, cardId));
   }, []);
 
-  const saveDeck = useCallback(() => {
+  const saveDeck = useCallback(async () => {
     if (!deck.name.trim()) return false;
-    deckStore.save(deck);
+    await deckStore.save(deck);
     return true;
   }, [deck]);
 
@@ -89,10 +89,10 @@ export function useDeckBuilder(existingDeck?: Deck) {
     : null;
 
   const commanderHasPartner =
-    commanderPartnerInfo?.type !== 'none' && commanderPartnerInfo !== null;
+    commanderPartnerInfo?.type !== "none" && commanderPartnerInfo !== null;
 
   const requiredPartnerName =
-    commanderPartnerInfo?.type === 'specific'
+    commanderPartnerInfo?.type === "specific"
       ? commanderPartnerInfo.requiredPartnerName
       : null;
 

@@ -1,5 +1,16 @@
 # Future Updates to the App
 
+## React Dev Items
+
+### Optimistic Update
+
+We should optimistically update the UI for objective tagging and wishlists (anything related to adding something to a list)
+seeing as the UI is pretty slow (relatively) now that it is reading/writing to the DB.
+
+### Skeleton Loading
+
+Loading needs to be more robust than just a simple text line, skeleton is your friend here.
+
 ## Responsive Styling and General Mobile Optimization
 
 The app works well (enough) on a desktop/laptop - but struggles on a mobile device. Time should be spent to
@@ -14,7 +25,7 @@ land cards in public folder for when users interact with the `Types` or `CMC` ch
 
 Currently, there are "missing image" icons showing for these items and that should be corrected.
 
-## Deck Versioning (Done)
+## Deck Versioning
 
 This feature would allow users to swap out certain cards from a fully-built deck to
 see metrics against different optimization strategies. The feature would include:
@@ -38,8 +49,6 @@ A user should have the ability to choose between a selection of themes to alter 
 It would be a nice feature if the app could auto suggest cards that may go well
 with your deck and also show you all of the token cards that would go well with your
 deck based on the text descriptions of the cards you have added into your deck.
-
-## Interact with Metric/CMC Chart to see Cards in Category
 
 ## Dual-sided cards can be flipped to see both sides
 

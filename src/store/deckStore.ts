@@ -1,39 +1,114 @@
 // Types
 import type { Deck, DeckEntry, ScryfallCard, CardCategory } from "@/types";
 
+// Lib
+import { supabase } from "@/lib/supabase";
+
 // Utils
 import { mergeColorIdentities } from "@/features/deckBuilder/utils/partnerUtils";
 
-const STORAGE_KEY = "mtg_decks";
-
 export const deckStore = {
-  getAll(): Deck[] {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
+  async getAll(): Promise<Deck[]> {
+    const { data, error } = await supabase
+      .from("decks")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("deckStore.getAll error:", error);
       return [];
     }
+
+    return (data ?? []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      commander: row.commander ?? null,
+      partner: row.partner ?? null,
+      colorIdentity: row.color_identity ?? [],
+      entries: row.entries ?? [],
+      objectives: row.objectives ?? [],
+      versions: row.versions ?? [],
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
   },
 
-  save(deck: Deck): void {
-    const decks = this.getAll();
-    const idx = decks.findIndex((d) => d.id === deck.id);
-    if (idx >= 0) {
-      decks[idx] = { ...deck, updatedAt: new Date().toISOString() };
-    } else {
-      decks.push(deck);
+  async save(deck: Deck): Promise<void> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      console.warn(
+        "deckStore.save: no authenticated user, skipping Supabase write",
+      );
+      return;
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(decks));
+
+    const { error } = await supabase.from("decks").upsert(
+      {
+        id: deck.id,
+        user_id: user.id,
+        name: deck.name,
+        commander: deck.commander,
+        partner: deck.partner,
+        color_identity: deck.colorIdentity,
+        entries: deck.entries,
+        objectives: deck.objectives,
+        versions: deck.versions,
+        created_at: deck.createdAt,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+
+    if (error) {
+      console.error("deckStore.save error:", error);
+    } else {
+      console.log("deckStore.save success:", deck.name);
+    }
   },
 
-  delete(id: string): void {
-    const decks = this.getAll().filter((d) => d.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(decks));
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase.from("decks").delete().eq("id", id);
+
+    if (error) {
+      console.error("deckStore.delete error:", error);
+      throw new Error("Failed to delete deck");
+    } else {
+      console.log("deckStore.delete success for id:", id);
+    }
   },
 
-  getById(id: string): Deck | undefined {
-    return this.getAll().find((d) => d.id === id);
+  async getById(id: string): Promise<Deck | undefined> {
+    const { data, error } = await supabase
+      .from("decks")
+      .select("*")
+      .eq("id", id)
+      .single(); // Returns a single object instead of an array
+
+    if (error) {
+      // Handle the case where the record simply doesn't exist
+      if (error.code === "PGRST116") return undefined;
+
+      console.error("deckStore.getById error:", error);
+      return undefined;
+    }
+
+    if (!data) return undefined;
+
+    // Mapping the database row to your Deck interface
+    return {
+      id: data.id,
+      name: data.name,
+      commander: data.commander ?? null,
+      partner: data.partner ?? null,
+      colorIdentity: data.color_identity ?? [],
+      entries: data.entries ?? [],
+      objectives: data.objectives ?? [],
+      versions: data.versions ?? [],
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
   },
 };
 

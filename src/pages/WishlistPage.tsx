@@ -1,5 +1,5 @@
 // Modules
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Hooks
@@ -9,7 +9,7 @@ import { useWishlist } from '@/hooks/useWishlist';
 import { deckStore } from '@/store/deckStore';
 
 // Types
-import type { CardCategory, WishlistEntry } from '@/types';
+import type { Deck, CardCategory, WishlistEntry } from '@/types';
 
 // Components
 import WishlistAddPanel from '@/features/wishlist/components/WishlistAddPanel';
@@ -118,7 +118,6 @@ function applyFilters(
   filters: ActiveFilters,
 ): WishlistEntry[] {
   return entries.filter((entry) => {
-    // Color
     if (filters.colors.length > 0) {
       const cardColors = entry.card.color_identity ?? [];
       const matches =
@@ -127,32 +126,27 @@ function applyFilters(
       if (!matches) return false;
     }
 
-    // Type
     if (filters.types.length > 0) {
       if (!filters.types.includes(inferCategory(entry.card.type_line)))
         return false;
     }
 
-    // CMC
     if (filters.cmc.min !== null && entry.card.cmc < filters.cmc.min)
       return false;
     if (filters.cmc.max !== null && entry.card.cmc > filters.cmc.max)
       return false;
 
-    // Decks
     if (filters.decks.length > 0) {
       const hasAny = filters.decks.some((id) => entry.deckIds.includes(id));
       if (!hasAny) return false;
     }
 
-    // Objectives — wishlist entries don't have objectives but guard for future
     if (filters.objectives.length > 0) return false;
 
     return true;
   });
 }
 
-// Filter popover
 function FilterPopover({
   draft,
   allDecks,
@@ -172,7 +166,6 @@ function FilterPopover({
     <>
       <div className="fixed inset-0 z-20" onClick={onClose} />
       <div className="absolute top-full left-0 mt-2 z-30 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-5 w-80 flex flex-col gap-5">
-        {/* Color */}
         <div className="flex flex-col gap-2">
           <p className="text-xs text-slate-400 uppercase tracking-widest">
             Color Identity
@@ -199,7 +192,6 @@ function FilterPopover({
           </div>
         </div>
 
-        {/* Type */}
         <div className="flex flex-col gap-2">
           <p className="text-xs text-slate-400 uppercase tracking-widest">
             Card Type
@@ -228,7 +220,6 @@ function FilterPopover({
           </div>
         </div>
 
-        {/* CMC */}
         <div className="flex flex-col gap-2">
           <p className="text-xs text-slate-400 uppercase tracking-widest">
             Mana Value (CMC)
@@ -270,7 +261,6 @@ function FilterPopover({
           </div>
         </div>
 
-        {/* Deck filter */}
         {allDecks.length > 0 && (
           <div className="flex flex-col gap-2">
             <p className="text-xs text-slate-400 uppercase tracking-widest">
@@ -320,7 +310,6 @@ function FilterPopover({
           </div>
         )}
 
-        {/* Actions */}
         <div className="flex gap-2 pt-1 border-t border-slate-800">
           <button
             onClick={onApply}
@@ -345,14 +334,16 @@ export default function WishlistPage() {
   const { entries, addCard, removeEntry, tagDeck, untagDeck, updateNote } =
     useWishlist();
 
-  const allDecks = deckStore.getAll();
+  const [allDecks, setAllDecks] = useState<Deck[]>([]);
+
+  useEffect(() => {
+    deckStore.getAll().then(setAllDecks);
+  }, []);
+
   const existingCardIds = entries.map((e) => e.card.id);
 
-  // Sort state
   const [sort, setSort] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<SortDirection>('asc');
-
-  // Filter state — draft vs active same pattern as gallery
   const [draftFilters, setDraftFilters] =
     useState<ActiveFilters>(EMPTY_FILTERS);
   const [activeFilters, setActiveFilters] =
@@ -389,7 +380,6 @@ export default function WishlistPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Header */}
       <header className="px-6 py-4 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
@@ -404,7 +394,6 @@ export default function WishlistPage() {
       </header>
 
       <div className="max-w-4xl mx-auto px-6 py-8 flex flex-col gap-8">
-        {/* Add panel */}
         <WishlistAddPanel
           onAdd={addCard}
           onTagDeck={tagDeck}
@@ -412,7 +401,6 @@ export default function WishlistPage() {
           allDecks={allDecks}
         />
 
-        {/* Empty state */}
         {entries.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center gap-3">
             <div className="text-5xl">✨</div>
@@ -424,16 +412,13 @@ export default function WishlistPage() {
           </div>
         )}
 
-        {/* List */}
         {entries.length > 0 && (
           <div className="flex flex-col gap-5">
-            {/* Controls */}
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-xs text-slate-500 uppercase tracking-widest">
                 Sort by
               </span>
 
-              {/* Sort key */}
               <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
                 {SORT_OPTIONS.map((opt) => (
                   <button
@@ -451,7 +436,6 @@ export default function WishlistPage() {
                 ))}
               </div>
 
-              {/* Sort direction */}
               <button
                 onClick={() =>
                   setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -461,7 +445,6 @@ export default function WishlistPage() {
                 {sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}
               </button>
 
-              {/* Filter button */}
               <div className="relative">
                 <button
                   onClick={handleOpenFilters}
@@ -496,13 +479,11 @@ export default function WishlistPage() {
                 )}
               </div>
 
-              {/* Result count */}
               <span className="text-xs text-slate-500 ml-auto">
                 {sorted.length} of {entries.length} cards
               </span>
             </div>
 
-            {/* Empty filter state */}
             {sorted.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-slate-500 text-sm gap-2">
                 <p>No cards match the current filters.</p>
@@ -515,12 +496,12 @@ export default function WishlistPage() {
               </div>
             )}
 
-            {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
               {sorted.map((entry) => (
                 <WishlistCard
                   key={entry.id}
                   entry={entry}
+                  allDecks={allDecks}
                   onRemove={removeEntry}
                   onTagDeck={tagDeck}
                   onUntagDeck={untagDeck}

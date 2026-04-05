@@ -8,8 +8,8 @@ import type { Deck, ScryfallCard, WishlistEntry } from '@/types';
 import CardSearchPanel from '@/features/deckBuilder/components/CardSearchPanel';
 
 interface WishlistAddPanelProps {
-  onAdd: (card: ScryfallCard, note: string) => WishlistEntry;
-  onTagDeck: (entryId: string, deckId: string) => void;
+  onAdd: (card: ScryfallCard, note: string) => Promise<WishlistEntry>;
+  onTagDeck: (entryId: string, deckId: string) => Promise<void>;
   existingCardIds: string[];
   allDecks: Deck[];
 }
@@ -38,11 +38,12 @@ export default function WishlistAddPanel({
     );
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!pending) return;
-    const entry = onAdd(pending, note);
-    // Tag all selected decks atomically after add
-    selectedDeckIds.forEach((deckId) => onTagDeck(entry.id, deckId));
+    const entry = await onAdd(pending, note);
+    for (const deckId of selectedDeckIds) {
+      await onTagDeck(entry.id, deckId);
+    }
     setPending(null);
     setNote('');
     setSelectedDeckIds([]);
@@ -58,7 +59,6 @@ export default function WishlistAddPanel({
 
       {pending && (
         <div className="bg-slate-900 border border-[#1971c2] rounded-xl p-4 flex flex-col gap-4">
-          {/* Card preview */}
           <div className="flex items-center gap-3">
             {pending.image_uris?.small && (
               <img
@@ -75,7 +75,6 @@ export default function WishlistAddPanel({
             </div>
           </div>
 
-          {/* Note */}
           <input
             type="text"
             value={note}
@@ -84,7 +83,6 @@ export default function WishlistAddPanel({
             className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#1971c2] transition-colors"
           />
 
-          {/* Deck tag selection */}
           {allDecks.length > 0 && (
             <div className="flex flex-col gap-2">
               <p className="text-xs text-slate-400 uppercase tracking-widest">
@@ -112,7 +110,6 @@ export default function WishlistAddPanel({
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex gap-2">
             <button
               onClick={handleAdd}
