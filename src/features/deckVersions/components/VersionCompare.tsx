@@ -1,42 +1,42 @@
 // Modules
-import { useState } from "react";
+import { useState } from 'react';
 
 // Types
-import type { Deck } from "@/types";
+import type { Deck } from '@/types';
 
 // Utils
 import {
   applyVersionToDeck,
   getVersionLabel,
-} from "@/features/deckVersions/utils/versionUtils";
+} from '@/features/deckVersions/utils/versionUtils';
 import {
   getTypeBreakdown,
   getCMCBreakdown,
-} from "@/features/metrics/utils/deckMetrics";
+} from '@/features/metrics/utils/deckMetrics';
 
 // Components
-import TypesChart from "@/features/metrics/components/TypesChart";
-import CMCChart from "@/features/metrics/components/CMCChart";
+import TypesChart from '@/features/metrics/components/TypesChart';
+import CMCChart from '@/features/metrics/components/CMCChart';
 
 interface VersionCompareProps {
   deck: Deck;
 }
 
-type CompareTarget = "main" | string;
-type ChartView = "types" | "cmc";
+type CompareTarget = 'main' | string;
+type ChartView = 'types' | 'cmc';
 
 export default function VersionCompare({ deck }: VersionCompareProps) {
-  const [leftId, setLeftId] = useState<CompareTarget>("main");
+  const [leftId, setLeftId] = useState<CompareTarget>('main');
   const [rightId, setRightId] = useState<CompareTarget>(
-    (deck.versions ?? [])[0]?.id ?? "main",
+    (deck.versions ?? [])[0]?.id ?? 'main',
   );
-  const [chartView, setChartView] = useState<ChartView>("types");
+  const [chartView, setChartView] = useState<ChartView>('types');
   const [includeLands, setIncludeLands] = useState(true);
 
   const versions = deck.versions ?? [];
 
   const resolveDeck = (id: CompareTarget): Deck => {
-    if (id === "main") return deck;
+    if (id === 'main') return deck;
     const version = versions.find((v) => v.id === id);
     return version ? applyVersionToDeck(deck, version) : deck;
   };
@@ -50,7 +50,7 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
   const rightCMCData = getCMCBreakdown(rightDeck, includeLands);
 
   const options: { value: CompareTarget; label: string }[] = [
-    { value: "main", label: `Main — ${deck.name}` },
+    { value: 'main', label: `Main — ${deck.name}` },
     ...versions.map((v) => ({ value: v.id, label: v.name })),
   ];
 
@@ -59,8 +59,8 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
       {/* Selectors */}
       <div className="grid grid-cols-2 gap-4">
         {[
-          { id: leftId, setId: setLeftId, label: "Left" },
-          { id: rightId, setId: setRightId, label: "Right" },
+          { id: leftId, setId: setLeftId, label: 'Left' },
+          { id: rightId, setId: setRightId, label: 'Right' },
         ].map(({ id, setId, label }) => (
           <div key={label} className="flex flex-col gap-1.5">
             <label className="text-xs text-slate-400 uppercase tracking-widest">
@@ -84,17 +84,17 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
       {/* Chart type + land toggle controls */}
       <div className="flex items-center justify-between">
         <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
-          {(["types", "cmc"] as ChartView[]).map((view) => (
+          {(['types', 'cmc'] as ChartView[]).map((view) => (
             <button
               key={view}
               onClick={() => setChartView(view)}
               className="px-4 py-1.5 rounded-md text-sm font-semibold transition-colors hover:cursor-pointer"
               style={{
-                backgroundColor: chartView === view ? "#1971c2" : "transparent",
-                color: chartView === view ? "#fff" : "#64748b",
+                backgroundColor: chartView === view ? '#1971c2' : 'transparent',
+                color: chartView === view ? '#fff' : '#64748b',
               }}
             >
-              {view === "types" ? "Types" : "CMC Curve"}
+              {view === 'types' ? 'Types' : 'CMC Curve'}
             </button>
           ))}
         </div>
@@ -103,11 +103,11 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
           <div
             onClick={() => setIncludeLands((v) => !v)}
             className="w-9 h-5 rounded-full transition-colors relative cursor-pointer"
-            style={{ backgroundColor: includeLands ? "#1971c2" : "#334155" }}
+            style={{ backgroundColor: includeLands ? '#1971c2' : '#334155' }}
           >
             <span
               className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200"
-              style={{ left: includeLands ? "18px" : "2px" }}
+              style={{ left: includeLands ? '18px' : '2px' }}
             />
           </div>
           Include Lands
@@ -119,13 +119,13 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
         {[
           {
             id: leftId,
-            side: "left", // To avoid duplicate key when same deck versions are compared
+            side: 'left', // To avoid duplicate key when same deck versions are compared
             typeData: leftTypeData,
             cmcData: leftCMCData,
           },
           {
             id: rightId,
-            side: "right", // To avoid duplicate key when same deck versions are compared
+            side: 'right', // To avoid duplicate key when same deck versions are compared
             typeData: rightTypeData,
             cmcData: rightCMCData,
           },
@@ -137,7 +137,7 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
             <h3 className="text-sm font-semibold text-white truncate">
               {getVersionLabel(deck, id)}
             </h3>
-            {chartView === "types" ? (
+            {chartView === 'types' ? (
               <TypesChart data={typeData} />
             ) : (
               <CMCChart data={cmcData} />
