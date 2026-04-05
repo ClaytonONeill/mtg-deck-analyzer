@@ -1,11 +1,20 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 
+// Context
+import { useAuth } from '@/hooks/useAuthContext';
+
 export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { signOut } = useAuth();
 
   const isBuildPage = location.pathname === '/build';
   const isWishlistPage = location.pathname === '/wishlist';
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   return (
     <header className="border-b bg-slate-950 border-slate-800 px-6 py-4 flex items-center justify-between">
@@ -33,6 +42,13 @@ export default function Header() {
             + New Deck
           </button>
         )}
+
+        <button
+          onClick={handleSignOut}
+          className="text-sm font-semibold text-slate-500 hover:text-red-400 border border-slate-700 hover:border-red-400 px-4 py-2 rounded-lg transition-colors hover:cursor-pointer"
+        >
+          Sign Out
+        </button>
       </div>
     </header>
   );
