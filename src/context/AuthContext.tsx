@@ -1,15 +1,17 @@
 // Modules
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 // Types
-import type { ReactNode } from "react";
-import type { User, Session } from "@supabase/supabase-js";
+import type { ReactNode } from 'react';
+import type { User, Session } from '@supabase/supabase-js';
+
+// Add for linter
 
 // Lib
-import { supabase } from "@/lib/supabase";
+import { supabase } from '@/lib/supabase';
 
 // Context
-import { AuthContext } from "@/hooks/useAuthContext";
+import { AuthContext } from '@/hooks/useAuthContext';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

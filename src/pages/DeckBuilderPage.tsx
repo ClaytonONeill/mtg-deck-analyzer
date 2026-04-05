@@ -1,26 +1,37 @@
 // Modules
-import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
 // Hooks
-import { useDeckBuilder } from "@/features/deckBuilder/hooks/useDeckBuilder";
+import { useDeckBuilder } from '@/features/deckBuilder/hooks/useDeckBuilder';
 
 // Store
-import { deckStore, getDeckCardCount } from "@/store/deckStore";
+import { deckStore, getDeckCardCount } from '@/store/deckStore';
 
 // Components
-import CardSearchPanel from "@/features/deckBuilder/components/CardSearchPanel";
-import BasicLandsPanel from "@/features/deckBuilder/components/BasicLandsPanel";
-import DeckEntryList from "@/features/deckBuilder/components/DeckEntryList";
-import ColorPip from "@/components/ManaSymbol/ColorPip";
-import ImportDeckButton from "@/components/ImportDeckButton/ImportDeckButton";
+import CardSearchPanel from '@/features/deckBuilder/components/CardSearchPanel';
+import BasicLandsPanel from '@/features/deckBuilder/components/BasicLandsPanel';
+import DeckEntryList from '@/features/deckBuilder/components/DeckEntryList';
+import ColorPip from '@/components/ManaSymbol/ColorPip';
+import ImportDeckButton from '@/components/ImportDeckButton/ImportDeckButton';
 
 // Types
-import type { Deck } from "@/types";
+import type { Deck } from '@/types';
 
 export default function DeckBuilderPage() {
   const { deckId } = useParams();
   const navigate = useNavigate();
-  const existing = deckId ? deckStore.getById(deckId) : undefined;
+
+  const [existing, setExisting] = useState<Deck | undefined>(undefined);
+  const [loadingDeck, setLoadingDeck] = useState(!!deckId);
+
+  useEffect(() => {
+    if (!deckId) return;
+    deckStore.getById(deckId).then((deck) => {
+      setExisting(deck);
+      setLoadingDeck(false);
+    });
+  }, [deckId]);
 
   const {
     deck,
@@ -42,15 +53,22 @@ export default function DeckBuilderPage() {
   const cardCount = getDeckCardCount(deck);
 
   const handleSave = async () => {
-    if (await saveDeck()) navigate("/");
+    if (await saveDeck()) navigate('/');
   };
+
+  if (loadingDeck) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <p className="text-slate-400 text-sm">Loading deck...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Header */}
-      <header className=" px-6 py-4 flex items-center justify-between">
+      <header className="px-6 py-4 flex items-center justify-between">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate('/')}
           className="text-slate-400 hover:text-white text-sm transition-colors hover:cursor-pointer"
         >
           ← Back
@@ -68,13 +86,14 @@ export default function DeckBuilderPage() {
           </button>
         </div>
       </header>
+
       <h1 className="text-3xl font-bold text-white text-center m-4">
-        {existing ? "Edit Deck" : "Build New Deck"}
+        {existing ? 'Edit Deck' : 'Build New Deck'}
       </h1>
+
       <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
         {/* Left — inputs */}
         <div className="flex flex-col gap-8">
-          {/* Deck name */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-slate-300">
               Deck Name
@@ -88,7 +107,6 @@ export default function DeckBuilderPage() {
             />
           </div>
 
-          {/* Commander search */}
           <div className="flex flex-col gap-3">
             <CardSearchPanel
               commanderOnly
@@ -115,7 +133,6 @@ export default function DeckBuilderPage() {
             )}
           </div>
 
-          {/* Partner search — only shown if commander has partner keyword */}
           {deck.commander && commanderHasPartner && (
             <div className="flex flex-col gap-3">
               <CardSearchPanel
@@ -123,17 +140,15 @@ export default function DeckBuilderPage() {
                 label={
                   requiredPartnerName
                     ? `Partner — must be ${requiredPartnerName}`
-                    : "Partner Commander"
+                    : 'Partner Commander'
                 }
                 placeholder={
                   requiredPartnerName
                     ? `Search for ${requiredPartnerName}...`
-                    : "Search for a partner commander..."
+                    : 'Search for a partner commander...'
                 }
                 onSelectCard={setPartner}
               />
-
-              {/* Partner warning */}
               {partnerWarning && (
                 <div className="bg-red-950 border border-red-800 text-red-300 text-sm rounded-lg px-4 py-3 flex items-center justify-between">
                   <span>{partnerWarning}</span>
@@ -145,8 +160,6 @@ export default function DeckBuilderPage() {
                   </button>
                 </div>
               )}
-
-              {/* Selected partner */}
               {deck.partner && (
                 <div className="bg-slate-800 border border-[#1971c2] rounded-lg px-4 py-3 flex items-center justify-between">
                   <div>
@@ -175,7 +188,6 @@ export default function DeckBuilderPage() {
             </div>
           )}
 
-          {/* Card search */}
           {deck.commander && (
             <div className="flex flex-col gap-3">
               <CardSearchPanel
@@ -197,7 +209,6 @@ export default function DeckBuilderPage() {
             </div>
           )}
 
-          {/* Basic lands */}
           {deck.commander && (
             <BasicLandsPanel deck={deck} onDeckChange={setDeck} />
           )}
@@ -211,13 +222,12 @@ export default function DeckBuilderPage() {
             </h2>
             <span
               className="text-sm font-mono"
-              style={{ color: cardCount === 100 ? "#1971c2" : undefined }}
+              style={{ color: cardCount === 100 ? '#1971c2' : undefined }}
             >
               {cardCount} / 100
             </span>
           </div>
 
-          {/* Commander(s) in sidebar */}
           {deck.commander && (
             <div className="flex flex-col gap-1">
               <div className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm flex items-center gap-2">
