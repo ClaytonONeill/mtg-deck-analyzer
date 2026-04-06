@@ -35,6 +35,11 @@ Currently, there are "missing image" icons showing for these items and that shou
 
 ## Deck Versioning
 
+**Done** but needs to be optimized.
+
+- You should be able to tag items in your deck's wishlist with objectives
+- Or you should at least be able to expand the cards in the wishlist swap area to better read their description
+
 This feature would allow users to swap out certain cards from a fully-built deck to
 see metrics against different optimization strategies. The feature would include:
 
