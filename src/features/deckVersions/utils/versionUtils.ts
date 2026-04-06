@@ -1,8 +1,8 @@
 // Types
-import type { Deck, DeckEntry, DeckVersion } from '@/types';
+import type { Deck, DeckEntry, DeckVersion } from "@/types";
 
 // Store
-import { inferCategory } from '@/store/deckStore';
+import { inferCategory } from "@/utils/utils";
 
 export function applyVersionToDeck(deck: Deck, version: DeckVersion): Deck {
   let entries: DeckEntry[] = deck.entries.map((e) => ({ ...e }));
@@ -59,8 +59,8 @@ export function applyVersionToDeck(deck: Deck, version: DeckVersion): Deck {
 
 export function getVersionLabel(
   deck: Deck,
-  versionId: string | 'main',
+  versionId: string | "main",
 ): string {
-  if (versionId === 'main') return deck.name;
-  return deck.versions.find((v) => v.id === versionId)?.name ?? 'Unknown';
+  if (versionId === "main") return deck.name;
+  return deck.versions.find((v) => v.id === versionId)?.name ?? "Unknown";
 }
