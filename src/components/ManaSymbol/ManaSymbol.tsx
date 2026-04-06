@@ -9,7 +9,7 @@ export default function ManaSymbol({
   size = 16,
   className = "",
 }: ManaSymbolProps) {
-  const clean = symbol.replace(/[{}]/g, "").toUpperCase();
+  const clean = symbol.replace(/[{}/]/g, "").toUpperCase();
   return (
     <img
       src={`https://svgs.scryfall.io/card-symbols/${clean}.svg`}
