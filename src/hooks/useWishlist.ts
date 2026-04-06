@@ -1,26 +1,35 @@
 // Modules
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 // Types
-import type { ScryfallCard, WishlistEntry } from '@/types';
+import type { ScryfallCard, WishlistEntry } from "@/types";
 
 // Store
-import { wishlistStore } from '@/store/wishlistStore';
+import { wishlistStore } from "@/store/wishlistStore";
 
 export function useWishlist() {
   const [entries, setEntries] = useState<WishlistEntry[]>([]);
+
+  // Initial set to entries on mount
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const data = await wishlistStore.getAll();
+      if (!mounted) return;
+      setEntries(data);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const refresh = useCallback(async () => {
     const data = await wishlistStore.getAll();
     setEntries(data);
   }, []);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
   const addCard = useCallback(
-    async (card: ScryfallCard, note: string = '') => {
+    async (card: ScryfallCard, note: string = "") => {
       const entry = await wishlistStore.add(card, note);
       await refresh();
       return entry;

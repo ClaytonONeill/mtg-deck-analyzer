@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Hooks
-import { useWishlist } from "@/hooks/useWishlist";
+import { useWishlistOptimistic } from "@/hooks/useWishlistOptimistic";
 
 // Store
 import { deckStore } from "@/store/deckStore";
@@ -322,8 +322,15 @@ function FilterPopover({
 
 export default function WishlistPage() {
   const navigate = useNavigate();
-  const { entries, addCard, removeEntry, tagDeck, untagDeck, updateNote } =
-    useWishlist();
+
+  const {
+    entries,
+    handleAddCard,
+    handleRemove,
+    handleTagDeck,
+    handleUntagDeck,
+    handleUpdateNote,
+  } = useWishlistOptimistic();
 
   const [allDecks, setAllDecks] = useState<Deck[]>([]);
 
@@ -386,8 +393,7 @@ export default function WishlistPage() {
 
       <div className="max-w-4xl mx-auto px-6 py-8 flex flex-col gap-8">
         <WishlistAddPanel
-          onAdd={addCard}
-          onTagDeck={tagDeck}
+          onAdd={handleAddCard}
           existingCardIds={existingCardIds}
           allDecks={allDecks}
         />
@@ -493,10 +499,10 @@ export default function WishlistPage() {
                   key={entry.id}
                   entry={entry}
                   allDecks={allDecks}
-                  onRemove={removeEntry}
-                  onTagDeck={tagDeck}
-                  onUntagDeck={untagDeck}
-                  onUpdateNote={updateNote}
+                  onRemove={handleRemove}
+                  onTagDeck={handleTagDeck}
+                  onUntagDeck={handleUntagDeck}
+                  onUpdateNote={handleUpdateNote}
                 />
               ))}
             </div>
