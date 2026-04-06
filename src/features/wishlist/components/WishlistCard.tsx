@@ -1,11 +1,11 @@
 // Modules
-import { useState } from 'react';
+import { useState } from "react";
 
 // Types
-import type { Deck, WishlistEntry } from '@/types';
+import type { Deck, WishlistEntry } from "@/types";
 
 // Components
-import ManaCost from '@/components/ManaSymbol/ManaCost';
+import ManaCost from "@/components/ManaSymbol/ManaCost";
 
 interface WishlistCardProps {
   entry: WishlistEntry;
@@ -46,7 +46,7 @@ export default function WishlistCard({
     <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full h-full overflow-hidden">
       <div className="flex flex-col sm:flex-row gap-0 sm:gap-4 sm:p-4">
         {/* Card image */}
-        <div className="shrink-0 w-full sm:w-56 md:w-48 self-start flex justify-center">
+        <div className="shrink-0 w-full mt-1 sm:w-56 md:w-48 self-start flex justify-center">
           {entry.card.image_uris?.normal ? (
             <img
               src={entry.card.image_uris.normal}
@@ -55,7 +55,7 @@ export default function WishlistCard({
               onClick={() => setExpanded((v) => !v)}
             />
           ) : (
-            <div className="w-full aspect-[5/7] bg-slate-800 sm:rounded-xl sm:border sm:border-slate-700 flex items-center justify-center">
+            <div className="w-full aspect-5/7 bg-slate-800 sm:rounded-xl sm:border sm:border-slate-700 flex items-center justify-center">
               <span className="text-slate-500 text-xs text-center px-2">
                 {entry.card.name}
               </span>
@@ -93,9 +93,9 @@ export default function WishlistCard({
                 key={d.id}
                 className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
                 style={{
-                  backgroundColor: '#1971c222',
-                  color: '#1971c2',
-                  border: '1px solid #1971c255',
+                  backgroundColor: "#1971c222",
+                  color: "#1971c2",
+                  border: "1px solid #1971c255",
                 }}
               >
                 {d.name}
@@ -114,7 +114,7 @@ export default function WishlistCard({
                 onChange={(e) => {
                   if (e.target.value) {
                     onTagDeck(entry.id, e.target.value);
-                    e.target.value = '';
+                    e.target.value = "";
                   }
                 }}
                 className="text-xs text-slate-400 bg-slate-800 border border-slate-700 rounded-full px-2.5 py-1 focus:outline-none focus:border-[#1971c2] transition-colors cursor-pointer max-w-full min-w-0"
