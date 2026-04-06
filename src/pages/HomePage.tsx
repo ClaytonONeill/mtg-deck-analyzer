@@ -24,6 +24,11 @@ export default function HomePage() {
     });
   }, []);
 
+  const handleDelete = (id: string) => {
+    setDecks((prevDecks) => prevDecks.filter((deck) => deck.id !== id));
+    deckStore.delete(id);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -49,10 +54,7 @@ export default function HomePage() {
                   deck={deck}
                   onOpen={() => navigate(`/deck/${deck.id}`)}
                   onEdit={() => navigate(`/build/${deck.id}`)}
-                  onDelete={() => {
-                    deckStore.delete(deck.id);
-                    window.location.reload();
-                  }}
+                  onDelete={() => handleDelete(deck.id)}
                 />
               ))}
             </div>
