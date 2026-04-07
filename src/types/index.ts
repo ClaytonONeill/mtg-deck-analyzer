@@ -14,15 +14,15 @@ export interface ScryfallCard {
 }
 
 export type CardCategory =
-  | "Commander"
-  | "Creature"
-  | "Land"
-  | "Instant"
-  | "Sorcery"
-  | "Enchantment"
-  | "Artifact"
-  | "Planeswalker"
-  | "Other";
+  | 'Commander'
+  | 'Creature'
+  | 'Land'
+  | 'Instant'
+  | 'Sorcery'
+  | 'Enchantment'
+  | 'Artifact'
+  | 'Planeswalker'
+  | 'Other';
 
 export interface DeckEntry {
   card: ScryfallCard;
@@ -73,4 +73,10 @@ export interface WishlistEntry {
   deckIds: string[];
   note: string;
   addedAt: string;
+}
+
+export interface PendingSwap {
+  removeCardName: string;
+  removeCardId: string;
+  addCard: ScryfallCard;
 }

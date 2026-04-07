@@ -12,7 +12,6 @@ export default function SelectedCategoryModal() {
   const BASIC_LAND_NAMES = ['plains', 'island', 'swamp', 'mountain', 'forest'];
 
   const configureBasicLandEndpoint = (land: string) => {
-    console.log('land is: ', land);
     return `https://api.scryfall.com/cards/named?exact=${land}&format=image&version=normal`;
   };
 

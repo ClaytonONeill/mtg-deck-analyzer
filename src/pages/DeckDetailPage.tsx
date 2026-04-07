@@ -34,12 +34,7 @@ import WishlistDeckFilter from '@/features/wishlist/components/WishlistDeckFilte
 import SelectedCategoryModal from '@/features/metrics/components/SelectedCategoryModal';
 
 // Types
-import type { Deck, ScryfallCard } from '@/types';
-
-interface PendingSwap {
-  removeCardId: string;
-  addCard: ScryfallCard;
-}
+import type { Deck, PendingSwap } from '@/types';
 
 type Tab = 'metrics' | 'objectives' | 'gallery' | 'wishlist';
 type MetricView = 'types' | 'cmc' | 'compare';
@@ -478,8 +473,11 @@ export default function DeckDetailPage() {
             pendingSwaps={pendingSwaps}
             onAssign={handleAssignObjective}
             onUnassign={handleUnassignObjective}
-            onAddSwap={(removeCardId, addCard) =>
-              setPendingSwaps((prev) => [...prev, { removeCardId, addCard }])
+            onAddSwap={(removeCardName, removeCardId, addCard) =>
+              setPendingSwaps((prev) => [
+                ...prev,
+                { removeCardName, removeCardId, addCard },
+              ])
             }
             onSaveAsVersion={() => setShowSaveModal(true)}
             onUndoSwaps={() => setPendingSwaps([])}

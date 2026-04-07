@@ -1,10 +1,5 @@
 // Types
-import type { ScryfallCard } from '@/types';
-
-interface PendingSwap {
-  removeCardId: string;
-  addCard: ScryfallCard;
-}
+import type { PendingSwap } from '@/types/index';
 
 interface SwapBannerProps {
   swaps: PendingSwap[];
@@ -28,7 +23,7 @@ export default function SwapBanner({
         <div className="flex flex-wrap gap-x-3 gap-y-0.5">
           {swaps.map((swap, i) => (
             <p key={i} className="text-slate-400 text-xs">
-              <span className="text-red-400">− {swap.removeCardId}</span>
+              <span className="text-red-400">− {swap.removeCardName}</span>
               <span className="text-slate-600 mx-1">→</span>
               <span className="text-green-400">+ {swap.addCard.name}</span>
             </p>
