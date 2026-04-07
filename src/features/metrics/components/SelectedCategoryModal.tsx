@@ -9,6 +9,12 @@ export default function SelectedCategoryModal() {
 
   // CMC View Categories are strings of integers
   const CMC_VIEW = /^[0-9]+$/.test(selectedCategory);
+  const BASIC_LAND_NAMES = ['plains', 'island', 'swamp', 'mountain', 'forest'];
+
+  const configureBasicLandEndpoint = (land: string) => {
+    console.log('land is: ', land);
+    return `https://api.scryfall.com/cards/named?exact=${land}&format=image&version=normal`;
+  };
 
   const filteredEntries = viewableEntries.filter((e) => {
     const cat = selectedCategory.toLowerCase();
@@ -41,26 +47,35 @@ export default function SelectedCategoryModal() {
           </button>
         </div>
         <div className="overflow-y-auto p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {filteredEntries.map((entry) => (
-            <div
-              key={entry.card.id}
-              className="flex flex-col items-center gap-3 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50"
-            >
-              <img
-                src={entry.card.image_uris?.large}
-                alt={entry.card.name}
-                className="w-3/4 object-contain"
-              />
-              <div className="flex flex-col items-center">
-                <span className="text-sm font-medium text-slate-100">
-                  {entry.card.name}
-                </span>
-                <span className="text-xs text-slate-500">
-                  {entry.card.type_line.split('—')[0]}
-                </span>
+          {filteredEntries.map((entry) => {
+            const isBasicLand = BASIC_LAND_NAMES.includes(
+              entry.card.name.toLowerCase(),
+            );
+            return (
+              <div
+                key={entry.card.id}
+                className="flex flex-col items-center gap-3 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50"
+              >
+                <img
+                  src={
+                    isBasicLand
+                      ? configureBasicLandEndpoint(entry.card.name)
+                      : entry.card.image_uris?.large
+                  }
+                  alt={entry.card.name}
+                  className="w-3/4 object-contain"
+                />
+                <div className="flex flex-col items-center">
+                  <span className="text-sm font-medium text-slate-100">
+                    {entry.card.name}
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    {entry.card.type_line.split('—')[0]}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
