@@ -465,6 +465,7 @@ export default function DeckDetailPage() {
         {activeTab === 'gallery' && (
           <CardGallery
             deckId={activeDeck.id}
+            colorIdentity={activeDeck.colorIdentity}
             entries={displayDeck.entries.map((e) => ({
               ...e,
               objectiveIds: e.objectiveIds ?? [],

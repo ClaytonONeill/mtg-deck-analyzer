@@ -17,6 +17,7 @@ import type { PendingSwap } from '@/types/index';
 
 interface CardGalleryProps {
   deckId: string;
+  colorIdentity: string[];
   entries: DeckEntry[];
   objectives: Objective[];
   pendingSwaps: PendingSwap[];
@@ -326,6 +327,7 @@ function FilterPopover({
 
 export default function CardGallery({
   deckId,
+  colorIdentity,
   entries,
   objectives,
   pendingSwaps,
@@ -642,6 +644,7 @@ export default function CardGallery({
         <SwapSidebar
           cardToSwap={swapping}
           deckId={deckId}
+          colorIdentity={colorIdentity}
           onConfirm={handleConfirmSwap}
           onClose={() => setSwapping(null)}
         />
