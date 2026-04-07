@@ -1,17 +1,16 @@
 // Modules
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo } from 'react';
 
 // Types
-import type { Deck, Objective } from "@/types";
+import type { Deck, Objective } from '@/types';
 
 // Utils
-import { assignObjectiveColor } from "@/features/objectives/utils/objectivePalette";
+import { assignObjectiveColor } from '@/features/objectives/utils/objectivePalette';
 
 // Store
-import { deckStore } from "@/store/deckStore";
+import { deckStore } from '@/store/deckStore';
 
 export function useObjectives(deck: Deck, onDeckChange: (deck: Deck) => void) {
-  // Migration guard — memoized so callbacks don't re-create on every render
   const safeDeck = useMemo<Deck>(
     () => ({
       ...deck,
@@ -25,7 +24,7 @@ export function useObjectives(deck: Deck, onDeckChange: (deck: Deck) => void) {
   );
 
   const createObjective = useCallback(
-    async (label: string, description: string) => {
+    (label: string, description: string) => {
       const existingColors = safeDeck.objectives.map((o) => o.color);
       const newObjective: Objective = {
         id: crypto.randomUUID(),
@@ -38,14 +37,18 @@ export function useObjectives(deck: Deck, onDeckChange: (deck: Deck) => void) {
         objectives: [...safeDeck.objectives, newObjective],
         updatedAt: new Date().toISOString(),
       };
-      await deckStore.save(updated);
+      // Optimistic — update UI first
       onDeckChange(updated);
+      // Persist in background, roll back on failure
+      void deckStore.save(updated).catch(() => {
+        onDeckChange(safeDeck);
+      });
     },
     [safeDeck, onDeckChange],
   );
 
   const deleteObjective = useCallback(
-    async (objectiveId: string) => {
+    (objectiveId: string) => {
       const updated: Deck = {
         ...safeDeck,
         objectives: safeDeck.objectives.filter((o) => o.id !== objectiveId),
@@ -55,14 +58,16 @@ export function useObjectives(deck: Deck, onDeckChange: (deck: Deck) => void) {
         })),
         updatedAt: new Date().toISOString(),
       };
-      await deckStore.save(updated);
       onDeckChange(updated);
+      void deckStore.save(updated).catch(() => {
+        onDeckChange(safeDeck);
+      });
     },
     [safeDeck, onDeckChange],
   );
 
   const assignObjective = useCallback(
-    async (cardId: string, objectiveId: string) => {
+    (cardId: string, objectiveId: string) => {
       const updated: Deck = {
         ...safeDeck,
         entries: safeDeck.entries.map((e) =>
@@ -72,14 +77,16 @@ export function useObjectives(deck: Deck, onDeckChange: (deck: Deck) => void) {
         ),
         updatedAt: new Date().toISOString(),
       };
-      await deckStore.save(updated);
       onDeckChange(updated);
+      void deckStore.save(updated).catch(() => {
+        onDeckChange(safeDeck);
+      });
     },
     [safeDeck, onDeckChange],
   );
 
   const unassignObjective = useCallback(
-    async (cardId: string, objectiveId: string) => {
+    (cardId: string, objectiveId: string) => {
       const updated: Deck = {
         ...safeDeck,
         entries: safeDeck.entries.map((e) =>
@@ -92,14 +99,16 @@ export function useObjectives(deck: Deck, onDeckChange: (deck: Deck) => void) {
         ),
         updatedAt: new Date().toISOString(),
       };
-      await deckStore.save(updated);
       onDeckChange(updated);
+      void deckStore.save(updated).catch(() => {
+        onDeckChange(safeDeck);
+      });
     },
     [safeDeck, onDeckChange],
   );
 
   const updateObjective = useCallback(
-    async (objectiveId: string, label: string, description: string) => {
+    (objectiveId: string, label: string, description: string) => {
       const updated: Deck = {
         ...safeDeck,
         objectives: safeDeck.objectives.map((o) =>
@@ -109,8 +118,10 @@ export function useObjectives(deck: Deck, onDeckChange: (deck: Deck) => void) {
         ),
         updatedAt: new Date().toISOString(),
       };
-      await deckStore.save(updated);
       onDeckChange(updated);
+      void deckStore.save(updated).catch(() => {
+        onDeckChange(safeDeck);
+      });
     },
     [safeDeck, onDeckChange],
   );

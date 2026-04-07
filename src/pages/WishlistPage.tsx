@@ -1,44 +1,44 @@
 // Modules
-import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Hooks
-import { useWishlistOptimistic } from "@/hooks/useWishlistOptimistic";
+import { useWishlist } from '@/hooks/useWishlist';
 
 // Store
-import { deckStore } from "@/store/deckStore";
+import { deckStore } from '@/store/deckStore';
 
 // Utils
-import { inferCategory } from "@/utils/utils";
+import { inferCategory } from '@/utils/utils';
 
 // Types
-import type { Deck, CardCategory, WishlistEntry } from "@/types";
+import type { Deck, CardCategory, WishlistEntry } from '@/types';
 
 // Components
-import WishlistAddPanel from "@/features/wishlist/components/WishlistAddPanel";
-import WishlistCard from "@/features/wishlist/components/WishlistCard";
+import WishlistAddPanel from '@/features/wishlist/components/WishlistAddPanel';
+import WishlistCard from '@/features/wishlist/components/WishlistCard';
 
-type SortKey = "name" | "cmc" | "color" | "type";
-type SortDirection = "asc" | "desc";
+type SortKey = 'name' | 'cmc' | 'color' | 'type';
+type SortDirection = 'asc' | 'desc';
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "name", label: "Name" },
-  { key: "cmc", label: "Mana Value" },
-  { key: "color", label: "Color Identity" },
-  { key: "type", label: "Type" },
+  { key: 'name', label: 'Name' },
+  { key: 'cmc', label: 'Mana Value' },
+  { key: 'color', label: 'Color Identity' },
+  { key: 'type', label: 'Type' },
 ];
 
-const COLOR_ORDER = ["W", "U", "B", "R", "G"];
+const COLOR_ORDER = ['W', 'U', 'B', 'R', 'G'];
 
 const CATEGORY_ORDER: CardCategory[] = [
-  "Creature",
-  "Instant",
-  "Sorcery",
-  "Enchantment",
-  "Artifact",
-  "Planeswalker",
-  "Land",
-  "Other",
+  'Creature',
+  'Instant',
+  'Sorcery',
+  'Enchantment',
+  'Artifact',
+  'Planeswalker',
+  'Land',
+  'Other',
 ];
 
 interface ActiveFilters {
@@ -77,24 +77,24 @@ function sortEntries(
   sort: SortKey,
   direction: SortDirection,
 ): WishlistEntry[] {
-  const mult = direction === "asc" ? 1 : -1;
+  const mult = direction === 'asc' ? 1 : -1;
   return [...entries].sort((a, b) => {
     switch (sort) {
-      case "name":
+      case 'name':
         return mult * a.card.name.localeCompare(b.card.name);
-      case "cmc":
+      case 'cmc':
         return mult * (a.card.cmc - b.card.cmc);
-      case "type": {
+      case 'type': {
         const aCat = CATEGORY_ORDER.indexOf(inferCategory(a.card.type_line));
         const bCat = CATEGORY_ORDER.indexOf(inferCategory(b.card.type_line));
         return mult * (aCat - bCat);
       }
-      case "color": {
+      case 'color': {
         const aFirst = COLOR_ORDER.indexOf(
-          (a.card.color_identity ?? [])[0] ?? "",
+          (a.card.color_identity ?? [])[0] ?? '',
         );
         const bFirst = COLOR_ORDER.indexOf(
-          (b.card.color_identity ?? [])[0] ?? "",
+          (b.card.color_identity ?? [])[0] ?? '',
         );
         return mult * (aFirst - bFirst);
       }
@@ -113,7 +113,7 @@ function applyFilters(
       const cardColors = entry.card.color_identity ?? [];
       const matches =
         cardColors.some((c) => filters.colors.includes(c)) ||
-        (cardColors.length === 0 && filters.colors.includes("C"));
+        (cardColors.length === 0 && filters.colors.includes('C'));
       if (!matches) return false;
     }
 
@@ -170,11 +170,11 @@ function FilterPopover({
                 }
                 className="w-8 h-8 rounded-full text-xs font-bold border-2 transition-all"
                 style={{
-                  borderColor: draft.colors.includes(c) ? "#1971c2" : "#334155",
+                  borderColor: draft.colors.includes(c) ? '#1971c2' : '#334155',
                   backgroundColor: draft.colors.includes(c)
-                    ? "#1971c222"
-                    : "transparent",
-                  color: "#f1f5f9",
+                    ? '#1971c222'
+                    : 'transparent',
+                  color: '#f1f5f9',
                 }}
               >
                 {c}
@@ -197,12 +197,12 @@ function FilterPopover({
                 className="text-xs px-2.5 py-1 rounded-full border transition-all"
                 style={{
                   borderColor: draft.types.includes(cat)
-                    ? "#1971c2"
-                    : "#334155",
+                    ? '#1971c2'
+                    : '#334155',
                   backgroundColor: draft.types.includes(cat)
-                    ? "#1971c222"
-                    : "transparent",
-                  color: draft.types.includes(cat) ? "#1971c2" : "#94a3b8",
+                    ? '#1971c222'
+                    : 'transparent',
+                  color: draft.types.includes(cat) ? '#1971c2' : '#94a3b8',
                 }}
               >
                 {cat}
@@ -220,13 +220,13 @@ function FilterPopover({
               type="number"
               min={0}
               placeholder="Min"
-              value={draft.cmc.min ?? ""}
+              value={draft.cmc.min ?? ''}
               onChange={(e) =>
                 onChange({
                   ...draft,
                   cmc: {
                     ...draft.cmc,
-                    min: e.target.value === "" ? null : Number(e.target.value),
+                    min: e.target.value === '' ? null : Number(e.target.value),
                   },
                 })
               }
@@ -237,13 +237,13 @@ function FilterPopover({
               type="number"
               min={0}
               placeholder="Max"
-              value={draft.cmc.max ?? ""}
+              value={draft.cmc.max ?? ''}
               onChange={(e) =>
                 onChange({
                   ...draft,
                   cmc: {
                     ...draft.cmc,
-                    max: e.target.value === "" ? null : Number(e.target.value),
+                    max: e.target.value === '' ? null : Number(e.target.value),
                   },
                 })
               }
@@ -274,8 +274,8 @@ function FilterPopover({
                     <div
                       className="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all"
                       style={{
-                        borderColor: checked ? "#1971c2" : "#475569",
-                        backgroundColor: checked ? "#1971c2" : "transparent",
+                        borderColor: checked ? '#1971c2' : '#475569',
+                        backgroundColor: checked ? '#1971c2' : 'transparent',
                       }}
                     >
                       {checked && (
@@ -287,9 +287,9 @@ function FilterPopover({
                     <span
                       className="text-xs font-semibold px-2 py-0.5 rounded-full"
                       style={{
-                        backgroundColor: "#1971c222",
-                        color: "#1971c2",
-                        border: "1px solid #1971c255",
+                        backgroundColor: '#1971c222',
+                        color: '#1971c2',
+                        border: '1px solid #1971c255',
                       }}
                     >
                       {deck.name}
@@ -323,14 +323,8 @@ function FilterPopover({
 export default function WishlistPage() {
   const navigate = useNavigate();
 
-  const {
-    entries,
-    handleAddCard,
-    handleRemove,
-    handleTagDeck,
-    handleUntagDeck,
-    handleUpdateNote,
-  } = useWishlistOptimistic();
+  const { entries, addCard, removeEntry, tagDeck, untagDeck, updateNote } =
+    useWishlist();
 
   const [allDecks, setAllDecks] = useState<Deck[]>([]);
 
@@ -340,8 +334,8 @@ export default function WishlistPage() {
 
   const existingCardIds = entries.map((e) => e.card.id);
 
-  const [sort, setSort] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<SortDirection>("asc");
+  const [sort, setSort] = useState<SortKey>('name');
+  const [sortDir, setSortDir] = useState<SortDirection>('asc');
   const [draftFilters, setDraftFilters] =
     useState<ActiveFilters>(EMPTY_FILTERS);
   const [activeFilters, setActiveFilters] =
@@ -380,20 +374,20 @@ export default function WishlistPage() {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <header className="px-6 py-4 flex items-center justify-between">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate('/')}
           className="text-slate-400 hover:text-white text-sm transition-colors hover:cursor-pointer"
         >
           ← Back
         </button>
         <h1 className="text-lg font-bold text-white">Wishlist</h1>
         <span className="text-sm text-slate-500">
-          {entries.length} card{entries.length !== 1 ? "s" : ""}
+          {entries.length} card{entries.length !== 1 ? 's' : ''}
         </span>
       </header>
 
       <div className="max-w-4xl mx-auto px-6 py-8 flex flex-col gap-8">
         <WishlistAddPanel
-          onAdd={handleAddCard}
+          onAdd={addCard}
           existingCardIds={existingCardIds}
           allDecks={allDecks}
         />
@@ -424,8 +418,8 @@ export default function WishlistPage() {
                     className="px-3 py-1.5 rounded-md text-xs font-semibold transition-colors hover:cursor-pointer"
                     style={{
                       backgroundColor:
-                        sort === opt.key ? "#1971c2" : "transparent",
-                      color: sort === opt.key ? "#fff" : "#64748b",
+                        sort === opt.key ? '#1971c2' : 'transparent',
+                      color: sort === opt.key ? '#fff' : '#64748b',
                     }}
                   >
                     {opt.label}
@@ -435,11 +429,11 @@ export default function WishlistPage() {
 
               <button
                 onClick={() =>
-                  setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+                  setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
                 }
                 className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
               >
-                {sortDir === "asc" ? "↑ Asc" : "↓ Desc"}
+                {sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}
               </button>
 
               <div className="relative">
@@ -447,17 +441,17 @@ export default function WishlistPage() {
                   onClick={handleOpenFilters}
                   className="flex items-center gap-1.5 text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors"
                   style={{
-                    borderColor: filterCount > 0 ? "#1971c2" : "#334155",
-                    color: filterCount > 0 ? "#1971c2" : "#94a3b8",
+                    borderColor: filterCount > 0 ? '#1971c2' : '#334155',
+                    color: filterCount > 0 ? '#1971c2' : '#94a3b8',
                     backgroundColor:
-                      filterCount > 0 ? "#1971c211" : "transparent",
+                      filterCount > 0 ? '#1971c211' : 'transparent',
                   }}
                 >
                   Filter
                   {filterCount > 0 && (
                     <span
                       className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                      style={{ backgroundColor: "#1971c2", color: "#fff" }}
+                      style={{ backgroundColor: '#1971c2', color: '#fff' }}
                     >
                       {filterCount}
                     </span>
@@ -499,10 +493,10 @@ export default function WishlistPage() {
                   key={entry.id}
                   entry={entry}
                   allDecks={allDecks}
-                  onRemove={handleRemove}
-                  onTagDeck={handleTagDeck}
-                  onUntagDeck={handleUntagDeck}
-                  onUpdateNote={handleUpdateNote}
+                  onRemove={removeEntry}
+                  onTagDeck={tagDeck}
+                  onUntagDeck={untagDeck}
+                  onUpdateNote={updateNote}
                 />
               ))}
             </div>

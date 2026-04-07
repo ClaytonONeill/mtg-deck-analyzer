@@ -1,72 +1,121 @@
 // Modules
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
 
 // Types
-import type { ScryfallCard, WishlistEntry } from "@/types";
+import type { ScryfallCard, WishlistEntry } from '@/types';
 
 // Store
-import { wishlistStore } from "@/store/wishlistStore";
+import { wishlistStore } from '@/store/wishlistStore';
 
 export function useWishlist() {
   const [entries, setEntries] = useState<WishlistEntry[]>([]);
 
-  // Initial set to entries on mount
   useEffect(() => {
     let mounted = true;
-    (async () => {
-      const data = await wishlistStore.getAll();
-      if (!mounted) return;
-      setEntries(data);
-    })();
+    wishlistStore.getAll().then((data) => {
+      if (mounted) setEntries(data);
+    });
     return () => {
       mounted = false;
     };
   }, []);
 
-  const refresh = useCallback(async () => {
-    const data = await wishlistStore.getAll();
-    setEntries(data);
-  }, []);
+  const addCard = useCallback(async (card: ScryfallCard, note = '') => {
+    const tempEntry: WishlistEntry = {
+      id: crypto.randomUUID(),
+      card,
+      deckIds: [],
+      note,
+      addedAt: new Date().toISOString(),
+    };
 
-  const addCard = useCallback(
-    async (card: ScryfallCard, note: string = "") => {
-      const entry = await wishlistStore.add(card, note);
-      await refresh();
-      return entry;
-    },
-    [refresh],
-  );
+    setEntries((prev) => [tempEntry, ...prev]);
+
+    try {
+      const realEntry = await wishlistStore.add(card, note);
+      setEntries((prev) =>
+        prev.map((e) => (e.id === tempEntry.id ? realEntry : e)),
+      );
+      return realEntry;
+    } catch {
+      setEntries((prev) => prev.filter((e) => e.id !== tempEntry.id));
+      throw new Error('Failed to add card to wishlist');
+    }
+  }, []);
 
   const removeEntry = useCallback(
     async (entryId: string) => {
-      await wishlistStore.remove(entryId);
-      await refresh();
+      const snapshot = entries;
+      setEntries((prev) => prev.filter((e) => e.id !== entryId));
+
+      try {
+        await wishlistStore.remove(entryId);
+      } catch {
+        setEntries(snapshot);
+      }
     },
-    [refresh],
+    [entries],
   );
 
-  const tagDeck = useCallback(
-    async (entryId: string, deckId: string) => {
+  const tagDeck = useCallback(async (entryId: string, deckId: string) => {
+    setEntries((prev) =>
+      prev.map((e) =>
+        e.id === entryId && !e.deckIds.includes(deckId)
+          ? { ...e, deckIds: [...e.deckIds, deckId] }
+          : e,
+      ),
+    );
+
+    try {
       await wishlistStore.tagDeck(entryId, deckId);
-      await refresh();
-    },
-    [refresh],
-  );
+    } catch {
+      setEntries((prev) =>
+        prev.map((e) =>
+          e.id === entryId
+            ? { ...e, deckIds: e.deckIds.filter((id) => id !== deckId) }
+            : e,
+        ),
+      );
+    }
+  }, []);
 
-  const untagDeck = useCallback(
-    async (entryId: string, deckId: string) => {
+  const untagDeck = useCallback(async (entryId: string, deckId: string) => {
+    setEntries((prev) =>
+      prev.map((e) =>
+        e.id === entryId
+          ? { ...e, deckIds: e.deckIds.filter((id) => id !== deckId) }
+          : e,
+      ),
+    );
+
+    try {
       await wishlistStore.untagDeck(entryId, deckId);
-      await refresh();
-    },
-    [refresh],
-  );
+    } catch {
+      setEntries((prev) =>
+        prev.map((e) =>
+          e.id === entryId ? { ...e, deckIds: [...e.deckIds, deckId] } : e,
+        ),
+      );
+    }
+  }, []);
 
   const updateNote = useCallback(
     async (entryId: string, note: string) => {
-      await wishlistStore.updateNote(entryId, note);
-      await refresh();
+      const snapshot = entries.find((e) => e.id === entryId)?.note ?? '';
+
+      setEntries((prev) =>
+        prev.map((e) => (e.id === entryId ? { ...e, note } : e)),
+      );
+
+      try {
+        await wishlistStore.updateNote(entryId, note);
+      } catch {
+        setEntries((prev) =>
+          prev.map((e) => (e.id === entryId ? { ...e, note: snapshot } : e)),
+        );
+      }
     },
-    [refresh],
+    [entries],
   );
 
   const getForDeck = useCallback(
