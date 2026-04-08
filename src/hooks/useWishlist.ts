@@ -1,11 +1,11 @@
 // Modules
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 // Types
-import type { ScryfallCard, WishlistEntry } from '@/types';
+import type { ScryfallCard, WishlistEntry, Objective } from "@/types";
 
 // Store
-import { wishlistStore } from '@/store/wishlistStore';
+import { wishlistStore } from "@/store/wishlistStore";
 
 export function useWishlist() {
   const [entries, setEntries] = useState<WishlistEntry[]>([]);
@@ -20,11 +20,12 @@ export function useWishlist() {
     };
   }, []);
 
-  const addCard = useCallback(async (card: ScryfallCard, note = '') => {
+  const addCard = useCallback(async (card: ScryfallCard, note = "") => {
     const tempEntry: WishlistEntry = {
       id: crypto.randomUUID(),
       card,
       deckIds: [],
+      objectives: [],
       note,
       addedAt: new Date().toISOString(),
     };
@@ -39,7 +40,7 @@ export function useWishlist() {
       return realEntry;
     } catch {
       setEntries((prev) => prev.filter((e) => e.id !== tempEntry.id));
-      throw new Error('Failed to add card to wishlist');
+      throw new Error("Failed to add card to wishlist");
     }
   }, []);
 
@@ -47,7 +48,6 @@ export function useWishlist() {
     async (entryId: string) => {
       const snapshot = entries;
       setEntries((prev) => prev.filter((e) => e.id !== entryId));
-
       try {
         await wishlistStore.remove(entryId);
       } catch {
@@ -65,7 +65,6 @@ export function useWishlist() {
           : e,
       ),
     );
-
     try {
       await wishlistStore.tagDeck(entryId, deckId);
     } catch {
@@ -87,7 +86,6 @@ export function useWishlist() {
           : e,
       ),
     );
-
     try {
       await wishlistStore.untagDeck(entryId, deckId);
     } catch {
@@ -99,19 +97,57 @@ export function useWishlist() {
     }
   }, []);
 
-  const updateNote = useCallback(
-    async (entryId: string, note: string) => {
-      const snapshot = entries.find((e) => e.id === entryId)?.note ?? '';
-
+  const assignObjective = useCallback(
+    async (entryId: string, objective: Objective) => {
       setEntries((prev) =>
-        prev.map((e) => (e.id === entryId ? { ...e, note } : e)),
+        prev.map((e) =>
+          e.id === entryId
+            ? { ...e, objectives: [...(e.objectives ?? []), objective] }
+            : e,
+        ),
       );
-
       try {
-        await wishlistStore.updateNote(entryId, note);
+        await wishlistStore.addObjective(entryId, objective);
       } catch {
         setEntries((prev) =>
-          prev.map((e) => (e.id === entryId ? { ...e, note: snapshot } : e)),
+          prev.map((e) =>
+            e.id === entryId
+              ? {
+                  ...e,
+                  objectives: (e.objectives ?? []).filter(
+                    (o) => o.id !== objective.id,
+                  ),
+                }
+              : e,
+          ),
+        );
+      }
+    },
+    [],
+  );
+
+  const unassignObjective = useCallback(
+    async (entryId: string, objectiveId: string) => {
+      const snapshot = entries.find((e) => e.id === entryId)?.objectives ?? [];
+      setEntries((prev) =>
+        prev.map((e) =>
+          e.id === entryId
+            ? {
+                ...e,
+                objectives: (e.objectives ?? []).filter(
+                  (o) => o.id !== objectiveId,
+                ),
+              }
+            : e,
+        ),
+      );
+      try {
+        await wishlistStore.removeObjective(entryId, objectiveId);
+      } catch {
+        setEntries((prev) =>
+          prev.map((e) =>
+            e.id === entryId ? { ...e, objectives: snapshot } : e,
+          ),
         );
       }
     },
@@ -131,7 +167,8 @@ export function useWishlist() {
     removeEntry,
     tagDeck,
     untagDeck,
-    updateNote,
+    assignObjective,
+    unassignObjective,
     getForDeck,
   };
 }

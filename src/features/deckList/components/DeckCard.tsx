@@ -1,11 +1,11 @@
 // Store
-import { getDeckCardCount, exportDeck } from '@/store/deckStore';
+import { getDeckCardCount, exportDeck } from "@/store/deckStore";
 
 // Components
-import ColorPip from '@/components/ManaSymbol/ColorPip';
+import ColorPip from "@/components/ManaSymbol/ColorPip";
 
 // Types
-import type { Deck } from '@/types';
+import type { Deck } from "@/types";
 
 interface DeckCardProps {
   deck: Deck;

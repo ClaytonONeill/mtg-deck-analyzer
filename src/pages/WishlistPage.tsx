@@ -1,44 +1,46 @@
 // Modules
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 
 // Hooks
-import { useWishlist } from '@/hooks/useWishlist';
+import { useWishlist } from "@/hooks/useWishlist";
 
 // Store
-import { deckStore } from '@/store/deckStore';
+import { deckStore } from "@/store/deckStore";
 
 // Utils
-import { inferCategory } from '@/utils/utils';
+import { inferCategory } from "@/utils/utils";
+import { assignObjectiveColor } from "@/features/objectives/utils/objectivePalette";
 
 // Types
-import type { Deck, CardCategory, WishlistEntry } from '@/types';
+import type { Deck, CardCategory, Objective, WishlistEntry } from "@/types";
 
 // Components
-import WishlistAddPanel from '@/features/wishlist/components/WishlistAddPanel';
-import WishlistCard from '@/features/wishlist/components/WishlistCard';
+import WishlistAddPanel from "@/features/wishlist/components/WishlistAddPanel";
+import WishlistCard from "@/features/wishlist/components/WishlistCard";
+import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
-type SortKey = 'name' | 'cmc' | 'color' | 'type';
-type SortDirection = 'asc' | 'desc';
+type SortKey = "name" | "cmc" | "color" | "type";
+type SortDirection = "asc" | "desc";
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'name', label: 'Name' },
-  { key: 'cmc', label: 'Mana Value' },
-  { key: 'color', label: 'Color Identity' },
-  { key: 'type', label: 'Type' },
+  { key: "name", label: "Name" },
+  { key: "cmc", label: "Mana Value" },
+  { key: "color", label: "Color Identity" },
+  { key: "type", label: "Type" },
 ];
 
-const COLOR_ORDER = ['W', 'U', 'B', 'R', 'G'];
+const COLOR_ORDER = ["W", "U", "B", "R", "G"];
 
 const CATEGORY_ORDER: CardCategory[] = [
-  'Creature',
-  'Instant',
-  'Sorcery',
-  'Enchantment',
-  'Artifact',
-  'Planeswalker',
-  'Land',
-  'Other',
+  "Creature",
+  "Instant",
+  "Sorcery",
+  "Enchantment",
+  "Artifact",
+  "Planeswalker",
+  "Land",
+  "Other",
 ];
 
 interface ActiveFilters {
@@ -77,24 +79,24 @@ function sortEntries(
   sort: SortKey,
   direction: SortDirection,
 ): WishlistEntry[] {
-  const mult = direction === 'asc' ? 1 : -1;
+  const mult = direction === "asc" ? 1 : -1;
   return [...entries].sort((a, b) => {
     switch (sort) {
-      case 'name':
+      case "name":
         return mult * a.card.name.localeCompare(b.card.name);
-      case 'cmc':
+      case "cmc":
         return mult * (a.card.cmc - b.card.cmc);
-      case 'type': {
+      case "type": {
         const aCat = CATEGORY_ORDER.indexOf(inferCategory(a.card.type_line));
         const bCat = CATEGORY_ORDER.indexOf(inferCategory(b.card.type_line));
         return mult * (aCat - bCat);
       }
-      case 'color': {
+      case "color": {
         const aFirst = COLOR_ORDER.indexOf(
-          (a.card.color_identity ?? [])[0] ?? '',
+          (a.card.color_identity ?? [])[0] ?? "",
         );
         const bFirst = COLOR_ORDER.indexOf(
-          (b.card.color_identity ?? [])[0] ?? '',
+          (b.card.color_identity ?? [])[0] ?? "",
         );
         return mult * (aFirst - bFirst);
       }
@@ -113,27 +115,25 @@ function applyFilters(
       const cardColors = entry.card.color_identity ?? [];
       const matches =
         cardColors.some((c) => filters.colors.includes(c)) ||
-        (cardColors.length === 0 && filters.colors.includes('C'));
+        (cardColors.length === 0 && filters.colors.includes("C"));
       if (!matches) return false;
     }
-
     if (filters.types.length > 0) {
       if (!filters.types.includes(inferCategory(entry.card.type_line)))
         return false;
     }
-
     if (filters.cmc.min !== null && entry.card.cmc < filters.cmc.min)
       return false;
     if (filters.cmc.max !== null && entry.card.cmc > filters.cmc.max)
       return false;
-
     if (filters.decks.length > 0) {
-      const hasAny = filters.decks.some((id) => entry.deckIds.includes(id));
-      if (!hasAny) return false;
+      if (!filters.decks.some((id) => entry.deckIds.includes(id))) return false;
     }
-
-    if (filters.objectives.length > 0) return false;
-
+    if (filters.objectives.length > 0) {
+      const entryObjectiveIds = (entry.objectives ?? []).map((o) => o.id);
+      if (!filters.objectives.some((id) => entryObjectiveIds.includes(id)))
+        return false;
+    }
     return true;
   });
 }
@@ -141,6 +141,7 @@ function applyFilters(
 function FilterPopover({
   draft,
   allDecks,
+  allObjectives,
   onChange,
   onApply,
   onClear,
@@ -148,6 +149,7 @@ function FilterPopover({
 }: {
   draft: ActiveFilters;
   allDecks: { id: string; name: string }[];
+  allObjectives: Objective[];
   onChange: (f: ActiveFilters) => void;
   onApply: () => void;
   onClear: () => void;
@@ -158,7 +160,7 @@ function FilterPopover({
       <div className="fixed inset-0 z-20" onClick={onClose} />
       <div className="absolute top-full left-0 mt-2 z-30 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-5 w-80 flex flex-col gap-5">
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-slate-400 uppercase tracking-widest">
+          <p className="text-[13.8px] text-slate-400 uppercase tracking-widest">
             Color Identity
           </p>
           <div className="flex gap-2 flex-wrap">
@@ -168,13 +170,13 @@ function FilterPopover({
                 onClick={() =>
                   onChange({ ...draft, colors: toggle(draft.colors, c) })
                 }
-                className="w-8 h-8 rounded-full text-xs font-bold border-2 transition-all"
+                className="w-8 h-8 rounded-full text-[13.8px] font-bold border-2 transition-all"
                 style={{
-                  borderColor: draft.colors.includes(c) ? '#1971c2' : '#334155',
+                  borderColor: draft.colors.includes(c) ? "#1971c2" : "#334155",
                   backgroundColor: draft.colors.includes(c)
-                    ? '#1971c222'
-                    : 'transparent',
-                  color: '#f1f5f9',
+                    ? "#1971c222"
+                    : "transparent",
+                  color: "#f1f5f9",
                 }}
               >
                 {c}
@@ -184,7 +186,7 @@ function FilterPopover({
         </div>
 
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-slate-400 uppercase tracking-widest">
+          <p className="text-[13.8px] text-slate-400 uppercase tracking-widest">
             Card Type
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -194,15 +196,15 @@ function FilterPopover({
                 onClick={() =>
                   onChange({ ...draft, types: toggle(draft.types, cat) })
                 }
-                className="text-xs px-2.5 py-1 rounded-full border transition-all"
+                className="text-[13.8px] px-2.5 py-1 rounded-full border transition-all"
                 style={{
                   borderColor: draft.types.includes(cat)
-                    ? '#1971c2'
-                    : '#334155',
+                    ? "#1971c2"
+                    : "#334155",
                   backgroundColor: draft.types.includes(cat)
-                    ? '#1971c222'
-                    : 'transparent',
-                  color: draft.types.includes(cat) ? '#1971c2' : '#94a3b8',
+                    ? "#1971c222"
+                    : "transparent",
+                  color: draft.types.includes(cat) ? "#1971c2" : "#94a3b8",
                 }}
               >
                 {cat}
@@ -212,7 +214,7 @@ function FilterPopover({
         </div>
 
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-slate-400 uppercase tracking-widest">
+          <p className="text-[13.8px] text-slate-400 uppercase tracking-widest">
             Mana Value (CMC)
           </p>
           <div className="flex items-center gap-2">
@@ -220,41 +222,71 @@ function FilterPopover({
               type="number"
               min={0}
               placeholder="Min"
-              value={draft.cmc.min ?? ''}
+              value={draft.cmc.min ?? ""}
               onChange={(e) =>
                 onChange({
                   ...draft,
                   cmc: {
                     ...draft.cmc,
-                    min: e.target.value === '' ? null : Number(e.target.value),
+                    min: e.target.value === "" ? null : Number(e.target.value),
                   },
                 })
               }
-              className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#1971c2] transition-colors"
+              className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-[16.1px] text-white focus:outline-none focus:border-[#1971c2] transition-colors"
             />
-            <span className="text-slate-500 text-sm">—</span>
+            <span className="text-slate-500 text-[16.1px]">—</span>
             <input
               type="number"
               min={0}
               placeholder="Max"
-              value={draft.cmc.max ?? ''}
+              value={draft.cmc.max ?? ""}
               onChange={(e) =>
                 onChange({
                   ...draft,
                   cmc: {
                     ...draft.cmc,
-                    max: e.target.value === '' ? null : Number(e.target.value),
+                    max: e.target.value === "" ? null : Number(e.target.value),
                   },
                 })
               }
-              className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#1971c2] transition-colors"
+              className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-[16.1px] text-white focus:outline-none focus:border-[#1971c2] transition-colors"
             />
           </div>
         </div>
 
+        {allObjectives.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-[13.8px] text-slate-400 uppercase tracking-widest">
+              Objectives
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {allObjectives.map((o) => (
+                <button
+                  key={o.id}
+                  onClick={() =>
+                    onChange({
+                      ...draft,
+                      objectives: toggle(draft.objectives, o.id),
+                    })
+                  }
+                  className="transition-all rounded-full"
+                  style={{
+                    outline: draft.objectives.includes(o.id)
+                      ? `2px solid ${o.color}`
+                      : "2px solid transparent",
+                    outlineOffset: "2px",
+                  }}
+                >
+                  <ObjectivePill objective={o} size="sm" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {allDecks.length > 0 && (
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-slate-400 uppercase tracking-widest">
+            <p className="text-[13.8px] text-slate-400 uppercase tracking-widest">
               Decks
             </p>
             <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
@@ -274,8 +306,8 @@ function FilterPopover({
                     <div
                       className="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all"
                       style={{
-                        borderColor: checked ? '#1971c2' : '#475569',
-                        backgroundColor: checked ? '#1971c2' : 'transparent',
+                        borderColor: checked ? "#1971c2" : "#475569",
+                        backgroundColor: checked ? "#1971c2" : "transparent",
                       }}
                     >
                       {checked && (
@@ -285,11 +317,11 @@ function FilterPopover({
                       )}
                     </div>
                     <span
-                      className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                      className="text-[13.8px] font-semibold px-2 py-0.5 rounded-full"
                       style={{
-                        backgroundColor: '#1971c222',
-                        color: '#1971c2',
-                        border: '1px solid #1971c255',
+                        backgroundColor: "#1971c222",
+                        color: "#1971c2",
+                        border: "1px solid #1971c255",
                       }}
                     >
                       {deck.name}
@@ -304,13 +336,13 @@ function FilterPopover({
         <div className="flex gap-2 pt-1 border-t border-slate-800">
           <button
             onClick={onApply}
-            className="flex-1 bg-[#1971c2] hover:bg-blue-500 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+            className="flex-1 bg-[#1971c2] hover:bg-blue-500 text-white text-[16.1px] font-semibold py-2 rounded-lg transition-colors"
           >
             Apply
           </button>
           <button
             onClick={onClear}
-            className="text-sm text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors"
+            className="text-[16.1px] text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors"
           >
             Clear
           </button>
@@ -323,19 +355,55 @@ function FilterPopover({
 export default function WishlistPage() {
   const navigate = useNavigate();
 
-  const { entries, addCard, removeEntry, tagDeck, untagDeck, updateNote } =
-    useWishlist();
+  const {
+    entries,
+    addCard,
+    removeEntry,
+    tagDeck,
+    untagDeck,
+    assignObjective,
+    unassignObjective,
+  } = useWishlist();
 
   const [allDecks, setAllDecks] = useState<Deck[]>([]);
+  const [allObjectives, setAllObjectives] = useState<Objective[]>([]);
+  const [showObjectiveForm, setShowObjectiveForm] = useState(false);
+  const [newLabel, setNewLabel] = useState("");
+  const [newDesc, setNewDesc] = useState("");
 
   useEffect(() => {
     deckStore.getAll().then(setAllDecks);
   }, []);
 
+  const handleCreateObjective = () => {
+    if (!newLabel.trim()) return;
+    const existingColors = allObjectives.map((o) => o.color);
+    const newObjective: Objective = {
+      id: crypto.randomUUID(),
+      label: newLabel.trim(),
+      description: newDesc.trim(),
+      color: assignObjectiveColor(existingColors),
+    };
+    setAllObjectives((prev) => [...prev, newObjective]);
+    setNewLabel("");
+    setNewDesc("");
+    setShowObjectiveForm(false);
+  };
+
+  const handleDeleteObjective = (objectiveId: string) => {
+    setAllObjectives((prev) => prev.filter((o) => o.id !== objectiveId));
+    // Remove from all entries that have it
+    entries.forEach((entry) => {
+      if ((entry.objectives ?? []).some((o) => o.id === objectiveId)) {
+        unassignObjective(entry.id, objectiveId);
+      }
+    });
+  };
+
   const existingCardIds = entries.map((e) => e.card.id);
 
-  const [sort, setSort] = useState<SortKey>('name');
-  const [sortDir, setSortDir] = useState<SortDirection>('asc');
+  const [sort, setSort] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDirection>("asc");
   const [draftFilters, setDraftFilters] =
     useState<ActiveFilters>(EMPTY_FILTERS);
   const [activeFilters, setActiveFilters] =
@@ -344,27 +412,10 @@ export default function WishlistPage() {
 
   const filterCount = activeFilterCount(activeFilters);
 
-  const handleOpenFilters = () => {
-    setDraftFilters({ ...activeFilters });
-    setShowFilters(true);
-  };
-
-  const handleApplyFilters = () => {
-    setActiveFilters({ ...draftFilters });
-    setShowFilters(false);
-  };
-
-  const handleClearFilters = () => {
-    setDraftFilters(EMPTY_FILTERS);
-    setActiveFilters(EMPTY_FILTERS);
-    setShowFilters(false);
-  };
-
   const filtered = useMemo(
     () => applyFilters(entries, activeFilters),
     [entries, activeFilters],
   );
-
   const sorted = useMemo(
     () => sortEntries(filtered, sort, sortDir),
     [filtered, sort, sortDir],
@@ -374,14 +425,14 @@ export default function WishlistPage() {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <header className="px-6 py-4 flex items-center justify-between">
         <button
-          onClick={() => navigate('/')}
-          className="text-slate-400 hover:text-white text-sm transition-colors hover:cursor-pointer"
+          onClick={() => navigate("/")}
+          className="text-slate-400 hover:text-white text-[16.1px] transition-colors hover:cursor-pointer"
         >
           ← Back
         </button>
-        <h1 className="text-lg font-bold text-white">Wishlist</h1>
-        <span className="text-sm text-slate-500">
-          {entries.length} card{entries.length !== 1 ? 's' : ''}
+        <h1 className="text-[20.7px] font-bold text-white">Wishlist</h1>
+        <span className="text-[16.1px] text-slate-500">
+          {entries.length} card{entries.length !== 1 ? "s" : ""}
         </span>
       </header>
 
@@ -392,11 +443,85 @@ export default function WishlistPage() {
           allDecks={allDecks}
         />
 
+        {/* Objective manager */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[13.8px] text-slate-400 uppercase tracking-widest">
+              Wishlist Objectives
+            </p>
+            <button
+              onClick={() => setShowObjectiveForm((v) => !v)}
+              className="text-[13.8px] text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1 rounded-lg transition-colors hover:cursor-pointer"
+            >
+              + New
+            </button>
+          </div>
+
+          {showObjectiveForm && (
+            <div className="flex flex-col gap-2 bg-slate-800 rounded-xl p-3 border border-slate-700">
+              <input
+                type="text"
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+                placeholder="Label (e.g. Ramp, Win-Con...)"
+                maxLength={20}
+                className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-[13.8px] text-white placeholder-slate-500 focus:outline-none focus:border-[#1971c2] transition-colors"
+              />
+              <input
+                type="text"
+                value={newDesc}
+                onChange={(e) => setNewDesc(e.target.value)}
+                placeholder="Description (optional)"
+                className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-[13.8px] text-white placeholder-slate-500 focus:outline-none focus:border-[#1971c2] transition-colors"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCreateObjective}
+                  disabled={!newLabel.trim()}
+                  className="flex-1 bg-[#1971c2] hover:bg-blue-500 disabled:opacity-40 text-white text-[13.8px] font-semibold py-1.5 rounded-lg transition-colors hover:cursor-pointer"
+                >
+                  Add
+                </button>
+                <button
+                  onClick={() => {
+                    setShowObjectiveForm(false);
+                    setNewLabel("");
+                    setNewDesc("");
+                  }}
+                  className="text-[13.8px] text-slate-400 hover:text-white px-3 transition-colors hover:cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {allObjectives.length === 0 ? (
+            <p className="text-slate-600 text-[13.8px]">
+              No objectives yet — create one to start labeling your wishlist
+              cards.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {allObjectives.map((o) => (
+                <ObjectivePill
+                  key={o.id}
+                  objective={o}
+                  size="sm"
+                  onRemove={() => handleDeleteObjective(o.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
         {entries.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center gap-3">
-            <div className="text-5xl">✨</div>
-            <p className="text-slate-400 text-sm">Your wishlist is empty.</p>
-            <p className="text-slate-600 text-xs max-w-xs">
+            <div className="text-[55px]">✨</div>
+            <p className="text-slate-400 text-[16.1px]">
+              Your wishlist is empty.
+            </p>
+            <p className="text-slate-600 text-[13.8px] max-w-xs">
               Search for cards above to add them. Tag them to decks so they
               appear in that deck's Wishlist tab.
             </p>
@@ -406,7 +531,7 @@ export default function WishlistPage() {
         {entries.length > 0 && (
           <div className="flex flex-col gap-5">
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-xs text-slate-500 uppercase tracking-widest">
+              <span className="text-[13.8px] text-slate-500 uppercase tracking-widest">
                 Sort by
               </span>
 
@@ -415,11 +540,11 @@ export default function WishlistPage() {
                   <button
                     key={opt.key}
                     onClick={() => setSort(opt.key)}
-                    className="px-3 py-1.5 rounded-md text-xs font-semibold transition-colors hover:cursor-pointer"
+                    className="px-3 py-1.5 rounded-md text-[13.8px] font-semibold transition-colors hover:cursor-pointer"
                     style={{
                       backgroundColor:
-                        sort === opt.key ? '#1971c2' : 'transparent',
-                      color: sort === opt.key ? '#fff' : '#64748b',
+                        sort === opt.key ? "#1971c2" : "transparent",
+                      color: sort === opt.key ? "#fff" : "#64748b",
                     }}
                   >
                     {opt.label}
@@ -429,29 +554,32 @@ export default function WishlistPage() {
 
               <button
                 onClick={() =>
-                  setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+                  setSortDir((d) => (d === "asc" ? "desc" : "asc"))
                 }
-                className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 text-[13.8px] font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
               >
-                {sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}
+                {sortDir === "asc" ? "↑ Asc" : "↓ Desc"}
               </button>
 
               <div className="relative">
                 <button
-                  onClick={handleOpenFilters}
-                  className="flex items-center gap-1.5 text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors"
+                  onClick={() => {
+                    setDraftFilters({ ...activeFilters });
+                    setShowFilters(true);
+                  }}
+                  className="flex items-center gap-1.5 text-[13.8px] font-semibold border px-3 py-1.5 rounded-lg transition-colors"
                   style={{
-                    borderColor: filterCount > 0 ? '#1971c2' : '#334155',
-                    color: filterCount > 0 ? '#1971c2' : '#94a3b8',
+                    borderColor: filterCount > 0 ? "#1971c2" : "#334155",
+                    color: filterCount > 0 ? "#1971c2" : "#94a3b8",
                     backgroundColor:
-                      filterCount > 0 ? '#1971c211' : 'transparent',
+                      filterCount > 0 ? "#1971c211" : "transparent",
                   }}
                 >
                   Filter
                   {filterCount > 0 && (
                     <span
-                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                      style={{ backgroundColor: '#1971c2', color: '#fff' }}
+                      className="text-[11.5px] font-bold px-1.5 py-0.5 rounded-full"
+                      style={{ backgroundColor: "#1971c2", color: "#fff" }}
                     >
                       {filterCount}
                     </span>
@@ -462,25 +590,36 @@ export default function WishlistPage() {
                   <FilterPopover
                     draft={draftFilters}
                     allDecks={allDecks}
+                    allObjectives={allObjectives}
                     onChange={setDraftFilters}
-                    onApply={handleApplyFilters}
-                    onClear={handleClearFilters}
+                    onApply={() => {
+                      setActiveFilters({ ...draftFilters });
+                      setShowFilters(false);
+                    }}
+                    onClear={() => {
+                      setDraftFilters(EMPTY_FILTERS);
+                      setActiveFilters(EMPTY_FILTERS);
+                      setShowFilters(false);
+                    }}
                     onClose={() => setShowFilters(false)}
                   />
                 )}
               </div>
 
-              <span className="text-xs text-slate-500 ml-auto">
+              <span className="text-[13.8px] text-slate-500 ml-auto">
                 {sorted.length} of {entries.length} cards
               </span>
             </div>
 
             {sorted.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-500 text-sm gap-2">
+              <div className="flex flex-col items-center justify-center py-12 text-slate-500 text-[16.1px] gap-2">
                 <p>No cards match the current filters.</p>
                 <button
-                  onClick={handleClearFilters}
-                  className="text-[#1971c2] hover:underline text-xs"
+                  onClick={() => {
+                    setDraftFilters(EMPTY_FILTERS);
+                    setActiveFilters(EMPTY_FILTERS);
+                  }}
+                  className="text-[#1971c2] hover:underline text-[13.8px]"
                 >
                   Clear filters
                 </button>
@@ -493,10 +632,12 @@ export default function WishlistPage() {
                   key={entry.id}
                   entry={entry}
                   allDecks={allDecks}
+                  allObjectives={allObjectives}
                   onRemove={removeEntry}
                   onTagDeck={tagDeck}
                   onUntagDeck={untagDeck}
-                  onUpdateNote={updateNote}
+                  onAssignObjective={assignObjective}
+                  onUnassignObjective={unassignObjective}
                 />
               ))}
             </div>

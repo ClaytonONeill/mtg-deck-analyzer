@@ -2,31 +2,35 @@
 import { useState } from "react";
 
 // Types
-import type { Deck, WishlistEntry } from "@/types";
+import type { Deck, Objective, WishlistEntry } from "@/types";
 
 // Components
 import ManaCost from "@/components/ManaSymbol/ManaCost";
+import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 interface WishlistCardProps {
   entry: WishlistEntry;
   allDecks: Deck[];
+  allObjectives: Objective[];
   onRemove: (id: string) => void;
   onTagDeck: (entryId: string, deckId: string) => void;
   onUntagDeck: (entryId: string, deckId: string) => void;
-  onUpdateNote: (entryId: string, note: string) => void;
+  onAssignObjective: (entryId: string, objective: Objective) => void;
+  onUnassignObjective: (entryId: string, objectiveId: string) => void;
 }
 
 export default function WishlistCard({
   entry,
   allDecks,
+  allObjectives,
   onRemove,
   onTagDeck,
   onUntagDeck,
-  onUpdateNote,
+  onAssignObjective,
+  onUnassignObjective,
 }: WishlistCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const [noteVal, setNoteVal] = useState(entry.note);
-  const [noteDirty, setNoteDirty] = useState(false);
+  const [showPopover, setShowPopover] = useState(false);
 
   const taggedDecks = allDecks.filter((d) =>
     (entry.deckIds ?? []).includes(d.id),
@@ -34,24 +38,22 @@ export default function WishlistCard({
   const untagged = allDecks.filter(
     (d) => !(entry.deckIds ?? []).includes(d.id),
   );
-
-  const handleNoteBlur = () => {
-    if (noteDirty) {
-      onUpdateNote(entry.id, noteVal);
-      setNoteDirty(false);
-    }
-  };
+  const assignedObjectives = entry.objectives ?? [];
+  const assignedIds = assignedObjectives.map((o) => o.id);
+  const unassignedObjectives = allObjectives.filter(
+    (o) => !assignedIds.includes(o.id),
+  );
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full h-full overflow-hidden">
-      <div className="flex flex-col sm:flex-row gap-0 sm:gap-4 sm:p-4">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:p-4">
         {/* Card image */}
-        <div className="shrink-0 w-full mt-1 sm:w-56 md:w-48 self-start flex justify-center">
-          {entry.card.image_uris?.normal ? (
+        <div className="shrink-0 w-full sm:w-56 md:w-48 self-start">
+          {entry.card.image_uris?.large ? (
             <img
-              src={entry.card.image_uris.normal}
+              src={entry.card.image_uris.large}
               alt={entry.card.name}
-              className="w-3/4 sm:rounded-xl cursor-pointer sm:hover:scale-105 transition-transform shadow-lg sm:border sm:border-slate-700"
+              className="w-full sm:w-full md:w-xl cursor-pointer transition-transform shadow-lg sm:rounded-xl sm:border sm:border-slate-700 sm:hover:scale-105"
               onClick={() => setExpanded((v) => !v)}
             />
           ) : (
@@ -64,7 +66,7 @@ export default function WishlistCard({
         </div>
 
         {/* Right content */}
-        <div className="flex flex-col gap-3 flex-1 min-w-0 p-4 sm:p-0">
+        <div className="flex flex-col gap-3 flex-1 min-w-0 px-3 py-3 sm:p-4">
           {/* Title row */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-col gap-0.5 min-w-0">
@@ -85,6 +87,50 @@ export default function WishlistCard({
           {entry.card.cmc > 0 && (
             <ManaCost cost={entry.card.mana_cost} size={16} />
           )}
+
+          {/* Objective pills + popover */}
+          <div className="flex flex-wrap gap-1.5">
+            {assignedObjectives.map((o) => (
+              <ObjectivePill
+                key={o.id}
+                objective={o}
+                onRemove={() => onUnassignObjective(entry.id, o.id)}
+              />
+            ))}
+
+            {allObjectives.length > 0 && unassignedObjectives.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowPopover((v) => !v)}
+                  className="text-sm text-slate-500 hover:text-slate-300 border border-slate-700 hover:border-slate-500 rounded-full px-2.5 py-0.5 transition-colors hover:cursor-pointer"
+                >
+                  + Tag
+                </button>
+                {showPopover && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowPopover(false)}
+                    />
+                    <div className="absolute bottom-full left-0 mb-1 z-20 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-2 flex flex-col gap-1 w-max">
+                      {unassignedObjectives.map((o) => (
+                        <button
+                          key={o.id}
+                          onClick={() => {
+                            onAssignObjective(entry.id, o);
+                            setShowPopover(false);
+                          }}
+                          className="text-left px-2 py-1 rounded hover:bg-slate-800 transition-colors"
+                        >
+                          <ObjectivePill objective={o} />
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Deck tags */}
           <div className="flex flex-wrap gap-1.5 min-w-0">
@@ -130,19 +176,6 @@ export default function WishlistCard({
               </select>
             )}
           </div>
-
-          {/* Note textarea */}
-          <textarea
-            value={noteVal}
-            onChange={(e) => {
-              setNoteVal(e.target.value);
-              setNoteDirty(true);
-            }}
-            onBlur={handleNoteBlur}
-            placeholder="Add note..."
-            rows={3}
-            className="w-full h-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#1971c2] transition-colors resize-none"
-          />
         </div>
       </div>
 

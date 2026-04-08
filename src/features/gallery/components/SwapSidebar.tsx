@@ -10,7 +10,6 @@ import { useWishlist } from "@/hooks/useWishlist";
 // Components
 import CardSearchPanel from "@/features/deckBuilder/components/CardSearchPanel";
 import ManaCost from "@/components/ManaSymbol/ManaCost";
-import ColorPip from "@/components/ManaSymbol/ColorPip";
 
 interface SwapSidebarProps {
   cardToSwap: ScryfallCard;
@@ -238,24 +237,19 @@ export default function SwapSidebar({
                           <p className="text-slate-500 text-sm">
                             {entry.card.type_line}
                           </p>
-                          <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className="flex flex-col items-center gap-1.5 flex-wrap">
                             {entry.card.cmc > 0 && (
                               <ManaCost cost={entry.card.mana_cost} size={12} />
                             )}
-                            {(entry.card.color_identity ?? []).map((c) => (
-                              <ColorPip key={c} color={c} size={12} />
-                            ))}
                           </div>
                           {!legal && (
                             <p className="text-red-400 text-xs">
                               Outside color identity
                             </p>
                           )}
-                          {entry.note && legal && (
-                            <p className="text-slate-500 text-xs italic truncate">
-                              {entry.note}
-                            </p>
-                          )}
+                          <p className="text-slate-500 text-xs italic truncate min-h-2">
+                            {entry.note ?? ""}
+                          </p>
                         </div>
                       </button>
                     );
