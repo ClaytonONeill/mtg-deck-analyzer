@@ -13,6 +13,7 @@ export default function Header() {
 
   const isBuildPage = location.pathname === "/build";
   const isWishlistPage = location.pathname === "/wishlist";
+  const isObjectivesPage = location.pathname === "/objectives";
 
   const handleSignOut = async () => {
     await signOut();
@@ -36,6 +37,14 @@ export default function Header() {
       <div className="flex items-center gap-3">
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-3">
+          {!isObjectivesPage && (
+            <button
+              onClick={() => navTo("/objectives")}
+              className="text-sm font-semibold text-slate-400 hover:text-indigo-300 border border-slate-700 hover:border-indigo-500 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              Objectives
+            </button>
+          )}
           {!isWishlistPage && (
             <button
               onClick={() => navTo("/wishlist")}
@@ -95,6 +104,14 @@ export default function Header() {
       {/* Mobile Dropdown Menu */}
       {isOpen && (
         <div className="absolute top-full left-0 right-0 bg-slate-950 border-b border-slate-800 p-4 flex flex-col gap-3 md:hidden animate-in fade-in slide-in-from-top-2">
+          {!isObjectivesPage && (
+            <button
+              onClick={() => navTo("/objectives")}
+              className="w-full text-left text-sm font-semibold text-slate-400 hover:text-white px-4 py-3 rounded-lg border border-slate-800"
+            >
+              Objectives
+            </button>
+          )}
           {!isWishlistPage && (
             <button
               onClick={() => navTo("/wishlist")}

@@ -49,7 +49,7 @@ export default function WishlistDeckFilter({
         {deckEntries.length} card{deckEntries.length !== 1 ? "s" : ""}{" "}
         wishlisted for this deck
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="flex flex-col gap-6 items-center w-full">
         {deckEntries.map((entry) => (
           <WishlistCard
             key={entry.id}

@@ -7,7 +7,8 @@ import { Layers, BarChart2 } from "lucide-react";
 import { deckStore, getDeckCardCount } from "@/store/deckStore";
 
 // Hooks
-import { useObjectives } from "@/features/objectives/hooks/useObjectives";
+import { useObjectives } from "@/hooks/useObjectives";
+import { useGallery } from "@/features/gallery/hooks/useGallery";
 import { useDeckVersions } from "@/features/deckVersions/hooks/useDeckVersions";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useChartSelection } from "@/features/metrics/hooks/useChartSelection";
@@ -26,7 +27,6 @@ import { applyVersionToDeck } from "@/features/deckVersions/utils/versionUtils";
 import TypesChart from "@/features/metrics/components/TypesChart";
 import CMCChart from "@/features/metrics/components/CMCChart";
 import ColorPip from "@/components/ManaSymbol/ColorPip";
-import ObjectivesTab from "@/features/objectives/components/ObjectivesTab";
 import CardGallery from "@/features/gallery/components/CardGallery";
 import VersionCompare from "@/features/deckVersions/components/VersionCompare";
 import SaveVersionModal from "@/features/deckVersions/components/SaveVersionModal";
@@ -36,7 +36,7 @@ import SelectedCategoryModal from "@/features/metrics/components/SelectedCategor
 // Types
 import type { Deck, PendingSwap } from "@/types";
 
-type Tab = "metrics" | "objectives" | "gallery" | "wishlist";
+type Tab = "metrics" | "gallery" | "wishlist";
 type MetricView = "types" | "cmc" | "compare";
 type VersionId = "main" | string;
 
@@ -55,7 +55,6 @@ const EMPTY_DECK: Deck = {
 
 function ChartDisplayToggle() {
   const { isStacked, setIsStacked } = useChartSelection();
-
   return (
     <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 p-1 rounded-lg lg:ml-4 w-fit">
       <button
@@ -96,9 +95,7 @@ export default function DeckDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>("metrics");
   const [metricView, setMetricView] = useState<MetricView>("types");
   const [includeLands, setIncludeLands] = useState(true);
-
   const [activeVersionId, setActiveVersionId] = useState<VersionId>("main");
-
   const [pendingSwaps, setPendingSwaps] = useState<PendingSwap[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
 
@@ -106,31 +103,22 @@ export default function DeckDetailPage() {
 
   useEffect(() => {
     if (!deckId) return;
-
     let isMounted = true;
-
     const fetchDeck = async () => {
       setLoading(true);
       setError(null);
-
       try {
         const result = await deckStore.getById(deckId);
         if (!isMounted) return;
-
-        if (!result) {
-          setError("Deck not found");
-        } else {
-          setDeck(result);
-        }
+        if (!result) setError("Deck not found");
+        else setDeck(result);
       } catch {
         if (isMounted) setError("Failed to load deck");
       } finally {
         if (isMounted) setLoading(false);
       }
     };
-
     fetchDeck();
-
     return () => {
       isMounted = false;
     };
@@ -142,14 +130,12 @@ export default function DeckDetailPage() {
 
   const safeDeck = activeDeck ?? EMPTY_DECK;
 
-  const {
-    objectives,
-    createObjective,
-    deleteObjective,
-    assignObjective,
-    unassignObjective,
-    updateObjective,
-  } = useObjectives(safeDeck, (updated) => setDeck(updated));
+  const { objectives } = useObjectives();
+
+  const { assignObjective, unassignObjective } = useGallery(
+    safeDeck,
+    (updated) => setDeck(updated),
+  );
 
   const {
     versions,
@@ -164,7 +150,8 @@ export default function DeckDetailPage() {
     removeEntry: removeWishlistEntry,
     tagDeck: tagWishlistDeck,
     untagDeck: untagWishlistDeck,
-    assignObjective: assignWishListObjective,
+    assignObjective: assignWishlistObjective,
+    unassignObjective: unassignWishlistObjective,
   } = useWishlist();
 
   const displayDeck = useMemo<Deck>(() => {
@@ -232,14 +219,12 @@ export default function DeckDetailPage() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "metrics", label: "Metrics" },
-    { key: "objectives", label: "Objectives" },
     { key: "gallery", label: "Gallery" },
     { key: "wishlist", label: `${activeDeck.name} Wishlist` },
   ];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Header */}
       <div className="px-6 py-4 flex items-center justify-between">
         <button
           onClick={() => navigate("/")}
@@ -269,7 +254,6 @@ export default function DeckDetailPage() {
                 ))}
               </div>
             </div>
-
             <div className="flex flex-col gap-1">
               <p className="text-slate-400 text-sm">
                 <span className="text-slate-500">Commander: </span>
@@ -284,7 +268,6 @@ export default function DeckDetailPage() {
                 </p>
               )}
             </div>
-
             <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
               <span>
                 Created {new Date(activeDeck.createdAt).toLocaleDateString()}
@@ -364,9 +347,7 @@ export default function DeckDetailPage() {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className="pb-3 text-sm font-semibold transition-colors relative hover:cursor-pointer"
-              style={{
-                color: activeTab === tab.key ? "#1971c2" : "#64748b",
-              }}
+              style={{ color: activeTab === tab.key ? "#1971c2" : "#64748b" }}
             >
               {tab.label}
               {activeTab === tab.key && (
@@ -448,19 +429,6 @@ export default function DeckDetailPage() {
           </ChartSelectionProvider>
         )}
 
-        {/* Objectives tab */}
-        {activeTab === "objectives" && (
-          <ObjectivesTab
-            deck={displayDeck}
-            objectives={objectives}
-            entries={displayDeck.entries}
-            onCreate={createObjective}
-            onDelete={deleteObjective}
-            onUpdate={updateObjective}
-            onUnassign={handleUnassignObjective}
-          />
-        )}
-
         {/* Gallery tab */}
         {activeTab === "gallery" && (
           <CardGallery
@@ -491,12 +459,12 @@ export default function DeckDetailPage() {
             deckId={activeDeck.id}
             entries={wishlistEntries}
             allDecks={allDecks}
-            allObjectives={[]}
+            allObjectives={objectives}
             onRemove={removeWishlistEntry}
             onTagDeck={tagWishlistDeck}
             onUntagDeck={untagWishlistDeck}
-            onAssignObjective={assignWishListObjective}
-            onUnassignObjective={unassignObjective}
+            onAssignObjective={assignWishlistObjective}
+            onUnassignObjective={unassignWishlistObjective}
           />
         )}
       </div>
