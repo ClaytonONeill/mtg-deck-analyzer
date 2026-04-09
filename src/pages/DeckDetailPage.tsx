@@ -151,8 +151,6 @@ export default function DeckDetailPage() {
     updateObjective,
   } = useObjectives(safeDeck, (updated) => setDeck(updated));
 
-  const { assignObjective: assignWishListObjective } = useWishlist();
-
   const {
     versions,
     saveAsVersion,
@@ -166,6 +164,7 @@ export default function DeckDetailPage() {
     removeEntry: removeWishlistEntry,
     tagDeck: tagWishlistDeck,
     untagDeck: untagWishlistDeck,
+    assignObjective: assignWishListObjective,
   } = useWishlist();
 
   const displayDeck = useMemo<Deck>(() => {
