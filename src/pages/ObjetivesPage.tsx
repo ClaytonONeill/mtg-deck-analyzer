@@ -1,12 +1,21 @@
 // Hooks
 import { useObjectives } from "@/hooks/useObjectives";
 
+// Components
+import ObjectiveManager from "@/features/objectives/components/ObjectiveManager";
+
 export default function ObjectivesPage() {
-  const { objectives } = useObjectives();
+  const { objectives, addObjective, deleteObjective, updateObjective } =
+    useObjectives();
 
   return (
     <div className="flex flex-col gap-6">
-      {objectives && <p>{JSON.stringify(objectives)}</p>}
+      <ObjectiveManager
+        objectives={objectives}
+        onCreate={addObjective}
+        onDelete={deleteObjective}
+        onUpdate={updateObjective}
+      />
     </div>
   );
 }

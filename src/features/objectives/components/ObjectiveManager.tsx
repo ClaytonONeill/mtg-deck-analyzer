@@ -7,11 +7,18 @@ import type { Objective } from "@/types";
 // Components
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
+// Utils
+import { assignObjectiveColor } from "../utils/objectivePalette";
+
 interface ObjectiveManagerProps {
   objectives: Objective[];
-  onCreate: (label: string, description: string) => void;
+  onCreate: (newObjective: Objective) => Promise<Objective>;
   onDelete: (id: string) => void;
-  onUpdate: (id: string, label: string, description: string) => void;
+  onUpdate: (
+    id: string,
+    label: string,
+    description: string,
+  ) => Promise<Objective>;
 }
 
 export default function ObjectiveManager({
@@ -30,7 +37,15 @@ export default function ObjectiveManager({
 
   const handleCreate = () => {
     if (!label.trim()) return;
-    onCreate(label.trim(), description.trim());
+    const existingColors = objectives.map((o) => o.color);
+    const newObj = {
+      id: crypto.randomUUID(),
+      label,
+      description,
+      color: assignObjectiveColor(existingColors),
+      createdAt: new Date().toISOString(),
+    };
+    onCreate(newObj);
     setLabel("");
     setDescription("");
   };
