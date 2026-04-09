@@ -26,7 +26,6 @@ import { applyVersionToDeck } from "@/features/deckVersions/utils/versionUtils";
 import TypesChart from "@/features/metrics/components/TypesChart";
 import CMCChart from "@/features/metrics/components/CMCChart";
 import ColorPip from "@/components/ManaSymbol/ColorPip";
-import ObjectivesTab from "@/features/objectives/components/ObjectivesTab";
 import CardGallery from "@/features/gallery/components/CardGallery";
 import VersionCompare from "@/features/deckVersions/components/VersionCompare";
 import SaveVersionModal from "@/features/deckVersions/components/SaveVersionModal";
@@ -142,14 +141,10 @@ export default function DeckDetailPage() {
 
   const safeDeck = activeDeck ?? EMPTY_DECK;
 
-  const {
-    objectives,
-    createObjective,
-    deleteObjective,
-    assignObjective,
-    unassignObjective,
-    updateObjective,
-  } = useObjectives(safeDeck, (updated) => setDeck(updated));
+  const { objectives, assignObjective, unassignObjective } = useObjectives(
+    safeDeck,
+    (updated) => setDeck(updated),
+  );
 
   const {
     versions,
@@ -232,7 +227,6 @@ export default function DeckDetailPage() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "metrics", label: "Metrics" },
-    { key: "objectives", label: "Objectives" },
     { key: "gallery", label: "Gallery" },
     { key: "wishlist", label: `${activeDeck.name} Wishlist` },
   ];
@@ -446,19 +440,6 @@ export default function DeckDetailPage() {
             </div>
             <SelectedCategoryModal />
           </ChartSelectionProvider>
-        )}
-
-        {/* Objectives tab */}
-        {activeTab === "objectives" && (
-          <ObjectivesTab
-            deck={displayDeck}
-            objectives={objectives}
-            entries={displayDeck.entries}
-            onCreate={createObjective}
-            onDelete={deleteObjective}
-            onUpdate={updateObjective}
-            onUnassign={handleUnassignObjective}
-          />
         )}
 
         {/* Gallery tab */}

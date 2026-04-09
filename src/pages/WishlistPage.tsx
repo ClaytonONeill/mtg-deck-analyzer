@@ -4,13 +4,13 @@ import { useNavigate } from "react-router-dom";
 
 // Hooks
 import { useWishlist } from "@/hooks/useWishlist";
+import { useObjectives } from "@/hooks/useObjectives";
 
 // Store
 import { deckStore } from "@/store/deckStore";
 
 // Utils
 import { inferCategory } from "@/utils/utils";
-import { assignObjectiveColor } from "@/features/objectives/utils/objectivePalette";
 
 // Types
 import type { Deck, CardCategory, Objective, WishlistEntry } from "@/types";
@@ -353,6 +353,17 @@ function FilterPopover({
 }
 
 export default function WishlistPage() {
+  // State
+  const [allDecks, setAllDecks] = useState<Deck[]>([]);
+  const [sort, setSort] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDirection>("asc");
+  const [draftFilters, setDraftFilters] =
+    useState<ActiveFilters>(EMPTY_FILTERS);
+  const [activeFilters, setActiveFilters] =
+    useState<ActiveFilters>(EMPTY_FILTERS);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Hooks
   const navigate = useNavigate();
 
   const {
@@ -365,52 +376,16 @@ export default function WishlistPage() {
     unassignObjective,
   } = useWishlist();
 
-  const [allDecks, setAllDecks] = useState<Deck[]>([]);
-  const [allObjectives, setAllObjectives] = useState<Objective[]>([]);
-  const [showObjectiveForm, setShowObjectiveForm] = useState(false);
-  const [newLabel, setNewLabel] = useState("");
-  const [newDesc, setNewDesc] = useState("");
-
-  useEffect(() => {
-    deckStore.getAll().then(setAllDecks);
-  }, []);
-
-  const handleCreateObjective = () => {
-    if (!newLabel.trim()) return;
-    const existingColors = allObjectives.map((o) => o.color);
-    const newObjective: Objective = {
-      id: crypto.randomUUID(),
-      label: newLabel.trim(),
-      description: newDesc.trim(),
-      color: assignObjectiveColor(existingColors),
-    };
-    setAllObjectives((prev) => [...prev, newObjective]);
-    setNewLabel("");
-    setNewDesc("");
-    setShowObjectiveForm(false);
-  };
-
-  const handleDeleteObjective = (objectiveId: string) => {
-    setAllObjectives((prev) => prev.filter((o) => o.id !== objectiveId));
-    // Remove from all entries that have it
-    entries.forEach((entry) => {
-      if ((entry.objectives ?? []).some((o) => o.id === objectiveId)) {
-        unassignObjective(entry.id, objectiveId);
-      }
-    });
-  };
+  const { objectives: allObjectives } = useObjectives();
 
   const existingCardIds = entries.map((e) => e.card.id);
 
-  const [sort, setSort] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<SortDirection>("asc");
-  const [draftFilters, setDraftFilters] =
-    useState<ActiveFilters>(EMPTY_FILTERS);
-  const [activeFilters, setActiveFilters] =
-    useState<ActiveFilters>(EMPTY_FILTERS);
-  const [showFilters, setShowFilters] = useState(false);
-
   const filterCount = activeFilterCount(activeFilters);
+
+  // Effects
+  useEffect(() => {
+    deckStore.getAll().then(setAllDecks);
+  }, []);
 
   const filtered = useMemo(
     () => applyFilters(entries, activeFilters),
@@ -442,78 +417,6 @@ export default function WishlistPage() {
           existingCardIds={existingCardIds}
           allDecks={allDecks}
         />
-
-        {/* Objective manager */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <p className="text-[13.8px] text-slate-400 uppercase tracking-widest">
-              Wishlist Objectives
-            </p>
-            <button
-              onClick={() => setShowObjectiveForm((v) => !v)}
-              className="text-[13.8px] text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1 rounded-lg transition-colors hover:cursor-pointer"
-            >
-              + New
-            </button>
-          </div>
-
-          {showObjectiveForm && (
-            <div className="flex flex-col gap-2 bg-slate-800 rounded-xl p-3 border border-slate-700">
-              <input
-                type="text"
-                value={newLabel}
-                onChange={(e) => setNewLabel(e.target.value)}
-                placeholder="Label (e.g. Ramp, Win-Con...)"
-                maxLength={20}
-                className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-[13.8px] text-white placeholder-slate-500 focus:outline-none focus:border-[#1971c2] transition-colors"
-              />
-              <input
-                type="text"
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value)}
-                placeholder="Description (optional)"
-                className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-[13.8px] text-white placeholder-slate-500 focus:outline-none focus:border-[#1971c2] transition-colors"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={handleCreateObjective}
-                  disabled={!newLabel.trim()}
-                  className="flex-1 bg-[#1971c2] hover:bg-blue-500 disabled:opacity-40 text-white text-[13.8px] font-semibold py-1.5 rounded-lg transition-colors hover:cursor-pointer"
-                >
-                  Add
-                </button>
-                <button
-                  onClick={() => {
-                    setShowObjectiveForm(false);
-                    setNewLabel("");
-                    setNewDesc("");
-                  }}
-                  className="text-[13.8px] text-slate-400 hover:text-white px-3 transition-colors hover:cursor-pointer"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          {allObjectives.length === 0 ? (
-            <p className="text-slate-600 text-[13.8px]">
-              No objectives yet — create one to start labeling your wishlist
-              cards.
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {allObjectives.map((o) => (
-                <ObjectivePill
-                  key={o.id}
-                  objective={o}
-                  size="sm"
-                  onRemove={() => handleDeleteObjective(o.id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
 
         {entries.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center gap-3">
@@ -626,7 +529,7 @@ export default function WishlistPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+            <div className="flex flex-col gap-6 items-center w-full">
               {sorted.map((entry) => (
                 <WishlistCard
                   key={entry.id}
