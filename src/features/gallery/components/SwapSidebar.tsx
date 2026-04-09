@@ -130,7 +130,7 @@ export default function SwapSidebar({
       <div className="fixed inset-0 z-30 bg-black/40" onClick={onClose} />
 
       {/* Panel */}
-      <div className="fixed top-0 right-0 h-full z-40 bg-slate-900 border-l border-slate-700 flex flex-col shadow-2xl w-3/4 md:w-1/2">
+      <div className="fixed top-0 right-0 h-full z-40 bg-slate-900 border-l border-slate-700 flex flex-col shadow-2xl w-7/8 md:w-1/4">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <div className="flex flex-col gap-0.5">
@@ -201,18 +201,18 @@ export default function SwapSidebar({
                   <p className="text-xs text-slate-400 uppercase tracking-widest">
                     Selected Replacement
                   </p>
-                  <div className="bg-slate-800 border border-[#1971c2] rounded-xl p-3 flex flex-col gap-2">
-                    <p className="text-white font-semibold text-sm">
+                  <div className="bg-slate-800 border border-[#1971c2] rounded-xl p-3 flex flex-col gap-2 text-center justify-center">
+                    <p className="text-white font-semibold text-md">
                       {selected.name}
                     </p>
-                    <p className="text-slate-400 text-xs">
+                    <p className="text-slate-400 text-sm">
                       {selected.type_line}
                     </p>
                     {selected.image_uris?.normal && (
                       <img
                         src={selected.image_uris.normal}
                         alt={selected.name}
-                        className="w-full rounded-lg mt-1"
+                        className="w-3/4 rounded-lg m-auto"
                       />
                     )}
                   </div>
@@ -255,7 +255,7 @@ export default function SwapSidebar({
                 <div className="relative self-start">
                   <button
                     onClick={() => setShowFilters((v) => !v)}
-                    className="flex items-center gap-1.5 text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors hover:cursor-pointer"
+                    className="flex items-center gap-1.5 text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors"
                     style={{
                       borderColor: filterCount > 0 ? "#1971c2" : "#334155",
                       color: filterCount > 0 ? "#1971c2" : "#94a3b8",
@@ -364,7 +364,7 @@ export default function SwapSidebar({
                 </p>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 overflow-y-auto h-full">
+              <div className="grid grid-cols-1 gap-2 overflow-y-auto h-full">
                 {deckWishlist.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center gap-2 col-span-full">
                     <p className="text-slate-500 text-sm">
@@ -394,11 +394,9 @@ export default function SwapSidebar({
                     const legal = isLegalForDeck(entry.card, colorIdentity);
                     const entryObjectives = entry.objectives ?? [];
                     return (
-                      <button
+                      <div
                         key={entry.id}
-                        onClick={() => legal && handleSelect(entry.card)}
-                        disabled={!legal}
-                        className="flex flex-col items-center gap-2 bg-slate-800 border rounded-xl p-2 text-center transition-colors h-96"
+                        className="bg-slate-800 border border-[#1971c2] rounded-xl p-3 flex flex-col gap-2 text-center justify-center"
                         style={{
                           borderColor:
                             selected?.id === entry.card.id
@@ -410,21 +408,6 @@ export default function SwapSidebar({
                           cursor: legal ? "pointer" : "not-allowed",
                         }}
                       >
-                        {entry.card.image_uris?.large && (
-                          <img
-                            src={entry.card.image_uris.large}
-                            alt={entry.card.name}
-                            className="w-48 rounded-lg shrink-0 hover:scale-102 transition ease-in-out"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setExpanded(
-                                expanded === entry.card.id
-                                  ? null
-                                  : entry.card.id,
-                              );
-                            }}
-                          />
-                        )}
                         <div className="flex flex-col gap-1 min-w-0 text-center overflow-y-auto flex-1">
                           <p className="text-white text-md font-semibold truncate">
                             {entry.card.name}
@@ -447,6 +430,28 @@ export default function SwapSidebar({
                                 ))}
                               </div>
                             )}
+                            {entry.card.image_uris?.large && (
+                              <img
+                                src={entry.card.image_uris.large}
+                                alt={entry.card.name}
+                                className="w-3/4 rounded-lg m-auto transition ease-in-out"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpanded(
+                                    expanded === entry.card.id
+                                      ? null
+                                      : entry.card.id,
+                                  );
+                                }}
+                              />
+                            )}
+                            <button
+                              className="flex items-center gap-1.5 text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors hover:bg-slate-900"
+                              onClick={() => legal && handleSelect(entry.card)}
+                              disabled={!legal}
+                            >
+                              Select
+                            </button>
                           </div>
                           {!legal && (
                             <p className="text-red-400 text-xs">
@@ -459,7 +464,7 @@ export default function SwapSidebar({
                             </p>
                           )}
                         </div>
-                      </button>
+                      </div>
                     );
                   })
                 )}
