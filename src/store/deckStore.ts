@@ -1,10 +1,11 @@
 // Types
-import type { Deck, DeckEntry, ScryfallCard, CardCategory } from "@/types";
+import type { Deck, DeckEntry, ScryfallCard } from "@/types";
 
 // Lib
 import { supabase } from "@/lib/supabase";
 
 // Utils
+import { inferCategory } from "@/utils/utils";
 import { mergeColorIdentities } from "@/features/deckBuilder/utils/partnerUtils";
 
 export const deckStore = {
@@ -125,18 +126,6 @@ export function createNewDeck(name: string): Deck {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
-}
-
-export function inferCategory(card: ScryfallCard): CardCategory {
-  const t = card.type_line ? card.type_line.toLowerCase() : "";
-  if (t.includes("creature")) return "Creature";
-  if (t.includes("land")) return "Land";
-  if (t.includes("instant")) return "Instant";
-  if (t.includes("sorcery")) return "Sorcery";
-  if (t.includes("enchantment")) return "Enchantment";
-  if (t.includes("artifact")) return "Artifact";
-  if (t.includes("planeswalker")) return "Planeswalker";
-  return "Other";
 }
 
 export function setCommander(deck: Deck, card: ScryfallCard): Deck {

@@ -1,54 +1,57 @@
 // Modules
-import { useState } from "react";
+import { useState } from 'react';
 
 // Types
-import type { CardCategory, DeckEntry, Objective, ScryfallCard } from "@/types";
+import type { CardCategory, DeckEntry, Objective, ScryfallCard } from '@/types';
 
 // Utils
-import { BASIC_LANDS } from "@/features/deckBuilder/utils/basicLands";
+import { BASIC_LANDS } from '@/features/deckBuilder/utils/basicLands';
 
 // Components
-import ObjectivePill from "@/features/objectives/components/ObjectivePill";
-import SwapSidebar from "@/features/gallery/components/SwapSidebar";
-import SwapBanner from "@/features/gallery/components/SwapBanner";
+import ObjectivePill from '@/features/objectives/components/ObjectivePill';
+import SwapSidebar from '@/features/gallery/components/SwapSidebar';
+import SwapBanner from '@/features/gallery/components/SwapBanner';
 
-interface PendingSwap {
-  removeCardId: string;
-  addCard: ScryfallCard;
-}
+// Types
+import type { PendingSwap } from '@/types/index';
 
 interface CardGalleryProps {
   deckId: string;
+  colorIdentity: string[];
   entries: DeckEntry[];
   objectives: Objective[];
   pendingSwaps: PendingSwap[];
   onAssign: (cardId: string, objectiveId: string) => void;
   onUnassign: (cardId: string, objectiveId: string) => void;
-  onAddSwap: (removeCardId: string, addCard: ScryfallCard) => void;
+  onAddSwap: (
+    removeCardName: string,
+    removeCardId: string,
+    addCard: ScryfallCard,
+  ) => void;
   onSaveAsVersion: () => void;
   onUndoSwaps: () => void;
 }
 
-type SortKey = "type" | "color" | "cmc" | "name";
-type SortDirection = "asc" | "desc";
+type SortKey = 'type' | 'color' | 'cmc' | 'name';
+type SortDirection = 'asc' | 'desc';
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "type", label: "Type" },
-  { key: "color", label: "Color Identity" },
-  { key: "cmc", label: "Mana Value" },
-  { key: "name", label: "Name" },
+  { key: 'type', label: 'Type' },
+  { key: 'color', label: 'Color Identity' },
+  { key: 'cmc', label: 'Mana Value' },
+  { key: 'name', label: 'Name' },
 ];
 
-const COLOR_ORDER = ["W", "U", "B", "R", "G"];
+const COLOR_ORDER = ['W', 'U', 'B', 'R', 'G'];
 const CATEGORY_ORDER: CardCategory[] = [
-  "Creature",
-  "Instant",
-  "Sorcery",
-  "Enchantment",
-  "Artifact",
-  "Planeswalker",
-  "Land",
-  "Other",
+  'Creature',
+  'Instant',
+  'Sorcery',
+  'Enchantment',
+  'Artifact',
+  'Planeswalker',
+  'Land',
+  'Other',
 ];
 
 interface ActiveFilters {
@@ -65,29 +68,29 @@ const EMPTY_FILTERS: ActiveFilters = {
   cmc: { min: null, max: null },
 };
 
-const ALL_COLORS = ["W", "U", "B", "R", "G"];
+const ALL_COLORS = ['W', 'U', 'B', 'R', 'G'];
 
 function sortEntries(
   entries: DeckEntry[],
   sort: SortKey,
   direction: SortDirection,
 ): DeckEntry[] {
-  const mult = direction === "asc" ? 1 : -1;
+  const mult = direction === 'asc' ? 1 : -1;
   return [...entries].sort((a, b) => {
     switch (sort) {
-      case "name":
+      case 'name':
         return mult * a.card.name.localeCompare(b.card.name);
-      case "cmc":
+      case 'cmc':
         return mult * (a.card.cmc - b.card.cmc);
-      case "type":
+      case 'type':
         return (
           mult *
           (CATEGORY_ORDER.indexOf(a.category) -
             CATEGORY_ORDER.indexOf(b.category))
         );
-      case "color": {
-        const aFirst = COLOR_ORDER.indexOf(a.card.color_identity[0] ?? "");
-        const bFirst = COLOR_ORDER.indexOf(b.card.color_identity[0] ?? "");
+      case 'color': {
+        const aFirst = COLOR_ORDER.indexOf(a.card.color_identity[0] ?? '');
+        const bFirst = COLOR_ORDER.indexOf(b.card.color_identity[0] ?? '');
         return mult * (aFirst - bFirst);
       }
       default:
@@ -105,7 +108,7 @@ function applyFilters(
       const cardColors = entry.card.color_identity;
       const matches =
         cardColors.some((c) => filters.colors.includes(c)) ||
-        (cardColors.length === 0 && filters.colors.includes("C"));
+        (cardColors.length === 0 && filters.colors.includes('C'));
       if (!matches) return false;
     }
 
@@ -177,11 +180,11 @@ function FilterPopover({
                 }
                 className="w-8 h-8 rounded-full text-xs font-bold border-2 transition-all"
                 style={{
-                  borderColor: draft.colors.includes(c) ? "#1971c2" : "#334155",
+                  borderColor: draft.colors.includes(c) ? '#1971c2' : '#334155',
                   backgroundColor: draft.colors.includes(c)
-                    ? "#1971c222"
-                    : "transparent",
-                  color: "#f1f5f9",
+                    ? '#1971c222'
+                    : 'transparent',
+                  color: '#f1f5f9',
                 }}
               >
                 {c}
@@ -205,12 +208,12 @@ function FilterPopover({
                 className="text-xs px-2.5 py-1 rounded-full border transition-all"
                 style={{
                   borderColor: draft.types.includes(cat)
-                    ? "#1971c2"
-                    : "#334155",
+                    ? '#1971c2'
+                    : '#334155',
                   backgroundColor: draft.types.includes(cat)
-                    ? "#1971c222"
-                    : "transparent",
-                  color: draft.types.includes(cat) ? "#1971c2" : "#94a3b8",
+                    ? '#1971c222'
+                    : 'transparent',
+                  color: draft.types.includes(cat) ? '#1971c2' : '#94a3b8',
                 }}
               >
                 {cat}
@@ -229,13 +232,13 @@ function FilterPopover({
               type="number"
               min={0}
               placeholder="Min"
-              value={draft.cmc.min ?? ""}
+              value={draft.cmc.min ?? ''}
               onChange={(e) =>
                 onChange({
                   ...draft,
                   cmc: {
                     ...draft.cmc,
-                    min: e.target.value === "" ? null : Number(e.target.value),
+                    min: e.target.value === '' ? null : Number(e.target.value),
                   },
                 })
               }
@@ -246,13 +249,13 @@ function FilterPopover({
               type="number"
               min={0}
               placeholder="Max"
-              value={draft.cmc.max ?? ""}
+              value={draft.cmc.max ?? ''}
               onChange={(e) =>
                 onChange({
                   ...draft,
                   cmc: {
                     ...draft.cmc,
-                    max: e.target.value === "" ? null : Number(e.target.value),
+                    max: e.target.value === '' ? null : Number(e.target.value),
                   },
                 })
               }
@@ -284,8 +287,8 @@ function FilterPopover({
                     <div
                       className="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all"
                       style={{
-                        borderColor: checked ? o.color : "#475569",
-                        backgroundColor: checked ? o.color : "transparent",
+                        borderColor: checked ? o.color : '#475569',
+                        backgroundColor: checked ? o.color : 'transparent',
                       }}
                     >
                       {checked && (
@@ -324,6 +327,7 @@ function FilterPopover({
 
 export default function CardGallery({
   deckId,
+  colorIdentity,
   entries,
   objectives,
   pendingSwaps,
@@ -333,8 +337,8 @@ export default function CardGallery({
   onSaveAsVersion,
   onUndoSwaps,
 }: CardGalleryProps) {
-  const [sort, setSort] = useState<SortKey>("type");
-  const [sortDir, setSortDir] = useState<SortDirection>("asc");
+  const [sort, setSort] = useState<SortKey>('type');
+  const [sortDir, setSortDir] = useState<SortDirection>('asc');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [popover, setPopover] = useState<string | null>(null);
   const [swapping, setSwapping] = useState<ScryfallCard | null>(null);
@@ -372,7 +376,7 @@ export default function CardGallery({
 
   const handleConfirmSwap = (replacement: ScryfallCard) => {
     if (!swapping) return;
-    onAddSwap(swapping.id, replacement);
+    onAddSwap(swapping.name, swapping.id, replacement);
     setSwapping(null);
   };
 
@@ -402,8 +406,8 @@ export default function CardGallery({
               onClick={() => setSort(opt.key)}
               className="px-3 py-1.5 rounded-md text-xs font-semibold transition-colors hover:cursor-pointer"
               style={{
-                backgroundColor: sort === opt.key ? "#1971c2" : "transparent",
-                color: sort === opt.key ? "#fff" : "#64748b",
+                backgroundColor: sort === opt.key ? '#1971c2' : 'transparent',
+                color: sort === opt.key ? '#fff' : '#64748b',
               }}
             >
               {opt.label}
@@ -413,10 +417,10 @@ export default function CardGallery({
 
         {/* Sort direction */}
         <button
-          onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+          onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
           className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
         >
-          {sortDir === "asc" ? "↑ Asc" : "↓ Desc"}
+          {sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}
         </button>
 
         {/* Filter button */}
@@ -425,16 +429,16 @@ export default function CardGallery({
             onClick={handleOpenFilters}
             className="flex items-center gap-1.5 text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors"
             style={{
-              borderColor: filterCount > 0 ? "#1971c2" : "#334155",
-              color: filterCount > 0 ? "#1971c2" : "#94a3b8",
-              backgroundColor: filterCount > 0 ? "#1971c211" : "transparent",
+              borderColor: filterCount > 0 ? '#1971c2' : '#334155',
+              color: filterCount > 0 ? '#1971c2' : '#94a3b8',
+              backgroundColor: filterCount > 0 ? '#1971c211' : 'transparent',
             }}
           >
             Filter
             {filterCount > 0 && (
               <span
                 className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: "#1971c2", color: "#fff" }}
+                style={{ backgroundColor: '#1971c2', color: '#fff' }}
               >
                 {filterCount}
               </span>
@@ -512,7 +516,7 @@ export default function CardGallery({
                     }
                     className="w-full rounded-xl cursor-pointer transition-transform duration-200 group-hover:scale-[1.02] shadow-lg border border-slate-700"
                     style={{
-                      borderColor: isSwappedOut ? "#ef4444" : undefined,
+                      borderColor: isSwappedOut ? '#ef4444' : undefined,
                     }}
                   />
                 ) : (
@@ -640,6 +644,7 @@ export default function CardGallery({
         <SwapSidebar
           cardToSwap={swapping}
           deckId={deckId}
+          colorIdentity={colorIdentity}
           onConfirm={handleConfirmSwap}
           onClose={() => setSwapping(null)}
         />

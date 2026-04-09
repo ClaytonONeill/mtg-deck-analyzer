@@ -1,27 +1,31 @@
 // Types
-import type { Deck, WishlistEntry } from '@/types';
+import type { Deck, Objective, WishlistEntry } from "@/types";
 
 // Components
-import WishlistCard from '@/features/wishlist/components/WishlistCard';
+import WishlistCard from "@/features/wishlist/components/WishlistCard";
 
 interface WishlistDeckFilterProps {
   deckId: string;
   entries: WishlistEntry[];
   allDecks: Deck[];
+  allObjectives: Objective[];
   onRemove: (id: string) => void;
   onTagDeck: (entryId: string, deckId: string) => void;
   onUntagDeck: (entryId: string, deckId: string) => void;
-  onUpdateNote: (entryId: string, note: string) => void;
+  onAssignObjective: (entryId: string, objective: Objective) => void;
+  onUnassignObjective: (entryId: string, objectiveId: string) => void;
 }
 
 export default function WishlistDeckFilter({
   deckId,
   entries,
   allDecks,
+  allObjectives,
   onRemove,
   onTagDeck,
   onUntagDeck,
-  onUpdateNote,
+  onAssignObjective,
+  onUnassignObjective,
 }: WishlistDeckFilterProps) {
   const deckEntries = entries.filter((e) => e.deckIds.includes(deckId));
 
@@ -42,7 +46,7 @@ export default function WishlistDeckFilter({
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-slate-500 uppercase tracking-widest">
-        {deckEntries.length} card{deckEntries.length !== 1 ? 's' : ''}{' '}
+        {deckEntries.length} card{deckEntries.length !== 1 ? "s" : ""}{" "}
         wishlisted for this deck
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -51,10 +55,12 @@ export default function WishlistDeckFilter({
             key={entry.id}
             entry={entry}
             allDecks={allDecks}
+            allObjectives={allObjectives}
             onRemove={onRemove}
             onTagDeck={onTagDeck}
             onUntagDeck={onUntagDeck}
-            onUpdateNote={onUpdateNote}
+            onAssignObjective={onAssignObjective}
+            onUnassignObjective={onUnassignObjective}
           />
         ))}
       </div>

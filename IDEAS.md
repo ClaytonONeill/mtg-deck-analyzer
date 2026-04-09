@@ -15,37 +15,14 @@ Loading needs to be more robust than just a simple text line, skeleton is your f
 
 When clicking on a chart bar in version compare, the contents of the modal that appears is stale to the first chart you interact with. This means cards that were added in the new version do not display and it can be confusing.
 
-## BUG: Cards should show name not ID in swap UI
-
-When you swap a card in the gallery, at the top it shows the GUID of the card that is being swapped, not the name - this should show the name.
-
-## Responsive Styling and General Mobile Optimization
-
-The app works well (enough) on a desktop/laptop - but struggles on a mobile device. Time should be spent to
-correct all of the spacing issues that occur when viewing on a phone.
-
 ## Auto Save Deck Build on Card Add
 
-## Dual Mana Pips and Basic Land Cards
+## Add Better Swapping Logic
 
-I need to have support dual mana pips (like white/blue mana - can be seen in a lot of mimic cards) as well as have the basic
-land cards in public folder for when users interact with the `Types` or `CMC` charts when lands are turned on.
-
-Currently, there are "missing image" icons showing for these items and that should be corrected.
-
-## Deck Versioning
-
-**Done** but needs to be optimized.
+Swapping out cards is a little clunky. Not being able to see any information about your wishlist cards when in the swap menu really slows down your ability to make meaningful deck versions:
 
 - You should be able to tag items in your deck's wishlist with objectives
 - Or you should at least be able to expand the cards in the wishlist swap area to better read their description
-
-This feature would allow users to swap out certain cards from a fully-built deck to
-see metrics against different optimization strategies. The feature would include:
-
-1. The ability to swap out individual cards within your deck and save those alterations as a new version of the deck, also exportable.
-
-2. The ability to perform side-by-side comparisons between versions to see type and CMC analysis as well as objective completeness.
 
 ## Themes
 
@@ -65,14 +42,6 @@ deck based on the text descriptions of the cards you have added into your deck.
 
 ## Dual-sided cards can be flipped to see both sides
 
-## Wish List
-
-Cards that you want to add to a deck but are not ready to make swaps directly should be able to be added to a wish list. Cards in this whish list should
-be able to be added to a deck, so you can see the wishlist for a deck while viewing the details for that deck.
-
-We may want to consider abstracting out the logic for the deck detail/swap search into a reusable component users can search for cards directly from the home page.
-We should also make it so users can access the wish list search page from both the home page and inside the deck detail view.
-
 ## Compare Decks, Not Just Deck Versions
 
 It may be helpful to compare your decks against one another instead of just different versions of one deck to maybe get a sense of strategy differences that would help with another deck.
@@ -80,12 +49,6 @@ It may be helpful to compare your decks against one another instead of just diff
 ## Sub-Sorting
 
 Users should be able to sort by multiple properties, such as `Type` and `Color` and get an organized view.
-
-## User Log-in
-
-This will likely be one of the last updates. We are going to build out the back end and persist user data in a DB so we no longer need the export deck function to save decks and view them on different machines.
-
-### Make Sure Wishlists are Attached to Decks/Users
 
 ## Move Filter Logic to Shareable Component
 

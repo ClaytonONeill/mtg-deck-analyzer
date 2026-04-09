@@ -73,4 +73,11 @@ export interface WishlistEntry {
   deckIds: string[];
   note: string;
   addedAt: string;
+  objectives: Objective[];
+}
+
+export interface PendingSwap {
+  removeCardName: string;
+  removeCardId: string;
+  addCard: ScryfallCard;
 }
