@@ -104,6 +104,14 @@ export default function Header() {
       {/* Mobile Dropdown Menu */}
       {isOpen && (
         <div className="absolute top-full left-0 right-0 bg-slate-950 border-b border-slate-800 p-4 flex flex-col gap-3 md:hidden animate-in fade-in slide-in-from-top-2">
+          {!isObjectivesPage && (
+            <button
+              onClick={() => navTo("/objectives")}
+              className="w-full text-left text-sm font-semibold text-slate-400 hover:text-white px-4 py-3 rounded-lg border border-slate-800"
+            >
+              Objectives
+            </button>
+          )}
           {!isWishlistPage && (
             <button
               onClick={() => navTo("/wishlist")}
