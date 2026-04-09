@@ -4,6 +4,7 @@ import type { WishlistEntry, ScryfallCard, Objective } from "@/types";
 // Lib
 import { supabase } from "@/lib/supabase";
 
+// Returns data in Wishlist Entry format
 function rowToEntry(row: Record<string, unknown>): WishlistEntry {
   return {
     id: row.id as string,

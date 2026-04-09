@@ -1,11 +1,11 @@
 // Modules
-import { useState } from 'react';
+import { useState } from "react";
 
 // Types
-import type { Objective } from '@/types';
+import type { Objective } from "@/types";
 
 // Components
-import ObjectivePill from '@/features/objectives/components/ObjectivePill';
+import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 interface ObjectiveManagerProps {
   objectives: Objective[];
@@ -20,19 +20,19 @@ export default function ObjectiveManager({
   onDelete,
   onUpdate,
 }: ObjectiveManagerProps) {
-  const [label, setLabel] = useState('');
-  const [description, setDescription] = useState('');
+  const [label, setLabel] = useState("");
+  const [description, setDescription] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editLabel, setEditLabel] = useState('');
-  const [editDesc, setEditDesc] = useState('');
+  const [editLabel, setEditLabel] = useState("");
+  const [editDesc, setEditDesc] = useState("");
 
   const safeObjectives = objectives ?? [];
 
   const handleCreate = () => {
     if (!label.trim()) return;
     onCreate(label.trim(), description.trim());
-    setLabel('');
-    setDescription('');
+    setLabel("");
+    setDescription("");
   };
 
   const startEdit = (o: Objective) => {
@@ -57,7 +57,7 @@ export default function ObjectiveManager({
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-slate-400">
-              Short Label{' '}
+              Short Label{" "}
               <span className="text-slate-600">(shown as pill)</span>
             </label>
             <input
@@ -71,7 +71,7 @@ export default function ObjectiveManager({
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-slate-400">
-              Description{' '}
+              Description{" "}
               <span className="text-slate-600">
                 (optional — define the goal)
               </span>

@@ -13,6 +13,7 @@ export default function Header() {
 
   const isBuildPage = location.pathname === "/build";
   const isWishlistPage = location.pathname === "/wishlist";
+  const isObjectivesPage = location.pathname === "/objectives";
 
   const handleSignOut = async () => {
     await signOut();
@@ -36,6 +37,14 @@ export default function Header() {
       <div className="flex items-center gap-3">
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-3">
+          {!isObjectivesPage && (
+            <button
+              onClick={() => navTo("/objectives")}
+              className="text-sm font-semibold text-slate-400 hover:text-indigo-300 border border-slate-700 hover:border-indigo-500 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              Objectives
+            </button>
+          )}
           {!isWishlistPage && (
             <button
               onClick={() => navTo("/wishlist")}
