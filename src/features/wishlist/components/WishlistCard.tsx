@@ -1,12 +1,12 @@
 // Modules
-import { useState } from "react";
+import { useState } from 'react';
 
 // Types
-import type { Deck, Objective, WishlistEntry } from "@/types";
+import type { Deck, Objective, WishlistEntry } from '@/types';
 
 // Components
-import ManaCost from "@/components/ManaSymbol/ManaCost";
-import ObjectivePill from "@/features/objectives/components/ObjectivePill";
+import ManaCost from '@/components/ManaSymbol/ManaCost';
+import ObjectivePill from '@/features/objectives/components/ObjectivePill';
 
 interface WishlistCardProps {
   entry: WishlistEntry;
@@ -46,7 +46,7 @@ export default function WishlistCard({
   );
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full h-full overflow-hidden">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full h-full">
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:p-4">
         {/* Card image */}
         <div className="shrink-0 w-full sm:w-56 md:w-48 self-start">
@@ -146,9 +146,9 @@ export default function WishlistCard({
                     key={d.id}
                     className="inline-flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-full"
                     style={{
-                      backgroundColor: "#1971c222",
-                      color: "#1971c2",
-                      border: "1px solid #1971c255",
+                      backgroundColor: '#1971c222',
+                      color: '#1971c2',
+                      border: '1px solid #1971c255',
                     }}
                   >
                     {d.name}
