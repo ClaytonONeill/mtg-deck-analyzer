@@ -68,8 +68,6 @@ const EMPTY_FILTERS: ActiveFilters = {
   cmc: { min: null, max: null },
 };
 
-const ALL_COLORS = ['W', 'U', 'B', 'R', 'G'];
-
 function sortEntries(
   entries: DeckEntry[],
   sort: SortKey,
@@ -148,17 +146,17 @@ function toggle<T>(arr: T[], val: T): T[] {
 }
 
 function FilterPopover({
+  colorIdentity,
   objectives,
   draft,
   onChange,
-  onApply,
   onClear,
   onClose,
 }: {
+  colorIdentity: string[];
   objectives: Objective[];
   draft: ActiveFilters;
   onChange: (f: ActiveFilters) => void;
-  onApply: () => void;
   onClear: () => void;
   onClose: () => void;
 }) {
@@ -172,7 +170,7 @@ function FilterPopover({
             Color Identity
           </p>
           <div className="flex gap-2 flex-wrap">
-            {ALL_COLORS.map((c) => (
+            {colorIdentity.map((c) => (
               <button
                 key={c}
                 onClick={() =>
@@ -305,19 +303,13 @@ function FilterPopover({
           </div>
         )}
 
-        {/* Actions */}
+        {/* Actions — clear only */}
         <div className="flex gap-2 pt-1 border-t border-slate-800">
           <button
-            onClick={onApply}
-            className="flex-1 bg-[#1971c2] hover:bg-blue-500 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
-          >
-            Apply
-          </button>
-          <button
             onClick={onClear}
-            className="text-sm text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors"
+            className="w-full text-sm text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors"
           >
-            Clear
+            Clear all
           </button>
         </div>
       </div>
@@ -343,10 +335,7 @@ export default function CardGallery({
   const [popover, setPopover] = useState<string | null>(null);
   const [swapping, setSwapping] = useState<ScryfallCard | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [draftFilters, setDraftFilters] =
-    useState<ActiveFilters>(EMPTY_FILTERS);
-  const [activeFilters, setActiveFilters] =
-    useState<ActiveFilters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
 
   const BLACK_LIST = BASIC_LANDS.map(({ type_line }) => type_line);
   const filteredEntries = (entries ?? []).filter((entry) => {
@@ -356,22 +345,11 @@ export default function CardGallery({
 
   const safeObjectives = objectives ?? [];
   const swappedOutIds = new Set(pendingSwaps.map((s) => s.removeCardId));
-  const filterCount = activeFilterCount(activeFilters);
-
-  const handleApplyFilters = () => {
-    setActiveFilters({ ...draftFilters });
-    setShowFilters(false);
-  };
+  const filterCount = activeFilterCount(filters);
 
   const handleClearFilters = () => {
-    setDraftFilters(EMPTY_FILTERS);
-    setActiveFilters(EMPTY_FILTERS);
+    setFilters(EMPTY_FILTERS);
     setShowFilters(false);
-  };
-
-  const handleOpenFilters = () => {
-    setDraftFilters({ ...activeFilters });
-    setShowFilters(true);
   };
 
   const handleConfirmSwap = (replacement: ScryfallCard) => {
@@ -380,7 +358,7 @@ export default function CardGallery({
     setSwapping(null);
   };
 
-  const filtered = applyFilters(filteredEntries, activeFilters);
+  const filtered = applyFilters(filteredEntries, filters);
   const sorted = sortEntries(filtered, sort, sortDir);
 
   return (
@@ -426,7 +404,7 @@ export default function CardGallery({
         {/* Filter button */}
         <div className="relative">
           <button
-            onClick={handleOpenFilters}
+            onClick={() => setShowFilters((v) => !v)}
             className="flex items-center gap-1.5 text-sm font-semibold border px-3 py-1.5 rounded-lg transition-colors"
             style={{
               borderColor: filterCount > 0 ? '#1971c2' : '#334155',
@@ -447,10 +425,10 @@ export default function CardGallery({
 
           {showFilters && (
             <FilterPopover
+              colorIdentity={colorIdentity}
               objectives={safeObjectives}
-              draft={draftFilters}
-              onChange={setDraftFilters}
-              onApply={handleApplyFilters}
+              draft={filters}
+              onChange={(f) => setFilters(f)}
               onClear={handleClearFilters}
               onClose={() => setShowFilters(false)}
             />
@@ -579,9 +557,8 @@ export default function CardGallery({
                       {showPopover && (
                         <div
                           className="absolute bottom-full left-0 mb-2 z-20 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-2 flex flex-col gap-1 w-max"
-                          onClick={(e) => e.stopPropagation()} // prevents accidental bubbling
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          {/* Header with close button */}
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-xs text-slate-400 uppercase tracking-widest">
                               Add Objective
