@@ -1,5 +1,5 @@
 // Modules
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 // Types
 import type { ScryfallCard, CardCategory } from '@/types';
@@ -73,6 +73,14 @@ export default function SwapSidebar({
   const { getForDeck } = useWishlist();
   const { objectives } = useObjectives();
   const deckWishlist = getForDeck(deckId);
+
+  // Prevent page underneath scroll when sidebar is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   const activeObjectiveIds = useMemo(() => {
     const ids = new Set<string>();
@@ -455,7 +463,7 @@ export default function SwapSidebar({
                           </div>
 
                           {/* Row 3 — Objectives (always rendered, empty div keeps alignment) */}
-                          <div className="flex flex-wrap gap-1 justify-center min-h-[1.25rem]">
+                          <div className="flex items-start content-start flex-wrap gap-1 justify-center min-h-[1.25rem]">
                             {entryObjectives.map((o) => (
                               <ObjectivePill
                                 key={o.id}
