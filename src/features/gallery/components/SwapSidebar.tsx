@@ -1,17 +1,17 @@
 // Modules
-import { useState, useMemo } from "react";
+import { useState, useMemo } from 'react';
 
 // Types
-import type { ScryfallCard, CardCategory } from "@/types";
+import type { ScryfallCard, CardCategory } from '@/types';
 
 // Hooks
-import { useWishlist } from "@/hooks/useWishlist";
-import { useObjectives } from "@/hooks/useObjectives";
+import { useWishlist } from '@/hooks/useWishlist';
+import { useObjectives } from '@/hooks/useObjectives';
 
 // Components
-import CardSearchPanel from "@/features/deckBuilder/components/CardSearchPanel";
-import ManaCost from "@/components/ManaSymbol/ManaCost";
-import ObjectivePill from "@/features/objectives/components/ObjectivePill";
+import CardSearchPanel from '@/features/deckBuilder/components/CardSearchPanel';
+import ManaCost from '@/components/ManaSymbol/ManaCost';
+import ObjectivePill from '@/features/objectives/components/ObjectivePill';
 
 interface SwapSidebarProps {
   cardToSwap: ScryfallCard;
@@ -21,29 +21,29 @@ interface SwapSidebarProps {
   onClose: () => void;
 }
 
-type SidebarTab = "search" | "wishlist";
+type SidebarTab = 'search' | 'wishlist';
 
 const CATEGORY_ORDER: CardCategory[] = [
-  "Creature",
-  "Instant",
-  "Sorcery",
-  "Enchantment",
-  "Artifact",
-  "Planeswalker",
-  "Land",
-  "Other",
+  'Creature',
+  'Instant',
+  'Sorcery',
+  'Enchantment',
+  'Artifact',
+  'Planeswalker',
+  'Land',
+  'Other',
 ];
 
 function inferCategory(typeLine: string): CardCategory {
   const t = typeLine.toLowerCase();
-  if (t.includes("creature")) return "Creature";
-  if (t.includes("land")) return "Land";
-  if (t.includes("instant")) return "Instant";
-  if (t.includes("sorcery")) return "Sorcery";
-  if (t.includes("enchantment")) return "Enchantment";
-  if (t.includes("artifact")) return "Artifact";
-  if (t.includes("planeswalker")) return "Planeswalker";
-  return "Other";
+  if (t.includes('creature')) return 'Creature';
+  if (t.includes('land')) return 'Land';
+  if (t.includes('instant')) return 'Instant';
+  if (t.includes('sorcery')) return 'Sorcery';
+  if (t.includes('enchantment')) return 'Enchantment';
+  if (t.includes('artifact')) return 'Artifact';
+  if (t.includes('planeswalker')) return 'Planeswalker';
+  return 'Other';
 }
 
 function isLegalForDeck(card: ScryfallCard, colorIdentity: string[]): boolean {
@@ -63,7 +63,7 @@ export default function SwapSidebar({
   onClose,
 }: SwapSidebarProps) {
   const [selected, setSelected] = useState<ScryfallCard | null>(null);
-  const [activeTab, setActiveTab] = useState<SidebarTab>("search");
+  const [activeTab, setActiveTab] = useState<SidebarTab>('search');
   const [colorError, setColorError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -124,15 +124,24 @@ export default function SwapSidebar({
     setColorError(null);
   };
 
+  const isWishlist = activeTab === 'wishlist';
+
   return (
     <>
       {/* Backdrop */}
       <div className="fixed inset-0 z-30 bg-black/40" onClick={onClose} />
 
-      {/* Panel */}
-      <div className="fixed top-0 right-0 h-full z-40 bg-slate-900 border-l border-slate-700 flex flex-col shadow-2xl w-7/8 md:w-1/4">
+      {/* Panel — narrow on search, wide on wishlist (desktop) */}
+      <div
+        className={`
+          fixed top-0 right-0 h-full z-40 bg-slate-900 border-l border-slate-700
+          flex flex-col shadow-2xl transition-[width] duration-300 ease-in-out
+          w-[87.5vw]
+          ${isWishlist ? 'md:w-[52rem]' : 'md:w-100'}
+        `}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 shrink-0">
           <div className="flex flex-col gap-0.5">
             <p className="text-sm text-slate-500 uppercase tracking-widest">
               Swapping out
@@ -151,7 +160,7 @@ export default function SwapSidebar({
 
         {/* Tab switcher */}
         <div className="flex gap-1 bg-slate-800 m-4 p-1 rounded-lg shrink-0">
-          {(["search", "wishlist"] as SidebarTab[]).map((tab) => (
+          {(['search', 'wishlist'] as SidebarTab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => {
@@ -161,22 +170,22 @@ export default function SwapSidebar({
               }}
               className="flex-1 py-1.5 rounded-md text-xs font-semibold transition-colors"
               style={{
-                backgroundColor: activeTab === tab ? "#1971c2" : "transparent",
-                color: activeTab === tab ? "#fff" : "#64748b",
+                backgroundColor: activeTab === tab ? '#1971c2' : 'transparent',
+                color: activeTab === tab ? '#fff' : '#64748b',
               }}
             >
-              {tab === "search"
-                ? "Search"
+              {tab === 'search'
+                ? 'Search'
                 : `Wishlist (${deckWishlist.length})`}
             </button>
           ))}
         </div>
 
         {/* Content */}
-        <div className="flex flex-col gap-4 px-5 pb-4 flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-4 px-5 pb-4 flex-1 overflow-y-auto min-h-0">
           {/* Color identity error */}
           {colorError && (
-            <div className="bg-red-950 border border-red-800 text-red-300 text-xs rounded-lg px-3 py-2.5 flex items-center justify-between gap-2">
+            <div className="bg-red-950 border border-red-800 text-red-300 text-xs rounded-lg px-3 py-2.5 flex items-center justify-between gap-2 shrink-0">
               <span>{colorError}</span>
               <button
                 onClick={() => setColorError(null)}
@@ -188,7 +197,7 @@ export default function SwapSidebar({
           )}
 
           {/* Search tab */}
-          {activeTab === "search" && (
+          {activeTab === 'search' && (
             <>
               <CardSearchPanel
                 label="Search for replacement"
@@ -218,9 +227,9 @@ export default function SwapSidebar({
                   </div>
                   <button
                     onClick={handleConfirm}
-                    className="w-full bg-[#1971c2] hover:bg-blue-500 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors hover:cursor-pointer"
+                    className="w-full bg-[#1971c2] hover:bg-blue-500 text-white font-semibold text-sm p-1 rounded-lg transition-colors hover:cursor-pointer"
                   >
-                    Confirm Swap — {selected.name}
+                    Confirm Swap
                   </button>
                   <button
                     onClick={() => setSelected(null)}
@@ -234,40 +243,41 @@ export default function SwapSidebar({
           )}
 
           {/* Wishlist tab */}
-          {activeTab === "wishlist" && (
+          {activeTab === 'wishlist' && (
             <>
+              {/* Sticky confirm bar */}
               <button
                 onClick={handleConfirm}
                 disabled={!selected}
-                className={`w-full font-semibold text-sm py-2.5 rounded-lg transition-colors mt-2 ${
+                className={`w-full font-semibold text-sm py-2.5 rounded-lg transition-colors mt-2 shrink-0 ${
                   selected
-                    ? "bg-[#1971c2] hover:bg-blue-500 text-white hover:cursor-pointer"
-                    : "bg-slate-800 text-slate-600 cursor-not-allowed"
+                    ? 'bg-[#1971c2] hover:bg-blue-500 text-white hover:cursor-pointer'
+                    : 'bg-slate-800 text-slate-600 cursor-not-allowed'
                 }`}
               >
                 {selected
                   ? `Confirm Swap — ${selected.name}`
-                  : "Select a card to swap"}
+                  : 'Select a card to swap'}
               </button>
 
-              {/* Filter Logic Restored */}
+              {/* Filter controls */}
               {deckWishlist.length > 0 && (
-                <div className="relative self-start">
+                <div className="relative self-start shrink-0">
                   <button
                     onClick={() => setShowFilters((v) => !v)}
                     className="flex items-center gap-1.5 text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors"
                     style={{
-                      borderColor: filterCount > 0 ? "#1971c2" : "#334155",
-                      color: filterCount > 0 ? "#1971c2" : "#94a3b8",
+                      borderColor: filterCount > 0 ? '#1971c2' : '#334155',
+                      color: filterCount > 0 ? '#1971c2' : '#94a3b8',
                       backgroundColor:
-                        filterCount > 0 ? "#1971c211" : "transparent",
+                        filterCount > 0 ? '#1971c211' : 'transparent',
                     }}
                   >
                     Filter
                     {filterCount > 0 && (
                       <span
                         className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                        style={{ backgroundColor: "#1971c2", color: "#fff" }}
+                        style={{ backgroundColor: '#1971c2', color: '#fff' }}
                       >
                         {filterCount}
                       </span>
@@ -295,14 +305,14 @@ export default function SwapSidebar({
                                 className="text-xs px-2.5 py-1 rounded-full border transition-all hover:cursor-pointer"
                                 style={{
                                   borderColor: typeFilters.includes(cat)
-                                    ? "#1971c2"
-                                    : "#334155",
+                                    ? '#1971c2'
+                                    : '#334155',
                                   backgroundColor: typeFilters.includes(cat)
-                                    ? "#1971c222"
-                                    : "transparent",
+                                    ? '#1971c222'
+                                    : 'transparent',
                                   color: typeFilters.includes(cat)
-                                    ? "#1971c2"
-                                    : "#94a3b8",
+                                    ? '#1971c2'
+                                    : '#94a3b8',
                                 }}
                               >
                                 {cat}
@@ -329,8 +339,8 @@ export default function SwapSidebar({
                                   style={{
                                     outline: objectiveFilters.includes(o.id)
                                       ? `2px solid ${o.color}`
-                                      : "2px solid transparent",
-                                    outlineOffset: "2px",
+                                      : '2px solid transparent',
+                                    outlineOffset: '2px',
                                   }}
                                 >
                                   <ObjectivePill objective={o} size="sm" />
@@ -359,14 +369,15 @@ export default function SwapSidebar({
               )}
 
               {hasFilters && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 shrink-0">
                   {filtered.length} of {deckWishlist.length} cards
                 </p>
               )}
 
-              <div className="grid grid-cols-1 gap-2 overflow-y-auto h-full">
+              {/* Card grid */}
+              <div className="flex-1 overflow-y-auto min-h-0">
                 {deckWishlist.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center gap-2 col-span-full">
+                  <div className="flex flex-col items-center justify-center py-12 text-center gap-2">
                     <p className="text-slate-500 text-sm">
                       No wishlist cards for this deck.
                     </p>
@@ -375,7 +386,7 @@ export default function SwapSidebar({
                     </p>
                   </div>
                 ) : filtered.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center gap-2 col-span-full">
+                  <div className="flex flex-col items-center justify-center py-12 text-center gap-2">
                     <p className="text-slate-500 text-sm">
                       No cards match the current filters.
                     </p>
@@ -390,51 +401,77 @@ export default function SwapSidebar({
                     </button>
                   </div>
                 ) : (
-                  filtered.map((entry) => {
-                    const legal = isLegalForDeck(entry.card, colorIdentity);
-                    const entryObjectives = entry.objectives ?? [];
-                    return (
-                      <div
-                        key={entry.id}
-                        className="bg-slate-800 border border-[#1971c2] rounded-xl p-3 flex flex-col gap-2 text-center justify-center"
-                        style={{
-                          borderColor:
-                            selected?.id === entry.card.id
-                              ? "#1971c2"
+                  /*
+                   * Subgrid approach:
+                   * The outer grid defines 3 columns on md+, 1 on mobile.
+                   * Each card spans all 4 named row tracks so cells in the
+                   * same visual row align across columns:
+                   *   [name] [type + mana] [objectives] [image] [action]
+                   */
+                  <div
+                    className="grid grid-cols-1 md:grid-cols-3 gap-3 pb-2"
+                    style={{ gridTemplateRows: 'auto' }}
+                  >
+                    {filtered.map((entry) => {
+                      const legal = isLegalForDeck(entry.card, colorIdentity);
+                      const entryObjectives = entry.objectives ?? [];
+                      const isSelected = selected?.id === entry.card.id;
+
+                      return (
+                        <div
+                          key={entry.id}
+                          className="
+                            grid rounded-xl border p-3 gap-y-2
+                            transition-all duration-150
+                          "
+                          style={{
+                            gridTemplateRows: 'subgrid',
+                            /* 5 named tracks shared across the whole column */
+                            gridRow: 'span 5',
+                            borderColor: isSelected
+                              ? '#1971c2'
                               : !legal
-                                ? "#7f1d1d"
-                                : "#334155",
-                          opacity: legal ? 1 : 0.5,
-                          cursor: legal ? "pointer" : "not-allowed",
-                        }}
-                      >
-                        <div className="flex flex-col gap-1 min-w-0 text-center overflow-y-auto flex-1">
-                          <p className="text-white text-md font-semibold truncate">
+                                ? '#7f1d1d'
+                                : '#334155',
+                            backgroundColor: isSelected
+                              ? '#1971c211'
+                              : '#1e293b',
+                            opacity: legal ? 1 : 0.5,
+                          }}
+                        >
+                          {/* Row 1 — Name */}
+                          <p className="text-white text-sm font-semibold text-center leading-snug">
                             {entry.card.name}
                           </p>
-                          <p className="text-slate-500 text-sm">
-                            {entry.card.type_line}
-                          </p>
-                          <div className="flex flex-col items-center gap-1.5 flex-wrap">
+
+                          {/* Row 2 — Type + mana cost */}
+                          <div className="flex flex-col items-center gap-1">
+                            <p className="text-slate-400 text-xs text-center">
+                              {entry.card.type_line}
+                            </p>
                             {entry.card.cmc > 0 && (
                               <ManaCost cost={entry.card.mana_cost} size={12} />
                             )}
-                            {entryObjectives.length > 0 && (
-                              <div className="flex flex-wrap gap-1 justify-center mt-0.5">
-                                {entryObjectives.map((o) => (
-                                  <ObjectivePill
-                                    key={o.id}
-                                    objective={o}
-                                    size="sm"
-                                  />
-                                ))}
-                              </div>
-                            )}
-                            {entry.card.image_uris?.large && (
+                          </div>
+
+                          {/* Row 3 — Objectives (always rendered, empty div keeps alignment) */}
+                          <div className="flex flex-wrap gap-1 justify-center min-h-[1.25rem]">
+                            {entryObjectives.map((o) => (
+                              <ObjectivePill
+                                key={o.id}
+                                objective={o}
+                                size="sm"
+                              />
+                            ))}
+                          </div>
+
+                          {/* Row 4 — Card image */}
+                          <div className="flex justify-center">
+                            {entry.card.image_uris?.large ? (
                               <img
                                 src={entry.card.image_uris.large}
                                 alt={entry.card.name}
-                                className="w-3/4 rounded-lg m-auto transition ease-in-out"
+                                className="w-full max-w-[160px] rounded-lg cursor-zoom-in hover:brightness-110 transition"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setExpanded(
@@ -444,29 +481,48 @@ export default function SwapSidebar({
                                   );
                                 }}
                               />
+                            ) : (
+                              <div className="w-full max-w-[160px] aspect-[5/7] rounded-lg bg-slate-700 flex items-center justify-center">
+                                <span className="text-slate-500 text-xs">
+                                  No image
+                                </span>
+                              </div>
                             )}
-                            <button
-                              className="flex items-center gap-1.5 text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors hover:bg-slate-900"
-                              onClick={() => legal && handleSelect(entry.card)}
-                              disabled={!legal}
-                            >
-                              Select
-                            </button>
                           </div>
-                          {!legal && (
-                            <p className="text-red-400 text-xs">
-                              Outside color identity
-                            </p>
-                          )}
-                          {entry.note && legal && (
-                            <p className="text-slate-500 text-xs italic truncate min-h-2">
-                              {entry.note}
-                            </p>
-                          )}
+
+                          {/* Row 5 — Action + note + illegal warning */}
+                          <div className="flex flex-col items-center gap-1.5">
+                            {!legal ? (
+                              <p className="text-red-400 text-xs text-center">
+                                Outside color identity
+                              </p>
+                            ) : (
+                              <>
+                                <button
+                                  className="w-full text-xs font-semibold border border-slate-600 px-3 py-1.5 rounded-lg transition-colors hover:bg-slate-700 hover:cursor-pointer disabled:opacity-40"
+                                  style={{
+                                    borderColor: isSelected
+                                      ? '#1971c2'
+                                      : '#334155',
+                                    color: isSelected ? '#1971c2' : '#94a3b8',
+                                    backgroundColor: isSelected
+                                      ? '#1971c222'
+                                      : 'transparent',
+                                  }}
+                                  onClick={() =>
+                                    legal && handleSelect(entry.card)
+                                  }
+                                  disabled={!legal}
+                                >
+                                  {isSelected ? 'Selected ✓' : 'Select'}
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             </>
