@@ -1,12 +1,11 @@
 // Modules
-import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 // Hooks
 import { useDeckBuilder } from '@/features/deckBuilder/hooks/useDeckBuilder';
 
 // Store
-import { deckStore, getDeckCardCount } from '@/store/deckStore';
+import { getDeckCardCount } from '@/store/deckStore';
 
 // Components
 import CardSearchPanel from '@/features/deckBuilder/components/CardSearchPanel';
@@ -22,20 +21,10 @@ export default function DeckBuilderPage() {
   const { deckId } = useParams();
   const navigate = useNavigate();
 
-  const [existing, setExisting] = useState<Deck | undefined>(undefined);
-  const [loadingDeck, setLoadingDeck] = useState(!!deckId);
-
-  useEffect(() => {
-    if (!deckId) return;
-    deckStore.getById(deckId).then((deck) => {
-      setExisting(deck);
-      setLoadingDeck(false);
-    });
-  }, [deckId]);
-
   const {
     deck,
     setDeck,
+    loading,
     colorWarning,
     partnerWarning,
     commanderHasPartner,
@@ -48,15 +37,16 @@ export default function DeckBuilderPage() {
     saveDeck,
     clearWarning,
     clearPartnerWarning,
-  } = useDeckBuilder(existing);
+  } = useDeckBuilder(deckId);
 
   const cardCount = getDeckCardCount(deck);
+  const MAX_CARD_COUNT_REACHED = cardCount >= 100;
 
   const handleSave = async () => {
     if (await saveDeck()) navigate('/');
   };
 
-  if (loadingDeck) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <p className="text-slate-400 text-sm">Loading deck...</p>
@@ -74,9 +64,12 @@ export default function DeckBuilderPage() {
           ← Back
         </button>
         <div className="flex items-center gap-2">
-          <ImportDeckButton
-            onImported={(deck: Deck) => navigate(`/deck/${deck.id}`)}
-          />
+          {!deckId && (
+            <ImportDeckButton
+              onImported={(deck: Deck) => navigate(`/deck/${deck.id}`)}
+            />
+          )}
+
           <button
             onClick={handleSave}
             disabled={!deck.name.trim()}
@@ -88,11 +81,10 @@ export default function DeckBuilderPage() {
       </header>
 
       <h1 className="text-3xl font-bold text-white text-center m-4">
-        {existing ? 'Edit Deck' : 'Build New Deck'}
+        {deckId ? 'Edit Deck' : 'Build New Deck'}
       </h1>
 
       <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
-        {/* Left — inputs */}
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-slate-300">
@@ -193,6 +185,7 @@ export default function DeckBuilderPage() {
               <CardSearchPanel
                 label="Add Cards"
                 placeholder="Search for cards..."
+                disabled={MAX_CARD_COUNT_REACHED}
                 onSelectCard={addCard}
               />
               {colorWarning && (
@@ -214,7 +207,6 @@ export default function DeckBuilderPage() {
           )}
         </div>
 
-        {/* Right — deck list */}
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest">

@@ -1,5 +1,5 @@
 // Modules
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
 
 // Store
 import {
@@ -11,21 +11,37 @@ import {
   setCommander as storeSetCommander,
   setPartner as storeSetPartner,
   removePartner as storeRemovePartner,
-} from "@/store/deckStore";
+} from '@/store/deckStore';
 
 // Utils
 import {
   getPartnerInfo,
   isValidPartner,
-} from "@/features/deckBuilder/utils/partnerUtils";
+} from '@/features/deckBuilder/utils/partnerUtils';
 
 // Types
-import type { Deck, ScryfallCard } from "@/types";
+import type { Deck, ScryfallCard } from '@/types';
 
-export function useDeckBuilder(existingDeck?: Deck) {
-  const [deck, setDeck] = useState<Deck>(existingDeck ?? createNewDeck(""));
+export function useDeckBuilder(deckId?: string) {
+  const [deck, setDeck] = useState<Deck>(createNewDeck(''));
+  const [loading, setLoading] = useState(!!deckId);
   const [colorWarning, setColorWarning] = useState<string | null>(null);
   const [partnerWarning, setPartnerWarning] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!deckId) return;
+
+    let mounted = true;
+    deckStore.getById(deckId).then((existing) => {
+      if (!mounted) return;
+      if (existing) setDeck(existing);
+      setLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [deckId]);
 
   const setName = useCallback((name: string) => {
     setDeck((d) => ({ ...d, name }));
@@ -40,13 +56,11 @@ export function useDeckBuilder(existingDeck?: Deck) {
   const setPartner = useCallback((card: ScryfallCard) => {
     setDeck((d) => {
       if (!d.commander) return d;
-
       const { valid, reason } = isValidPartner(d.commander, card);
       if (!valid) {
         setPartnerWarning(reason);
         return d;
       }
-
       setPartnerWarning(null);
       return storeSetPartner(d, card);
     });
@@ -83,22 +97,22 @@ export function useDeckBuilder(existingDeck?: Deck) {
   const clearWarning = useCallback(() => setColorWarning(null), []);
   const clearPartnerWarning = useCallback(() => setPartnerWarning(null), []);
 
-  // Derived partner eligibility off current commander
   const commanderPartnerInfo = deck.commander
     ? getPartnerInfo(deck.commander)
     : null;
 
   const commanderHasPartner =
-    commanderPartnerInfo?.type !== "none" && commanderPartnerInfo !== null;
+    commanderPartnerInfo?.type !== 'none' && commanderPartnerInfo !== null;
 
   const requiredPartnerName =
-    commanderPartnerInfo?.type === "specific"
+    commanderPartnerInfo?.type === 'specific'
       ? commanderPartnerInfo.requiredPartnerName
       : null;
 
   return {
     deck,
     setDeck,
+    loading,
     colorWarning,
     partnerWarning,
     commanderHasPartner,
