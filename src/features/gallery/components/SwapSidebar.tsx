@@ -383,155 +383,101 @@ export default function SwapSidebar({
               )}
 
               {/* Card grid */}
-              <div className="flex-1 overflow-y-auto min-h-0">
-                {deckWishlist.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center gap-2">
-                    <p className="text-slate-500 text-sm">
-                      No wishlist cards for this deck.
-                    </p>
-                    <p className="text-slate-600 text-xs">
-                      Tag cards to this deck from the Wishlist page.
-                    </p>
-                  </div>
-                ) : filtered.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center gap-2">
-                    <p className="text-slate-500 text-sm">
-                      No cards match the current filters.
-                    </p>
-                    <button
-                      onClick={() => {
-                        setTypeFilters([]);
-                        setObjectiveFilters([]);
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pb-2">
+                {filtered.map((entry) => {
+                  const legal = isLegalForDeck(entry.card, colorIdentity);
+                  const entryObjectives = entry.objectives ?? [];
+                  const isSelected = selected?.id === entry.card.id;
+
+                  return (
+                    <div
+                      key={entry.id}
+                      className="flex flex-col items-center gap-2 rounded-xl border p-3 transition-all duration-150"
+                      style={{
+                        borderColor: isSelected
+                          ? '#1971c2'
+                          : !legal
+                            ? '#7f1d1d'
+                            : '#334155',
+                        backgroundColor: isSelected ? '#1971c211' : '#1e293b',
+                        opacity: legal ? 1 : 0.5,
                       }}
-                      className="text-[#1971c2] hover:underline text-sm hover:cursor-pointer"
                     >
-                      Clear filters
-                    </button>
-                  </div>
-                ) : (
-                  /*
-                   * Subgrid approach:
-                   * The outer grid defines 3 columns on md+, 1 on mobile.
-                   * Each card spans all 4 named row tracks so cells in the
-                   * same visual row align across columns:
-                   *   [name] [type + mana] [objectives] [image] [action]
-                   */
-                  <div
-                    className="grid grid-cols-1 md:grid-cols-3 gap-3 pb-2"
-                    style={{ gridTemplateRows: 'auto' }}
-                  >
-                    {filtered.map((entry) => {
-                      const legal = isLegalForDeck(entry.card, colorIdentity);
-                      const entryObjectives = entry.objectives ?? [];
-                      const isSelected = selected?.id === entry.card.id;
-
-                      return (
-                        <div
-                          key={entry.id}
-                          className="
-                            grid rounded-xl border p-3 gap-y-2
-                            transition-all duration-150
-                          "
-                          style={{
-                            gridTemplateRows: 'subgrid',
-                            /* 5 named tracks shared across the whole column */
-                            gridRow: 'span 5',
-                            borderColor: isSelected
-                              ? '#1971c2'
-                              : !legal
-                                ? '#7f1d1d'
-                                : '#334155',
-                            backgroundColor: isSelected
-                              ? '#1971c211'
-                              : '#1e293b',
-                            opacity: legal ? 1 : 0.5,
-                          }}
-                        >
-                          {/* Row 1 — Name */}
-                          <p className="text-white text-sm font-semibold text-center leading-snug">
-                            {entry.card.name}
-                          </p>
-
-                          {/* Row 2 — Type + mana cost */}
-                          <div className="flex flex-col items-center gap-1">
-                            <p className="text-slate-400 text-xs text-center">
-                              {entry.card.type_line}
-                            </p>
-                            {entry.card.cmc > 0 && (
-                              <ManaCost cost={entry.card.mana_cost} size={12} />
-                            )}
+                      {/* Image */}
+                      <div className="w-full flex justify-center">
+                        {entry.card.image_uris?.large ? (
+                          <img
+                            src={entry.card.image_uris.large}
+                            alt={entry.card.name}
+                            className="w-full max-w-[160px] rounded-lg cursor-zoom-in hover:brightness-110 transition"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpanded(
+                                expanded === entry.card.id
+                                  ? null
+                                  : entry.card.id,
+                              );
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full max-w-[160px] aspect-[5/7] rounded-lg bg-slate-700 flex items-center justify-center">
+                            <span className="text-slate-500 text-xs">
+                              No image
+                            </span>
                           </div>
+                        )}
+                      </div>
 
-                          {/* Row 3 — Objectives (always rendered, empty div keeps alignment) */}
-                          <div className="flex items-start content-start flex-wrap gap-1 justify-center min-h-[1.25rem]">
-                            {entryObjectives.map((o) => (
-                              <ObjectivePill
-                                key={o.id}
-                                objective={o}
-                                size="sm"
-                              />
-                            ))}
-                          </div>
+                      {/* Name */}
+                      <p className="text-white text-sm font-semibold text-center leading-snug w-full">
+                        {entry.card.name}
+                      </p>
 
-                          {/* Row 4 — Card image */}
-                          <div className="flex justify-center">
-                            {entry.card.image_uris?.large ? (
-                              <img
-                                src={entry.card.image_uris.large}
-                                alt={entry.card.name}
-                                className="w-full max-w-[160px] rounded-lg cursor-zoom-in hover:brightness-110 transition"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setExpanded(
-                                    expanded === entry.card.id
-                                      ? null
-                                      : entry.card.id,
-                                  );
-                                }}
-                              />
-                            ) : (
-                              <div className="w-full max-w-[160px] aspect-[5/7] rounded-lg bg-slate-700 flex items-center justify-center">
-                                <span className="text-slate-500 text-xs">
-                                  No image
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                      {/* Type + mana */}
+                      <div className="flex flex-col items-center gap-1 w-full">
+                        <p className="text-slate-400 text-xs text-center">
+                          {entry.card.type_line}
+                        </p>
+                        {entry.card.cmc > 0 && (
+                          <ManaCost cost={entry.card.mana_cost} size={12} />
+                        )}
+                      </div>
 
-                          {/* Row 5 — Action + note + illegal warning */}
-                          <div className="flex flex-col items-center gap-1.5">
-                            {!legal ? (
-                              <p className="text-red-400 text-xs text-center">
-                                Outside color identity
-                              </p>
-                            ) : (
-                              <>
-                                <button
-                                  className="w-full text-xs font-semibold border border-slate-600 px-3 py-1.5 rounded-lg transition-colors hover:bg-slate-700 hover:cursor-pointer disabled:opacity-40"
-                                  style={{
-                                    borderColor: isSelected
-                                      ? '#1971c2'
-                                      : '#334155',
-                                    color: isSelected ? '#1971c2' : '#94a3b8',
-                                    backgroundColor: isSelected
-                                      ? '#1971c222'
-                                      : 'transparent',
-                                  }}
-                                  onClick={() =>
-                                    legal && handleSelect(entry.card)
-                                  }
-                                  disabled={!legal}
-                                >
-                                  {isSelected ? 'Selected ✓' : 'Select'}
-                                </button>
-                              </>
-                            )}
-                          </div>
+                      {/* Objectives */}
+                      {entryObjectives.length > 0 && (
+                        <div className="flex flex-wrap gap-1 justify-center w-full">
+                          {entryObjectives.map((o) => (
+                            <ObjectivePill key={o.id} objective={o} size="sm" />
+                          ))}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                      )}
+
+                      {/* Action */}
+                      <div className="w-full mt-auto pt-1">
+                        {!legal ? (
+                          <p className="text-red-400 text-xs text-center">
+                            Outside color identity
+                          </p>
+                        ) : (
+                          <button
+                            onClick={() => legal && handleSelect(entry.card)}
+                            disabled={!legal}
+                            className="w-full text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors hover:cursor-pointer disabled:opacity-40"
+                            style={{
+                              borderColor: isSelected ? '#1971c2' : '#334155',
+                              color: isSelected ? '#1971c2' : '#94a3b8',
+                              backgroundColor: isSelected
+                                ? '#1971c222'
+                                : 'transparent',
+                            }}
+                          >
+                            {isSelected ? 'Selected ✓' : 'Select'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}

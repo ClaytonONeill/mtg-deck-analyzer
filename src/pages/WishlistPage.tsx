@@ -20,10 +20,11 @@ import WishlistAddPanel from '@/features/wishlist/components/WishlistAddPanel';
 import WishlistCard from '@/features/wishlist/components/WishlistCard';
 import ObjectivePill from '@/features/objectives/components/ObjectivePill';
 
-type SortKey = 'name' | 'cmc' | 'color' | 'type';
+type SortKey = 'name' | 'cmc' | 'color' | 'type' | 'date';
 type SortDirection = 'asc' | 'desc';
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'date', label: 'Date Added' },
   { key: 'name', label: 'Name' },
   { key: 'cmc', label: 'Mana Value' },
   { key: 'color', label: 'Color Identity' },
@@ -82,6 +83,10 @@ function sortEntries(
   const mult = direction === 'asc' ? 1 : -1;
   return [...entries].sort((a, b) => {
     switch (sort) {
+      case 'date':
+        return (
+          mult * (new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime())
+        );
       case 'name':
         return mult * a.card.name.localeCompare(b.card.name);
       case 'cmc':
@@ -352,8 +357,8 @@ function FilterPopover({
 
 export default function WishlistPage() {
   const [allDecks, setAllDecks] = useState<Deck[]>([]);
-  const [sort, setSort] = useState<SortKey>('name');
-  const [sortDir, setSortDir] = useState<SortDirection>('asc');
+  const [sort, setSort] = useState<SortKey>('date');
+  const [sortDir, setSortDir] = useState<SortDirection>('desc');
   const [filters, setFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [openUpward, setOpenUpward] = useState(false);
