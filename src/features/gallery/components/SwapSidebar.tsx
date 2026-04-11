@@ -189,6 +189,177 @@ export default function SwapSidebar({
           ))}
         </div>
 
+        {/* Fixed top controls for wishlist */}
+        {activeTab === 'wishlist' && (
+          <div className="px-5 shrink-0">
+            <button
+              onClick={handleConfirm}
+              disabled={!selected}
+              className={`w-full font-semibold text-sm py-2.5 rounded-lg transition-colors mb-4 ${
+                selected
+                  ? 'bg-[#1971c2] hover:bg-blue-500 text-white hover:cursor-pointer'
+                  : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+              }`}
+            >
+              {selected
+                ? `Confirm Swap — ${selected.name}`
+                : 'Select a card to swap'}
+            </button>
+
+            {/* Filter controls */}
+            {deckWishlist.length > 0 && (
+              <div className="relative self-start mb-4">
+                <button
+                  onClick={() => setShowFilters((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors"
+                  style={{
+                    borderColor: filterCount > 0 ? '#1971c2' : '#334155',
+                    color: filterCount > 0 ? '#1971c2' : '#94a3b8',
+                    backgroundColor:
+                      filterCount > 0 ? '#1971c211' : 'transparent',
+                  }}
+                >
+                  Filter
+                  {filterCount > 0 && (
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                      style={{ backgroundColor: '#1971c2', color: '#fff' }}
+                    >
+                      {filterCount}
+                    </span>
+                  )}
+                </button>
+
+                {showFilters && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowFilters(false)}
+                    />
+                    <div className="absolute top-full left-0 mt-2 z-20 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-4 flex flex-col gap-4 w-64">
+                      <div className="flex flex-col gap-2">
+                        <p className="text-xs text-slate-500 uppercase tracking-widest">
+                          Type
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {CATEGORY_ORDER.map((cat) => (
+                            <button
+                              key={cat}
+                              onClick={() =>
+                                setTypeFilters((prev) => toggle(prev, cat))
+                              }
+                              className="text-xs px-2.5 py-1 rounded-full border transition-all hover:cursor-pointer"
+                              style={{
+                                borderColor: typeFilters.includes(cat)
+                                  ? '#1971c2'
+                                  : '#334155',
+                                backgroundColor: typeFilters.includes(cat)
+                                  ? '#1971c222'
+                                  : 'transparent',
+                                color: typeFilters.includes(cat)
+                                  ? '#1971c2'
+                                  : '#94a3b8',
+                              }}
+                            >
+                              {cat}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {visibleObjectives.length > 0 && (
+                        <div className="flex flex-col gap-2">
+                          <p className="text-xs text-slate-500 uppercase tracking-widest">
+                            Objective
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {visibleObjectives.map((o) => (
+                              <button
+                                key={o.id}
+                                onClick={() =>
+                                  setObjectiveFilters((prev) =>
+                                    toggle(prev, o.id),
+                                  )
+                                }
+                                className="transition-all rounded-full hover:cursor-pointer"
+                                style={{
+                                  outline: objectiveFilters.includes(o.id)
+                                    ? `2px solid ${o.color}`
+                                    : '2px solid transparent',
+                                  outlineOffset: '2px',
+                                }}
+                              >
+                                <ObjectivePill objective={o} size="sm" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {hasFilters && (
+                        <button
+                          onClick={() => {
+                            setTypeFilters([]);
+                            setObjectiveFilters([]);
+                            setShowFilters(false);
+                          }}
+                          className="text-sm text-slate-500 hover:text-white transition-colors self-start hover:cursor-pointer"
+                        >
+                          Clear filters
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {hasFilters && (
+              <p className="text-xs text-slate-500 mb-4">
+                {filtered.length} of {deckWishlist.length} cards
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Fixed top controls for search */}
+        {activeTab === 'search' && selected && (
+          <div className="px-5 shrink-0">
+            <div className="flex flex-col gap-3 mb-4">
+              <p className="text-xs text-slate-400 uppercase tracking-widest">
+                Selected Replacement
+              </p>
+              <div className="bg-slate-800 border border-[#1971c2] rounded-xl p-3 flex flex-col gap-2 text-center justify-center">
+                <p className="text-white font-semibold text-md">
+                  {selected.name}
+                </p>
+                <p className="text-slate-400 text-sm">
+                  {selected.type_line}
+                </p>
+                {selected.image_uris?.normal && (
+                  <img
+                    src={selected.image_uris.normal}
+                    alt={selected.name}
+                    className="w-3/4 rounded-lg m-auto"
+                  />
+                )}
+              </div>
+              <button
+                onClick={handleConfirm}
+                className="w-full bg-[#1971c2] hover:bg-blue-500 text-white font-semibold text-sm p-1 rounded-lg transition-colors hover:cursor-pointer"
+              >
+                Confirm Swap
+              </button>
+              <button
+                onClick={() => setSelected(null)}
+                className="w-full text-slate-400 hover:text-white text-sm py-2 transition-colors hover:cursor-pointer"
+              >
+                Clear Selection
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Content */}
         <div className="flex flex-col gap-4 px-5 pb-4 flex-1 overflow-y-auto min-h-0">
           {/* Color identity error */}
@@ -212,176 +383,12 @@ export default function SwapSidebar({
                 placeholder="Search cards..."
                 onSelectCard={handleSelect}
               />
-
-              {selected && (
-                <div className="flex flex-col gap-3">
-                  <p className="text-xs text-slate-400 uppercase tracking-widest">
-                    Selected Replacement
-                  </p>
-                  <div className="bg-slate-800 border border-[#1971c2] rounded-xl p-3 flex flex-col gap-2 text-center justify-center">
-                    <p className="text-white font-semibold text-md">
-                      {selected.name}
-                    </p>
-                    <p className="text-slate-400 text-sm">
-                      {selected.type_line}
-                    </p>
-                    {selected.image_uris?.normal && (
-                      <img
-                        src={selected.image_uris.normal}
-                        alt={selected.name}
-                        className="w-3/4 rounded-lg m-auto"
-                      />
-                    )}
-                  </div>
-                  <button
-                    onClick={handleConfirm}
-                    className="w-full bg-[#1971c2] hover:bg-blue-500 text-white font-semibold text-sm p-1 rounded-lg transition-colors hover:cursor-pointer"
-                  >
-                    Confirm Swap
-                  </button>
-                  <button
-                    onClick={() => setSelected(null)}
-                    className="w-full text-slate-400 hover:text-white text-sm py-2 transition-colors hover:cursor-pointer"
-                  >
-                    Clear Selection
-                  </button>
-                </div>
-              )}
             </>
           )}
 
           {/* Wishlist tab */}
           {activeTab === 'wishlist' && (
             <>
-              {/* Sticky confirm bar */}
-              <button
-                onClick={handleConfirm}
-                disabled={!selected}
-                className={`w-full font-semibold text-sm py-2.5 rounded-lg transition-colors mt-2 shrink-0 ${
-                  selected
-                    ? 'bg-[#1971c2] hover:bg-blue-500 text-white hover:cursor-pointer'
-                    : 'bg-slate-800 text-slate-600 cursor-not-allowed'
-                }`}
-              >
-                {selected
-                  ? `Confirm Swap — ${selected.name}`
-                  : 'Select a card to swap'}
-              </button>
-
-              {/* Filter controls */}
-              {deckWishlist.length > 0 && (
-                <div className="relative self-start shrink-0">
-                  <button
-                    onClick={() => setShowFilters((v) => !v)}
-                    className="flex items-center gap-1.5 text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors"
-                    style={{
-                      borderColor: filterCount > 0 ? '#1971c2' : '#334155',
-                      color: filterCount > 0 ? '#1971c2' : '#94a3b8',
-                      backgroundColor:
-                        filterCount > 0 ? '#1971c211' : 'transparent',
-                    }}
-                  >
-                    Filter
-                    {filterCount > 0 && (
-                      <span
-                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                        style={{ backgroundColor: '#1971c2', color: '#fff' }}
-                      >
-                        {filterCount}
-                      </span>
-                    )}
-                  </button>
-
-                  {showFilters && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setShowFilters(false)}
-                      />
-                      <div className="absolute top-full left-0 mt-2 z-20 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-4 flex flex-col gap-4 w-64">
-                        <div className="flex flex-col gap-2">
-                          <p className="text-xs text-slate-500 uppercase tracking-widest">
-                            Type
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {CATEGORY_ORDER.map((cat) => (
-                              <button
-                                key={cat}
-                                onClick={() =>
-                                  setTypeFilters((prev) => toggle(prev, cat))
-                                }
-                                className="text-xs px-2.5 py-1 rounded-full border transition-all hover:cursor-pointer"
-                                style={{
-                                  borderColor: typeFilters.includes(cat)
-                                    ? '#1971c2'
-                                    : '#334155',
-                                  backgroundColor: typeFilters.includes(cat)
-                                    ? '#1971c222'
-                                    : 'transparent',
-                                  color: typeFilters.includes(cat)
-                                    ? '#1971c2'
-                                    : '#94a3b8',
-                                }}
-                              >
-                                {cat}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {visibleObjectives.length > 0 && (
-                          <div className="flex flex-col gap-2">
-                            <p className="text-xs text-slate-500 uppercase tracking-widest">
-                              Objective
-                            </p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {visibleObjectives.map((o) => (
-                                <button
-                                  key={o.id}
-                                  onClick={() =>
-                                    setObjectiveFilters((prev) =>
-                                      toggle(prev, o.id),
-                                    )
-                                  }
-                                  className="transition-all rounded-full hover:cursor-pointer"
-                                  style={{
-                                    outline: objectiveFilters.includes(o.id)
-                                      ? `2px solid ${o.color}`
-                                      : '2px solid transparent',
-                                    outlineOffset: '2px',
-                                  }}
-                                >
-                                  <ObjectivePill objective={o} size="sm" />
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {hasFilters && (
-                          <button
-                            onClick={() => {
-                              setTypeFilters([]);
-                              setObjectiveFilters([]);
-                              setShowFilters(false);
-                            }}
-                            className="text-sm text-slate-500 hover:text-white transition-colors self-start hover:cursor-pointer"
-                          >
-                            Clear filters
-                          </button>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {hasFilters && (
-                <p className="text-xs text-slate-500 shrink-0">
-                  {filtered.length} of {deckWishlist.length} cards
-                </p>
-              )}
-
               {/* Card grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pb-2">
                 {filtered.map((entry) => {
