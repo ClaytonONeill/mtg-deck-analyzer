@@ -396,6 +396,7 @@ export default function WishlistPage() {
     () => applyFilters(entries, filters),
     [entries, filters],
   );
+
   const sorted = useMemo(
     () => sortEntries(filtered, sort, sortDir),
     [filtered, sort, sortDir],
@@ -411,7 +412,7 @@ export default function WishlistPage() {
       <header className="px-6 py-4 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
-          className="text-slate-400 hover:text-white text-[16.1px] transition-colors hover:cursor-pointer"
+          className="text-slate-400 hover:text-white text-[16.1px]"
         >
           ← Back
         </button>
@@ -428,32 +429,37 @@ export default function WishlistPage() {
           allDecks={allDecks}
         />
 
-        {entries.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 text-center gap-3">
-            <div className="text-[55px]">✨</div>
-            <p className="text-slate-400 text-[16.1px]">
-              Your wishlist is empty.
-            </p>
-            <p className="text-slate-600 text-[13.8px] max-w-xs">
-              Search for cards above to add them. Tag them to decks so they
-              appear in that deck's Wishlist tab.
-            </p>
-          </div>
-        )}
-
         {entries.length > 0 && (
           <div className="flex flex-col gap-5">
-            <div className="flex items-center gap-3 flex-wrap">
+            {/* 🔥 UPDATED CONTROL BAR */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+              {/* Label */}
               <span className="text-[13.8px] text-slate-500 uppercase tracking-widest">
                 Sort by
               </span>
 
-              <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
+              {/* Mobile Dropdown */}
+              <div className="sm:hidden w-full">
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as SortKey)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-[14px] text-white focus:outline-none focus:border-[#1971c2]"
+                >
+                  {SORT_OPTIONS.map((opt) => (
+                    <option key={opt.key} value={opt.key}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Desktop Pills */}
+              <div className="hidden sm:flex gap-1 bg-slate-800 p-1 rounded-lg">
                 {SORT_OPTIONS.map((opt) => (
                   <button
                     key={opt.key}
                     onClick={() => setSort(opt.key)}
-                    className="px-3 py-1.5 rounded-md text-[13.8px] font-semibold transition-colors hover:cursor-pointer"
+                    className="px-3 py-1.5 rounded-md text-[13.8px] font-semibold transition-colors"
                     style={{
                       backgroundColor:
                         sort === opt.key ? '#1971c2' : 'transparent',
@@ -465,19 +471,21 @@ export default function WishlistPage() {
                 ))}
               </div>
 
+              {/* Sort Direction */}
               <button
                 onClick={() =>
                   setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
                 }
-                className="flex items-center gap-1.5 text-[13.8px] font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
+                className="flex items-center justify-center gap-1.5 text-[13px] sm:text-[13.8px] font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
               >
                 {sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}
               </button>
 
-              <div className="relative" ref={filterRef}>
+              {/* Filter */}
+              <div className="relative w-full sm:w-auto" ref={filterRef}>
                 <button
                   onClick={() => setShowFilters((v) => !v)}
-                  className="flex items-center gap-1.5 text-[13.8px] font-semibold border px-3 py-1.5 rounded-lg transition-colors"
+                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-[13px] sm:text-[13.8px] font-semibold border px-3 py-1.5 rounded-lg transition-colors"
                   style={{
                     borderColor: filterCount > 0 ? '#1971c2' : '#334155',
                     color: filterCount > 0 ? '#1971c2' : '#94a3b8',
@@ -509,23 +517,13 @@ export default function WishlistPage() {
                 )}
               </div>
 
-              <span className="text-[13.8px] text-slate-500 ml-auto">
+              {/* Count */}
+              <span className="text-[13px] sm:text-[13.8px] text-slate-500 sm:ml-auto">
                 {sorted.length} of {entries.length} cards
               </span>
             </div>
 
-            {sorted.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-500 text-[16.1px] gap-2">
-                <p>No cards match the current filters.</p>
-                <button
-                  onClick={handleClearFilters}
-                  className="text-[#1971c2] hover:underline text-[13.8px]"
-                >
-                  Clear filters
-                </button>
-              </div>
-            )}
-
+            {/* Cards */}
             <div className="flex flex-col gap-6 items-center w-full">
               {sorted.map((entry) => (
                 <WishlistCard
