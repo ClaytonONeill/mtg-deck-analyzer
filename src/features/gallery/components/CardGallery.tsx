@@ -1,54 +1,57 @@
 // Modules
-import { useState } from "react";
+import { useState } from 'react';
 
 // Types
-import type { CardCategory, DeckEntry, Objective, ScryfallCard } from "@/types";
+import type { CardCategory, DeckEntry, Objective, ScryfallCard } from '@/types';
 
 // Utils
-import { BASIC_LANDS } from "@/features/deckBuilder/utils/basicLands";
+import { BASIC_LANDS } from '@/features/deckBuilder/utils/basicLands';
 
 // Components
-import ObjectivePill from "@/features/objectives/components/ObjectivePill";
-import SwapSidebar from "@/features/gallery/components/SwapSidebar";
-import SwapBanner from "@/features/gallery/components/SwapBanner";
+import ObjectivePill from '@/features/objectives/components/ObjectivePill';
+import SwapSidebar from '@/features/gallery/components/SwapSidebar';
+import SwapBanner from '@/features/gallery/components/SwapBanner';
 
-interface PendingSwap {
-  removeCardId: string;
-  addCard: ScryfallCard;
-}
+// Types
+import type { PendingSwap } from '@/types/index';
 
 interface CardGalleryProps {
   deckId: string;
+  colorIdentity: string[];
   entries: DeckEntry[];
   objectives: Objective[];
   pendingSwaps: PendingSwap[];
   onAssign: (cardId: string, objectiveId: string) => void;
   onUnassign: (cardId: string, objectiveId: string) => void;
-  onAddSwap: (removeCardId: string, addCard: ScryfallCard) => void;
+  onAddSwap: (
+    removeCardName: string,
+    removeCardId: string,
+    addCard: ScryfallCard,
+  ) => void;
   onSaveAsVersion: () => void;
   onUndoSwaps: () => void;
 }
 
-type SortKey = "type" | "color" | "cmc" | "name";
-type SortDirection = "asc" | "desc";
+type SortKey = 'type' | 'color' | 'cmc' | 'name';
+type SortDirection = 'asc' | 'desc';
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "type", label: "Type" },
-  { key: "color", label: "Color Identity" },
-  { key: "cmc", label: "Mana Value" },
-  { key: "name", label: "Name" },
+  { key: 'type', label: 'Type' },
+  { key: 'color', label: 'Color Identity' },
+  { key: 'cmc', label: 'Mana Value' },
+  { key: 'name', label: 'Name' },
 ];
 
-const COLOR_ORDER = ["W", "U", "B", "R", "G"];
+const COLOR_ORDER = ['W', 'U', 'B', 'R', 'G'];
 const CATEGORY_ORDER: CardCategory[] = [
-  "Creature",
-  "Instant",
-  "Sorcery",
-  "Enchantment",
-  "Artifact",
-  "Planeswalker",
-  "Land",
-  "Other",
+  'Creature',
+  'Instant',
+  'Sorcery',
+  'Enchantment',
+  'Artifact',
+  'Planeswalker',
+  'Land',
+  'Other',
 ];
 
 interface ActiveFilters {
@@ -65,29 +68,27 @@ const EMPTY_FILTERS: ActiveFilters = {
   cmc: { min: null, max: null },
 };
 
-const ALL_COLORS = ["W", "U", "B", "R", "G"];
-
 function sortEntries(
   entries: DeckEntry[],
   sort: SortKey,
   direction: SortDirection,
 ): DeckEntry[] {
-  const mult = direction === "asc" ? 1 : -1;
+  const mult = direction === 'asc' ? 1 : -1;
   return [...entries].sort((a, b) => {
     switch (sort) {
-      case "name":
+      case 'name':
         return mult * a.card.name.localeCompare(b.card.name);
-      case "cmc":
+      case 'cmc':
         return mult * (a.card.cmc - b.card.cmc);
-      case "type":
+      case 'type':
         return (
           mult *
           (CATEGORY_ORDER.indexOf(a.category) -
             CATEGORY_ORDER.indexOf(b.category))
         );
-      case "color": {
-        const aFirst = COLOR_ORDER.indexOf(a.card.color_identity[0] ?? "");
-        const bFirst = COLOR_ORDER.indexOf(b.card.color_identity[0] ?? "");
+      case 'color': {
+        const aFirst = COLOR_ORDER.indexOf(a.card.color_identity[0] ?? '');
+        const bFirst = COLOR_ORDER.indexOf(b.card.color_identity[0] ?? '');
         return mult * (aFirst - bFirst);
       }
       default:
@@ -105,7 +106,7 @@ function applyFilters(
       const cardColors = entry.card.color_identity;
       const matches =
         cardColors.some((c) => filters.colors.includes(c)) ||
-        (cardColors.length === 0 && filters.colors.includes("C"));
+        (cardColors.length === 0 && filters.colors.includes('C'));
       if (!matches) return false;
     }
 
@@ -145,17 +146,17 @@ function toggle<T>(arr: T[], val: T): T[] {
 }
 
 function FilterPopover({
+  colorIdentity,
   objectives,
   draft,
   onChange,
-  onApply,
   onClear,
   onClose,
 }: {
+  colorIdentity: string[];
   objectives: Objective[];
   draft: ActiveFilters;
   onChange: (f: ActiveFilters) => void;
-  onApply: () => void;
   onClear: () => void;
   onClose: () => void;
 }) {
@@ -165,23 +166,23 @@ function FilterPopover({
       <div className="absolute top-full left-0 mt-2 z-30 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-5 w-80 flex flex-col gap-5">
         {/* Color */}
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-slate-400 uppercase tracking-widest">
+          <p className="text-sm text-slate-400 uppercase tracking-widest">
             Color Identity
           </p>
           <div className="flex gap-2 flex-wrap">
-            {ALL_COLORS.map((c) => (
+            {colorIdentity.map((c) => (
               <button
                 key={c}
                 onClick={() =>
                   onChange({ ...draft, colors: toggle(draft.colors, c) })
                 }
-                className="w-8 h-8 rounded-full text-xs font-bold border-2 transition-all"
+                className="w-8 h-8 rounded-full text-sm font-bold border-2 transition-all"
                 style={{
-                  borderColor: draft.colors.includes(c) ? "#1971c2" : "#334155",
+                  borderColor: draft.colors.includes(c) ? '#1971c2' : '#334155',
                   backgroundColor: draft.colors.includes(c)
-                    ? "#1971c222"
-                    : "transparent",
-                  color: "#f1f5f9",
+                    ? '#1971c222'
+                    : 'transparent',
+                  color: '#f1f5f9',
                 }}
               >
                 {c}
@@ -192,7 +193,7 @@ function FilterPopover({
 
         {/* Type */}
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-slate-400 uppercase tracking-widest">
+          <p className="text-sm text-slate-400 uppercase tracking-widest">
             Card Type
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -202,15 +203,15 @@ function FilterPopover({
                 onClick={() =>
                   onChange({ ...draft, types: toggle(draft.types, cat) })
                 }
-                className="text-xs px-2.5 py-1 rounded-full border transition-all"
+                className="text-sm px-2.5 py-1 rounded-full border transition-all"
                 style={{
                   borderColor: draft.types.includes(cat)
-                    ? "#1971c2"
-                    : "#334155",
+                    ? '#1971c2'
+                    : '#334155',
                   backgroundColor: draft.types.includes(cat)
-                    ? "#1971c222"
-                    : "transparent",
-                  color: draft.types.includes(cat) ? "#1971c2" : "#94a3b8",
+                    ? '#1971c222'
+                    : 'transparent',
+                  color: draft.types.includes(cat) ? '#1971c2' : '#94a3b8',
                 }}
               >
                 {cat}
@@ -221,7 +222,7 @@ function FilterPopover({
 
         {/* CMC range */}
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-slate-400 uppercase tracking-widest">
+          <p className="text-sm text-slate-400 uppercase tracking-widest">
             Mana Value (CMC)
           </p>
           <div className="flex items-center gap-2">
@@ -229,13 +230,13 @@ function FilterPopover({
               type="number"
               min={0}
               placeholder="Min"
-              value={draft.cmc.min ?? ""}
+              value={draft.cmc.min ?? ''}
               onChange={(e) =>
                 onChange({
                   ...draft,
                   cmc: {
                     ...draft.cmc,
-                    min: e.target.value === "" ? null : Number(e.target.value),
+                    min: e.target.value === '' ? null : Number(e.target.value),
                   },
                 })
               }
@@ -246,13 +247,13 @@ function FilterPopover({
               type="number"
               min={0}
               placeholder="Max"
-              value={draft.cmc.max ?? ""}
+              value={draft.cmc.max ?? ''}
               onChange={(e) =>
                 onChange({
                   ...draft,
                   cmc: {
                     ...draft.cmc,
-                    max: e.target.value === "" ? null : Number(e.target.value),
+                    max: e.target.value === '' ? null : Number(e.target.value),
                   },
                 })
               }
@@ -264,7 +265,7 @@ function FilterPopover({
         {/* Objectives checklist */}
         {objectives.length > 0 && (
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-slate-400 uppercase tracking-widest">
+            <p className="text-sm text-slate-400 uppercase tracking-widest">
               Objectives
             </p>
             <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
@@ -284,8 +285,8 @@ function FilterPopover({
                     <div
                       className="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all"
                       style={{
-                        borderColor: checked ? o.color : "#475569",
-                        backgroundColor: checked ? o.color : "transparent",
+                        borderColor: checked ? o.color : '#475569',
+                        backgroundColor: checked ? o.color : 'transparent',
                       }}
                     >
                       {checked && (
@@ -302,19 +303,13 @@ function FilterPopover({
           </div>
         )}
 
-        {/* Actions */}
+        {/* Actions — clear only */}
         <div className="flex gap-2 pt-1 border-t border-slate-800">
           <button
-            onClick={onApply}
-            className="flex-1 bg-[#1971c2] hover:bg-blue-500 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
-          >
-            Apply
-          </button>
-          <button
             onClick={onClear}
-            className="text-sm text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors"
+            className="w-full text-sm text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors"
           >
-            Clear
+            Clear all
           </button>
         </div>
       </div>
@@ -324,6 +319,7 @@ function FilterPopover({
 
 export default function CardGallery({
   deckId,
+  colorIdentity,
   entries,
   objectives,
   pendingSwaps,
@@ -333,16 +329,13 @@ export default function CardGallery({
   onSaveAsVersion,
   onUndoSwaps,
 }: CardGalleryProps) {
-  const [sort, setSort] = useState<SortKey>("type");
-  const [sortDir, setSortDir] = useState<SortDirection>("asc");
+  const [sort, setSort] = useState<SortKey>('type');
+  const [sortDir, setSortDir] = useState<SortDirection>('asc');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [popover, setPopover] = useState<string | null>(null);
   const [swapping, setSwapping] = useState<ScryfallCard | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [draftFilters, setDraftFilters] =
-    useState<ActiveFilters>(EMPTY_FILTERS);
-  const [activeFilters, setActiveFilters] =
-    useState<ActiveFilters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
 
   const BLACK_LIST = BASIC_LANDS.map(({ type_line }) => type_line);
   const filteredEntries = (entries ?? []).filter((entry) => {
@@ -352,31 +345,20 @@ export default function CardGallery({
 
   const safeObjectives = objectives ?? [];
   const swappedOutIds = new Set(pendingSwaps.map((s) => s.removeCardId));
-  const filterCount = activeFilterCount(activeFilters);
-
-  const handleApplyFilters = () => {
-    setActiveFilters({ ...draftFilters });
-    setShowFilters(false);
-  };
+  const filterCount = activeFilterCount(filters);
 
   const handleClearFilters = () => {
-    setDraftFilters(EMPTY_FILTERS);
-    setActiveFilters(EMPTY_FILTERS);
+    setFilters(EMPTY_FILTERS);
     setShowFilters(false);
-  };
-
-  const handleOpenFilters = () => {
-    setDraftFilters({ ...activeFilters });
-    setShowFilters(true);
   };
 
   const handleConfirmSwap = (replacement: ScryfallCard) => {
     if (!swapping) return;
-    onAddSwap(swapping.id, replacement);
+    onAddSwap(swapping.name, swapping.id, replacement);
     setSwapping(null);
   };
 
-  const filtered = applyFilters(filteredEntries, activeFilters);
+  const filtered = applyFilters(filteredEntries, filters);
   const sorted = sortEntries(filtered, sort, sortDir);
 
   return (
@@ -390,7 +372,7 @@ export default function CardGallery({
 
       {/* Controls row */}
       <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-xs text-slate-500 uppercase tracking-widest">
+        <span className="text-sm text-slate-500 uppercase tracking-widest">
           Sort by
         </span>
 
@@ -400,10 +382,10 @@ export default function CardGallery({
             <button
               key={opt.key}
               onClick={() => setSort(opt.key)}
-              className="px-3 py-1.5 rounded-md text-xs font-semibold transition-colors hover:cursor-pointer"
+              className="px-3 py-1.5 rounded-md text-sm font-semibold transition-colors hover:cursor-pointer"
               style={{
-                backgroundColor: sort === opt.key ? "#1971c2" : "transparent",
-                color: sort === opt.key ? "#fff" : "#64748b",
+                backgroundColor: sort === opt.key ? '#1971c2' : 'transparent',
+                color: sort === opt.key ? '#fff' : '#64748b',
               }}
             >
               {opt.label}
@@ -413,28 +395,28 @@ export default function CardGallery({
 
         {/* Sort direction */}
         <button
-          onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
-          className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
+          onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+          className="flex items-center gap-1.5 text-sm font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
         >
-          {sortDir === "asc" ? "↑ Asc" : "↓ Desc"}
+          {sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}
         </button>
 
         {/* Filter button */}
         <div className="relative">
           <button
-            onClick={handleOpenFilters}
-            className="flex items-center gap-1.5 text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors"
+            onClick={() => setShowFilters((v) => !v)}
+            className="flex items-center gap-1.5 text-sm font-semibold border px-3 py-1.5 rounded-lg transition-colors"
             style={{
-              borderColor: filterCount > 0 ? "#1971c2" : "#334155",
-              color: filterCount > 0 ? "#1971c2" : "#94a3b8",
-              backgroundColor: filterCount > 0 ? "#1971c211" : "transparent",
+              borderColor: filterCount > 0 ? '#1971c2' : '#334155',
+              color: filterCount > 0 ? '#1971c2' : '#94a3b8',
+              backgroundColor: filterCount > 0 ? '#1971c211' : 'transparent',
             }}
           >
             Filter
             {filterCount > 0 && (
               <span
                 className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: "#1971c2", color: "#fff" }}
+                style={{ backgroundColor: '#1971c2', color: '#fff' }}
               >
                 {filterCount}
               </span>
@@ -443,10 +425,10 @@ export default function CardGallery({
 
           {showFilters && (
             <FilterPopover
+              colorIdentity={colorIdentity}
               objectives={safeObjectives}
-              draft={draftFilters}
-              onChange={setDraftFilters}
-              onApply={handleApplyFilters}
+              draft={filters}
+              onChange={(f) => setFilters(f)}
               onClear={handleClearFilters}
               onClose={() => setShowFilters(false)}
             />
@@ -454,7 +436,7 @@ export default function CardGallery({
         </div>
 
         {/* Result count */}
-        <span className="text-xs text-slate-500 ml-auto">
+        <span className="text-sm text-slate-500 ml-auto">
           {sorted.length} of {filteredEntries.length} cards
         </span>
       </div>
@@ -465,7 +447,7 @@ export default function CardGallery({
           <p>No cards match the current filters.</p>
           <button
             onClick={handleClearFilters}
-            className="text-[#1971c2] hover:underline text-xs"
+            className="text-[#1971c2] hover:underline text-sm"
           >
             Clear filters
           </button>
@@ -473,7 +455,7 @@ export default function CardGallery({
       )}
 
       {/* Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-4 gap-6">
         {sorted.map((entry) => {
           const safeObjectiveIds = entry.objectiveIds ?? [];
           const cardObjectives = safeObjectives.filter((o) =>
@@ -485,7 +467,7 @@ export default function CardGallery({
           const isExpanded = expanded === entry.card.id;
           const showPopover = popover === entry.card.id;
           const isSwappedOut = swappedOutIds.has(entry.card.id);
-          const imageUrl = entry.card.image_uris?.normal;
+          const imageUrl = entry.card.image_uris?.large;
           const pendingReplacement = pendingSwaps.find(
             (s) => s.removeCardId === entry.card.id,
           )?.addCard;
@@ -493,7 +475,7 @@ export default function CardGallery({
           return (
             <div
               key={entry.card.id}
-              className="flex flex-col gap-2"
+              className="flex flex-col gap-3"
               style={{ opacity: isSwappedOut ? 0.5 : 1 }}
             >
               {/* Card image */}
@@ -510,28 +492,28 @@ export default function CardGallery({
                       !isSwappedOut &&
                       setExpanded(isExpanded ? null : entry.card.id)
                     }
-                    className="w-full rounded-xl cursor-pointer transition-transform duration-200 group-hover:scale-[1.02] shadow-lg border border-slate-700"
+                    className="md:w-full rounded-xl cursor-pointer transition-transform duration-200 group-hover:scale-[1.02] shadow-lg border border-slate-700"
                     style={{
-                      borderColor: isSwappedOut ? "#ef4444" : undefined,
+                      borderColor: isSwappedOut ? '#ef4444' : undefined,
                     }}
                   />
                 ) : (
-                  <div className="w-full aspect-[5/7] rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center">
-                    <span className="text-slate-500 text-xs text-center px-2">
+                  <div className="w-full aspect-5/7 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center">
+                    <span className="text-slate-500 text-sm text-center px-2">
                       {entry.card.name}
                     </span>
                   </div>
                 )}
 
                 {entry.quantity > 1 && (
-                  <span className="absolute top-2 right-2 bg-slate-900/90 text-white text-xs font-bold px-1.5 py-0.5 rounded-md border border-slate-700">
+                  <span className="absolute top-2 right-2 bg-slate-900/90 text-white text-sm font-bold px-2 py-1 rounded-md border border-slate-700">
                     ×{entry.quantity}
                   </span>
                 )}
 
                 {isSwappedOut && (
                   <div className="absolute inset-0 rounded-xl bg-red-950/60 flex items-center justify-center">
-                    <span className="text-red-300 text-xs font-semibold">
+                    <span className="text-red-300 text-sm font-semibold">
                       Swapped Out
                     </span>
                   </div>
@@ -545,13 +527,13 @@ export default function CardGallery({
 
               {/* Pending replacement */}
               {pendingReplacement && (
-                <p className="text-green-400 text-xs px-0.5 truncate">
+                <p className="text-green-400 text-sm px-0.5 truncate">
                   → {pendingReplacement.name}
                 </p>
               )}
 
               {/* Objective pills + action buttons */}
-              <div className="flex flex-wrap gap-1 px-0.5">
+              <div className="flex flex-wrap gap-1.5 px-0.5">
                 {cardObjectives.map((o) => (
                   <ObjectivePill
                     key={o.id}
@@ -568,12 +550,27 @@ export default function CardGallery({
                         onClick={() =>
                           setPopover(showPopover ? null : entry.card.id)
                         }
-                        className="text-[15px] text-slate-500 hover:text-slate-300 border border-slate-700 hover:border-slate-500 rounded-full px-2 py-0.5 transition-colors"
+                        className="text-sm text-slate-500 hover:text-slate-300 border border-slate-700 hover:border-slate-500 rounded-full px-2.5 py-1 transition-colors"
                       >
-                        + Label
+                        + Objective
                       </button>
                       {showPopover && (
-                        <div className="absolute bottom-full left-0 mb-1 z-20 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-2 flex flex-col gap-1 w-max">
+                        <div
+                          className="absolute bottom-full left-0 mb-2 z-20 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-2 flex flex-col gap-1 w-max"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-slate-400 uppercase tracking-widest">
+                              Add Objective
+                            </span>
+                            <button
+                              onClick={() => setPopover(null)}
+                              className="text-slate-400 hover:text-white text-sm px-1.5 py-0.5 rounded transition-colors"
+                            >
+                              ✕
+                            </button>
+                          </div>
+
                           {unassigned.map((o) => (
                             <button
                               key={o.id}
@@ -594,7 +591,7 @@ export default function CardGallery({
                 {!isSwappedOut && (
                   <button
                     onClick={() => setSwapping(entry.card)}
-                    className="text-[15px] text-slate-500 hover:text-amber-400 border border-slate-700 hover:border-amber-600 rounded-full px-2 py-0.5 transition-colors"
+                    className="text-sm text-slate-500 hover:text-amber-400 border border-slate-700 hover:border-amber-600 rounded-full px-2.5 py-1 transition-colors"
                   >
                     ⇄ Swap
                   </button>
@@ -603,7 +600,7 @@ export default function CardGallery({
                 {isSwappedOut && (
                   <button
                     onClick={() => onUndoSwaps()}
-                    className="text-[10px] text-red-400 hover:text-red-300 border border-red-800 rounded-full px-2 py-0.5 transition-colors"
+                    className="text-sm text-red-400 hover:text-red-300 border border-red-800 rounded-full px-2.5 py-1 transition-colors"
                   >
                     Undo
                   </button>
@@ -640,6 +637,7 @@ export default function CardGallery({
         <SwapSidebar
           cardToSwap={swapping}
           deckId={deckId}
+          colorIdentity={colorIdentity}
           onConfirm={handleConfirmSwap}
           onClose={() => setSwapping(null)}
         />

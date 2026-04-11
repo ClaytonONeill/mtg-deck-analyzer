@@ -1,8 +1,12 @@
 // Modules
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Store
 import { deckStore } from "@/store/deckStore";
+
+// Types
+import type { Deck } from "@/types";
 
 // Components
 import DeckCard from "@/features/deckList/components/DeckCard";
@@ -10,11 +14,31 @@ import EmptyState from "@/features/deckList/components/EmptyState";
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const decks = deckStore.getAll();
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    deckStore.getAll().then((data) => {
+      setDecks(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const handleDelete = (id: string) => {
+    setDecks((prevDecks) => prevDecks.filter((deck) => deck.id !== id));
+    deckStore.delete(id);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <p className="text-slate-400 text-sm">Loading decks...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Body */}
       <main className="max-w-5xl mx-auto px-6 py-10">
         {decks.length === 0 ? (
           <EmptyState onBuildDeck={() => navigate("/build")} />
@@ -30,10 +54,7 @@ export default function HomePage() {
                   deck={deck}
                   onOpen={() => navigate(`/deck/${deck.id}`)}
                   onEdit={() => navigate(`/build/${deck.id}`)}
-                  onDelete={() => {
-                    deckStore.delete(deck.id);
-                    window.location.reload();
-                  }}
+                  onDelete={() => handleDelete(deck.id)}
                 />
               ))}
             </div>

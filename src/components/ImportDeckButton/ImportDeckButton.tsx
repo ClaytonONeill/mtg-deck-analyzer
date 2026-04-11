@@ -1,13 +1,13 @@
 // Modules
-import { useRef, useState } from "react";
+import { useRef, useState } from 'react';
 
 // Store
-import { importDeckFromFile, deckStore } from "@/store/deckStore";
+import { importDeckFromFile, deckStore } from '@/store/deckStore';
 
 // Types
-import type { Deck } from "@/types";
+import type { Deck } from '@/types';
 
-type ConflictChoice = "keep" | "overwrite";
+type ConflictChoice = 'keep' | 'overwrite';
 
 interface ImportDeckButtonProps {
   onImported: (deck: Deck) => void;
@@ -16,57 +16,63 @@ interface ImportDeckButtonProps {
 export default function ImportDeckButton({
   onImported,
 }: ImportDeckButtonProps) {
-  // State
   const [error, setError] = useState<string | null>(null);
   const [conflictDeck, setConflictDeck] = useState<Deck | null>(null);
   const [incomingDeck, setIncomingDeck] = useState<Deck | null>(null);
+  const [importing, setImporting] = useState(false);
 
-  // Refs
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setError(null);
+    setImporting(true);
 
     try {
       const deck = await importDeckFromFile(file);
-      const exists = deckStore.getById(deck.id);
+      const exists = (await deckStore.getById(deck.id)) ?? null;
 
       if (exists) {
+        setImporting(false);
         setConflictDeck(exists);
         setIncomingDeck(deck);
       } else {
-        deckStore.save(deck);
+        await deckStore.save(deck);
         onImported(deck);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Import failed.");
+      setError(err instanceof Error ? err.message : 'Import failed.');
+      setImporting(false);
     } finally {
-      // reset input so same file can be re-imported
-      if (inputRef.current) inputRef.current.value = "";
+      if (inputRef.current) inputRef.current.value = '';
     }
   };
 
-  const resolveConflict = (choice: ConflictChoice) => {
+  const resolveConflict = async (choice: ConflictChoice) => {
     if (!incomingDeck) return;
+    setImporting(true);
 
-    if (choice === "overwrite") {
-      deckStore.save(incomingDeck);
-      onImported(incomingDeck);
-    } else {
-      // keep existing — assign a new ID to the incoming deck so both survive
-      const deck = {
-        ...incomingDeck,
-        id: crypto.randomUUID(),
-        name: `${incomingDeck.name} (imported)`,
-      };
-      deckStore.save(deck);
-      onImported(deck);
+    try {
+      if (choice === 'overwrite') {
+        await deckStore.save(incomingDeck);
+        onImported(incomingDeck);
+      } else {
+        const deck = {
+          ...incomingDeck,
+          id: crypto.randomUUID(),
+          name: `${incomingDeck.name} (imported)`,
+        };
+        await deckStore.save(deck);
+        onImported(deck);
+      }
+    } catch {
+      setError('Failed to save imported deck.');
+      setImporting(false);
+    } finally {
+      setConflictDeck(null);
+      setIncomingDeck(null);
     }
-
-    setConflictDeck(null);
-    setIncomingDeck(null);
   };
 
   return (
@@ -80,10 +86,18 @@ export default function ImportDeckButton({
       />
 
       <button
-        onClick={() => inputRef.current?.click()}
-        className="text-sm font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors"
+        onClick={() => !importing && inputRef.current?.click()}
+        disabled={importing}
+        className="text-sm font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
       >
-        Import Deck
+        {importing ? (
+          <>
+            <span className="w-3.5 h-3.5 border-2 border-slate-500 border-t-white rounded-full animate-spin shrink-0" />
+            Importing...
+          </>
+        ) : (
+          'Import Deck'
+        )}
       </button>
 
       {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
@@ -96,25 +110,34 @@ export default function ImportDeckButton({
               Deck Already Exists
             </h2>
             <p className="text-slate-400 text-sm mb-6">
-              A deck named{" "}
+              A deck named{' '}
               <span className="text-white font-semibold">
                 "{conflictDeck.name}"
-              </span>{" "}
+              </span>{' '}
               already exists in your library. What would you like to do?
             </p>
 
             <div className="flex flex-col gap-3">
               <button
-                onClick={() => resolveConflict("overwrite")}
-                className="w-full bg-[#1971c2] hover:bg-blue-500 text-white font-semibold py-3 rounded-lg transition-colors text-sm"
+                onClick={() => resolveConflict('overwrite')}
+                disabled={importing}
+                className="w-full bg-[#1971c2] hover:bg-blue-500 disabled:opacity-50 text-white font-semibold py-3 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
               >
-                Overwrite existing deck
+                {importing ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-blue-300 border-t-white rounded-full animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Overwrite existing deck'
+                )}
               </button>
               <button
-                onClick={() => resolveConflict("keep")}
-                className="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 rounded-lg transition-colors text-sm"
+                onClick={() => resolveConflict('keep')}
+                disabled={importing}
+                className="w-full bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white font-semibold py-3 rounded-lg transition-colors text-sm"
               >
-                Keep both{" "}
+                Keep both{' '}
                 <span className="text-slate-400 font-normal">
                   (imported copy renamed)
                 </span>
@@ -124,7 +147,8 @@ export default function ImportDeckButton({
                   setConflictDeck(null);
                   setIncomingDeck(null);
                 }}
-                className="w-full text-slate-500 hover:text-slate-300 text-sm py-2 transition-colors"
+                disabled={importing}
+                className="w-full text-slate-500 hover:text-slate-300 disabled:opacity-50 text-sm py-2 transition-colors"
               >
                 Cancel
               </button>

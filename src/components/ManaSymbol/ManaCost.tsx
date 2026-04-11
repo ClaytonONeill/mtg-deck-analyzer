@@ -1,4 +1,4 @@
-import ManaSymbol from './ManaSymbol';
+import ManaSymbol from "./ManaSymbol";
 
 interface ManaCostProps {
   cost: string; // e.g. '{2}{U}{B}' or '{G}{G}{W}'
@@ -9,7 +9,7 @@ interface ManaCostProps {
 export default function ManaCost({
   cost,
   size = 14,
-  className = '',
+  className = "",
 }: ManaCostProps) {
   if (!cost) return null;
 

@@ -1,5 +1,11 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 button:hover {
   cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font-size: 16px;
 }

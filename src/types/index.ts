@@ -65,6 +65,7 @@ export interface Objective {
   label: string;
   description: string;
   color: string;
+  createdAt: string;
 }
 
 export interface WishlistEntry {
@@ -73,4 +74,11 @@ export interface WishlistEntry {
   deckIds: string[];
   note: string;
   addedAt: string;
+  objectives: Objective[];
+}
+
+export interface PendingSwap {
+  removeCardName: string;
+  removeCardId: string;
+  addCard: ScryfallCard;
 }
