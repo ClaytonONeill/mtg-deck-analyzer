@@ -1,5 +1,5 @@
 // Modules
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Hooks
@@ -13,12 +13,12 @@ import { deckStore } from "@/store/deckStore";
 import { inferCategory } from "@/utils/utils";
 
 // Types
-import type { Deck, CardCategory, Objective, WishlistEntry } from "@/types";
+import type { Deck, CardCategory, WishlistEntry } from "@/types";
 
 // Components
 import WishlistAddPanel from "@/features/wishlist/components/WishlistAddPanel";
 import WishlistCard from "@/features/wishlist/components/WishlistCard";
-import ObjectivePill from "@/features/objectives/components/ObjectivePill";
+import FilterSection from "@/components/FilterSection/FilterSection";
 
 type SortKey = "name" | "cmc" | "color" | "type" | "date";
 type SortDirection = "asc" | "desc";
@@ -69,10 +69,6 @@ function activeFilterCount(filters: ActiveFilters): number {
     (filters.cmc.min !== null ? 1 : 0) +
     (filters.cmc.max !== null ? 1 : 0)
   );
-}
-
-function toggle<T>(arr: T[], val: T): T[] {
-  return arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
 }
 
 function sortEntries(
@@ -143,226 +139,12 @@ function applyFilters(
   });
 }
 
-function FilterPopover({
-  draft,
-  allDecks,
-  allObjectives,
-  onChange,
-  onClear,
-  onClose,
-  openUpward,
-}: {
-  draft: ActiveFilters;
-  allDecks: { id: string; name: string }[];
-  allObjectives: Objective[];
-  onChange: (f: ActiveFilters) => void;
-  onClear: () => void;
-  onClose: () => void;
-  openUpward: boolean;
-}) {
-  return (
-    <>
-      <div className="fixed inset-0 z-20" onClick={onClose} />
-      <div
-        className={`absolute left-0 z-30 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-5 w-80 flex flex-col gap-5 max-h-[70vh] overflow-y-auto ${
-          openUpward ? "bottom-full mb-2" : "top-full mt-2"
-        }`}
-      >
-        <div className="flex flex-col gap-2">
-          <p className="text-[13.8px] text-slate-400 uppercase tracking-widest">
-            Color Identity
-          </p>
-          <div className="flex gap-2 flex-wrap">
-            {COLOR_ORDER.map((c) => (
-              <button
-                key={c}
-                onClick={() =>
-                  onChange({ ...draft, colors: toggle(draft.colors, c) })
-                }
-                className="w-8 h-8 rounded-full text-[13.8px] font-bold border-2 transition-all"
-                style={{
-                  borderColor: draft.colors.includes(c) ? "#1971c2" : "#334155",
-                  backgroundColor: draft.colors.includes(c)
-                    ? "#1971c222"
-                    : "transparent",
-                  color: "#f1f5f9",
-                }}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <p className="text-[13.8px] text-slate-400 uppercase tracking-widest">
-            Card Type
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {CATEGORY_ORDER.map((cat) => (
-              <button
-                key={cat}
-                onClick={() =>
-                  onChange({ ...draft, types: toggle(draft.types, cat) })
-                }
-                className="text-[13.8px] px-2.5 py-1 rounded-full border transition-all"
-                style={{
-                  borderColor: draft.types.includes(cat)
-                    ? "#1971c2"
-                    : "#334155",
-                  backgroundColor: draft.types.includes(cat)
-                    ? "#1971c222"
-                    : "transparent",
-                  color: draft.types.includes(cat) ? "#1971c2" : "#94a3b8",
-                }}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <p className="text-[13.8px] text-slate-400 uppercase tracking-widest">
-            Mana Value (CMC)
-          </p>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min={0}
-              placeholder="Min"
-              value={draft.cmc.min ?? ""}
-              onChange={(e) =>
-                onChange({
-                  ...draft,
-                  cmc: {
-                    ...draft.cmc,
-                    min: e.target.value === "" ? null : Number(e.target.value),
-                  },
-                })
-              }
-              className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-[16.1px] text-white focus:outline-none focus:border-[#1971c2] transition-colors"
-            />
-            <span className="text-slate-500 text-[16.1px]">—</span>
-            <input
-              type="number"
-              min={0}
-              placeholder="Max"
-              value={draft.cmc.max ?? ""}
-              onChange={(e) =>
-                onChange({
-                  ...draft,
-                  cmc: {
-                    ...draft.cmc,
-                    max: e.target.value === "" ? null : Number(e.target.value),
-                  },
-                })
-              }
-              className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-[16.1px] text-white focus:outline-none focus:border-[#1971c2] transition-colors"
-            />
-          </div>
-        </div>
-
-        {allObjectives.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <p className="text-[13.8px] text-slate-400 uppercase tracking-widest">
-              Objectives
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {allObjectives.map((o) => (
-                <button
-                  key={o.id}
-                  onClick={() =>
-                    onChange({
-                      ...draft,
-                      objectives: toggle(draft.objectives, o.id),
-                    })
-                  }
-                  className="transition-all rounded-full"
-                  style={{
-                    outline: draft.objectives.includes(o.id)
-                      ? `2px solid ${o.color}`
-                      : "2px solid transparent",
-                    outlineOffset: "2px",
-                  }}
-                >
-                  <ObjectivePill objective={o} size="sm" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {allDecks.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <p className="text-[13.8px] text-slate-400 uppercase tracking-widest">
-              Decks
-            </p>
-            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
-              {allDecks.map((deck) => {
-                const checked = draft.decks.includes(deck.id);
-                return (
-                  <label
-                    key={deck.id}
-                    className="flex items-center gap-2 cursor-pointer"
-                    onClick={() =>
-                      onChange({
-                        ...draft,
-                        decks: toggle(draft.decks, deck.id),
-                      })
-                    }
-                  >
-                    <div
-                      className="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all"
-                      style={{
-                        borderColor: checked ? "#1971c2" : "#475569",
-                        backgroundColor: checked ? "#1971c2" : "transparent",
-                      }}
-                    >
-                      {checked && (
-                        <span className="text-white text-[10px] leading-none font-bold">
-                          ✓
-                        </span>
-                      )}
-                    </div>
-                    <span
-                      className="text-[13.8px] font-semibold px-2 py-0.5 rounded-full"
-                      style={{
-                        backgroundColor: "#1971c222",
-                        color: "#1971c2",
-                        border: "1px solid #1971c255",
-                      }}
-                    >
-                      {deck.name}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className="flex gap-2 pt-1 border-t border-slate-800">
-          <button
-            onClick={onClear}
-            className="w-full text-[13.8px] text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors"
-          >
-            Clear all
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
 export default function WishlistPage() {
   const [allDecks, setAllDecks] = useState<Deck[]>([]);
   const [sort, setSort] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDirection>("desc");
   const [filters, setFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
-  const [openUpward, setOpenUpward] = useState(false);
-  const filterRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
 
@@ -384,13 +166,6 @@ export default function WishlistPage() {
   useEffect(() => {
     deckStore.getAll().then(setAllDecks);
   }, []);
-
-  useEffect(() => {
-    if (!showFilters || !filterRef.current) return;
-    const rect = filterRef.current.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    setOpenUpward(spaceBelow < 400);
-  }, [showFilters]);
 
   const filtered = useMemo(
     () => applyFilters(entries, filters),
@@ -480,47 +255,25 @@ export default function WishlistPage() {
                 {sortDir === "asc" ? "↑ Asc" : "↓ Desc"}
               </button>
 
-              {/* Filter */}
-              <div className="relative w-full sm:w-auto" ref={filterRef}>
-                <button
-                  onClick={() => setShowFilters((v) => !v)}
-                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-[13px] sm:text-[13.8px] font-semibold border px-3 py-1.5 rounded-lg transition-colors"
-                  style={{
-                    borderColor: filterCount > 0 ? "#1971c2" : "#334155",
-                    color: filterCount > 0 ? "#1971c2" : "#94a3b8",
-                    backgroundColor:
-                      filterCount > 0 ? "#1971c211" : "transparent",
-                  }}
-                >
-                  Filter
-                  {filterCount > 0 && (
-                    <span
-                      className="text-[11.5px] font-bold px-1.5 py-0.5 rounded-full"
-                      style={{ backgroundColor: "#1971c2", color: "#fff" }}
-                    >
-                      {filterCount}
-                    </span>
-                  )}
-                </button>
-
-                {showFilters && (
-                  <FilterPopover
-                    draft={filters}
-                    allDecks={allDecks}
-                    allObjectives={allObjectives}
-                    onChange={(f) => setFilters(f)}
-                    onClear={handleClearFilters}
-                    onClose={() => setShowFilters(false)}
-                    openUpward={openUpward}
-                  />
-                )}
-              </div>
-
               {/* Count */}
               <span className="text-[13px] sm:text-[13.8px] text-slate-500 sm:ml-auto">
                 {sorted.length} of {entries.length} cards
               </span>
             </div>
+
+            {/* Filter Section */}
+            <FilterSection
+              isOpen={showFilters}
+              onToggle={setShowFilters}
+              colorIdentity={COLOR_ORDER}
+              cardCategories={CATEGORY_ORDER}
+              objectives={allObjectives}
+              decks={allDecks}
+              draft={filters}
+              onChange={(f) => setFilters(f)}
+              onClear={handleClearFilters}
+              filterCount={filterCount}
+            />
 
             {/* Cards */}
             <div className="flex flex-col gap-6 items-center w-full">
