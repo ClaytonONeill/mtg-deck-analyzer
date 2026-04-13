@@ -166,7 +166,7 @@ function FilterPopover({
   return (
     <>
       <div className="fixed inset-0 z-20" onClick={onClose} />
-      <div className="absolute top-full left-0 mt-2 z-30 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-5 w-80 flex flex-col gap-5">
+      <div className="absolute top-full left-[150%] sm:left-0 -translate-x-1/2 sm:translate-x-0 mt-2 z-30 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-5 w-80 max-w-[calc(100vw-2rem)] flex flex-col gap-5 max-h-[70vh] overflow-y-auto">
         {/* Color */}
         <div className="flex flex-col gap-2">
           <p className="text-sm text-slate-400 uppercase tracking-widest">
@@ -349,8 +349,6 @@ export default function CardGallery({
     return t_line ? !BLACK_LIST.includes(t_line) : false;
   });
 
-  console.log(swappedWishlistCards);
-
   const safeObjectives = objectives ?? [];
   const swappedOutIds = new Set(pendingSwaps.map((s) => s.removeCardId));
   const filterCount = activeFilterCount(filters);
@@ -400,8 +398,23 @@ export default function CardGallery({
           Sort by
         </span>
 
-        {/* Sort key */}
-        <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
+        {/* Mobile Dropdown */}
+        <div className="sm:hidden w-full">
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1971c2]"
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.key} value={opt.key}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Desktop Pills */}
+        <div className="hidden sm:flex gap-1 bg-slate-800 p-1 rounded-lg">
           {SORT_OPTIONS.map((opt) => (
             <button
               key={opt.key}
