@@ -78,6 +78,7 @@ export default function SwapSidebar({
   const [showFilters, setShowFilters] = useState(false);
   const [typeFilters, setTypeFilters] = useState<CardCategory[]>([]);
   const [objectiveFilters, setObjectiveFilters] = useState<string[]>([]);
+  const [hideSwapped, setHideSwapped] = useState(false);
 
   const { objectives } = useObjectives();
 
@@ -113,12 +114,23 @@ export default function SwapSidebar({
         if (!objectiveFilters.some((id) => entryObjectiveIds.includes(id)))
           return false;
       }
+      if (hideSwapped && swappedEntries.some((c) => c.id === entry.card.id)) {
+        return false;
+      }
       return true;
     });
-  }, [deckWishlist, typeFilters, objectiveFilters]);
+  }, [
+    deckWishlist,
+    typeFilters,
+    objectiveFilters,
+    hideSwapped,
+    swappedEntries,
+  ]);
 
-  const hasFilters = typeFilters.length > 0 || objectiveFilters.length > 0;
-  const filterCount = typeFilters.length + objectiveFilters.length;
+  const hasFilters =
+    typeFilters.length > 0 || objectiveFilters.length > 0 || hideSwapped;
+  const filterCount =
+    typeFilters.length + objectiveFilters.length + (hideSwapped ? 1 : 0);
 
   const handleSelect = (card: ScryfallCard) => {
     if (!isLegalForDeck(card, colorIdentity)) {
@@ -304,11 +316,33 @@ export default function SwapSidebar({
                         </div>
                       )}
 
+                      {/* Hide swapped toggle */}
+                      <div className="flex flex-col gap-2">
+                        <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
+                          <div
+                            onClick={() => setHideSwapped((v) => !v)}
+                            className="w-9 h-5 rounded-full transition-colors relative cursor-pointer"
+                            style={{
+                              backgroundColor: hideSwapped
+                                ? "#1971c2"
+                                : "#334155",
+                            }}
+                          >
+                            <span
+                              className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200"
+                              style={{ left: hideSwapped ? "18px" : "2px" }}
+                            />
+                          </div>
+                          Hide swapped cards
+                        </label>
+                      </div>
+
                       {hasFilters && (
                         <button
                           onClick={() => {
                             setTypeFilters([]);
                             setObjectiveFilters([]);
+                            setHideSwapped(false);
                             setShowFilters(false);
                           }}
                           className="text-sm text-slate-500 hover:text-white transition-colors self-start hover:cursor-pointer"
@@ -327,6 +361,16 @@ export default function SwapSidebar({
                 {filtered.length} of {deckWishlist.length} cards
               </p>
             )}
+          </div>
+        )}
+        {/* Search tab */}
+        {activeTab === "search" && (
+          <div className="m-4">
+            <CardSearchPanel
+              label="Search for replacement"
+              placeholder="Search cards..."
+              onSelectCard={handleSelect}
+            />
           </div>
         )}
 
@@ -379,17 +423,6 @@ export default function SwapSidebar({
                 ✕
               </button>
             </div>
-          )}
-
-          {/* Search tab */}
-          {activeTab === "search" && (
-            <>
-              <CardSearchPanel
-                label="Search for replacement"
-                placeholder="Search cards..."
-                onSelectCard={handleSelect}
-              />
-            </>
           )}
 
           {/* Wishlist tab */}
