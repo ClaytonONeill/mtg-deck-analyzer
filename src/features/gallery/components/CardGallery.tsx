@@ -1,19 +1,23 @@
 // Modules
-import { useState } from 'react';
+import { useState } from "react";
 
 // Types
-import type { CardCategory, DeckEntry, Objective, ScryfallCard } from '@/types';
+import type { CardCategory, DeckEntry, Objective, ScryfallCard } from "@/types";
+
+// Hooks
+import { useWishlist } from "@/hooks/useWishlist";
 
 // Utils
-import { BASIC_LANDS } from '@/features/deckBuilder/utils/basicLands';
+import { BASIC_LANDS } from "@/features/deckBuilder/utils/basicLands";
 
 // Components
-import ObjectivePill from '@/features/objectives/components/ObjectivePill';
-import SwapSidebar from '@/features/gallery/components/SwapSidebar';
-import SwapBanner from '@/features/gallery/components/SwapBanner';
+import ObjectivePill from "@/features/objectives/components/ObjectivePill";
+import SwapSidebar from "@/features/gallery/components/SwapSidebar";
+import SwapBanner from "@/features/gallery/components/SwapBanner";
+import FilterSection from "@/components/FilterSection/FilterSection";
 
 // Types
-import type { PendingSwap } from '@/types/index';
+import type { PendingSwap } from "@/types/index";
 
 interface CardGalleryProps {
   deckId: string;
@@ -29,29 +33,29 @@ interface CardGalleryProps {
     addCard: ScryfallCard,
   ) => void;
   onSaveAsVersion: () => void;
-  onUndoSwaps: () => void;
+  onUndoSwap: (removeCardId: string) => void;
 }
 
-type SortKey = 'type' | 'color' | 'cmc' | 'name';
-type SortDirection = 'asc' | 'desc';
+type SortKey = "type" | "color" | "cmc" | "name";
+type SortDirection = "asc" | "desc";
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'type', label: 'Type' },
-  { key: 'color', label: 'Color Identity' },
-  { key: 'cmc', label: 'Mana Value' },
-  { key: 'name', label: 'Name' },
+  { key: "type", label: "Type" },
+  { key: "color", label: "Color Identity" },
+  { key: "cmc", label: "Mana Value" },
+  { key: "name", label: "Name" },
 ];
 
-const COLOR_ORDER = ['W', 'U', 'B', 'R', 'G'];
+const COLOR_ORDER = ["W", "U", "B", "R", "G"];
 const CATEGORY_ORDER: CardCategory[] = [
-  'Creature',
-  'Instant',
-  'Sorcery',
-  'Enchantment',
-  'Artifact',
-  'Planeswalker',
-  'Land',
-  'Other',
+  "Creature",
+  "Instant",
+  "Sorcery",
+  "Enchantment",
+  "Artifact",
+  "Planeswalker",
+  "Land",
+  "Other",
 ];
 
 interface ActiveFilters {
@@ -73,22 +77,22 @@ function sortEntries(
   sort: SortKey,
   direction: SortDirection,
 ): DeckEntry[] {
-  const mult = direction === 'asc' ? 1 : -1;
+  const mult = direction === "asc" ? 1 : -1;
   return [...entries].sort((a, b) => {
     switch (sort) {
-      case 'name':
+      case "name":
         return mult * a.card.name.localeCompare(b.card.name);
-      case 'cmc':
+      case "cmc":
         return mult * (a.card.cmc - b.card.cmc);
-      case 'type':
+      case "type":
         return (
           mult *
           (CATEGORY_ORDER.indexOf(a.category) -
             CATEGORY_ORDER.indexOf(b.category))
         );
-      case 'color': {
-        const aFirst = COLOR_ORDER.indexOf(a.card.color_identity[0] ?? '');
-        const bFirst = COLOR_ORDER.indexOf(b.card.color_identity[0] ?? '');
+      case "color": {
+        const aFirst = COLOR_ORDER.indexOf(a.card.color_identity[0] ?? "");
+        const bFirst = COLOR_ORDER.indexOf(b.card.color_identity[0] ?? "");
         return mult * (aFirst - bFirst);
       }
       default:
@@ -106,7 +110,7 @@ function applyFilters(
       const cardColors = entry.card.color_identity;
       const matches =
         cardColors.some((c) => filters.colors.includes(c)) ||
-        (cardColors.length === 0 && filters.colors.includes('C'));
+        (cardColors.length === 0 && filters.colors.includes("C"));
       if (!matches) return false;
     }
 
@@ -141,182 +145,6 @@ function activeFilterCount(filters: ActiveFilters): number {
   );
 }
 
-function toggle<T>(arr: T[], val: T): T[] {
-  return arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
-}
-
-function FilterPopover({
-  colorIdentity,
-  objectives,
-  draft,
-  onChange,
-  onClear,
-  onClose,
-}: {
-  colorIdentity: string[];
-  objectives: Objective[];
-  draft: ActiveFilters;
-  onChange: (f: ActiveFilters) => void;
-  onClear: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <>
-      <div className="fixed inset-0 z-20" onClick={onClose} />
-      <div className="absolute top-full left-0 mt-2 z-30 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-5 w-80 flex flex-col gap-5">
-        {/* Color */}
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-slate-400 uppercase tracking-widest">
-            Color Identity
-          </p>
-          <div className="flex gap-2 flex-wrap">
-            {colorIdentity.map((c) => (
-              <button
-                key={c}
-                onClick={() =>
-                  onChange({ ...draft, colors: toggle(draft.colors, c) })
-                }
-                className="w-8 h-8 rounded-full text-sm font-bold border-2 transition-all"
-                style={{
-                  borderColor: draft.colors.includes(c) ? '#1971c2' : '#334155',
-                  backgroundColor: draft.colors.includes(c)
-                    ? '#1971c222'
-                    : 'transparent',
-                  color: '#f1f5f9',
-                }}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Type */}
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-slate-400 uppercase tracking-widest">
-            Card Type
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {CATEGORY_ORDER.map((cat) => (
-              <button
-                key={cat}
-                onClick={() =>
-                  onChange({ ...draft, types: toggle(draft.types, cat) })
-                }
-                className="text-sm px-2.5 py-1 rounded-full border transition-all"
-                style={{
-                  borderColor: draft.types.includes(cat)
-                    ? '#1971c2'
-                    : '#334155',
-                  backgroundColor: draft.types.includes(cat)
-                    ? '#1971c222'
-                    : 'transparent',
-                  color: draft.types.includes(cat) ? '#1971c2' : '#94a3b8',
-                }}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* CMC range */}
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-slate-400 uppercase tracking-widest">
-            Mana Value (CMC)
-          </p>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min={0}
-              placeholder="Min"
-              value={draft.cmc.min ?? ''}
-              onChange={(e) =>
-                onChange({
-                  ...draft,
-                  cmc: {
-                    ...draft.cmc,
-                    min: e.target.value === '' ? null : Number(e.target.value),
-                  },
-                })
-              }
-              className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#1971c2] transition-colors"
-            />
-            <span className="text-slate-500 text-sm">—</span>
-            <input
-              type="number"
-              min={0}
-              placeholder="Max"
-              value={draft.cmc.max ?? ''}
-              onChange={(e) =>
-                onChange({
-                  ...draft,
-                  cmc: {
-                    ...draft.cmc,
-                    max: e.target.value === '' ? null : Number(e.target.value),
-                  },
-                })
-              }
-              className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#1971c2] transition-colors"
-            />
-          </div>
-        </div>
-
-        {/* Objectives checklist */}
-        {objectives.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <p className="text-sm text-slate-400 uppercase tracking-widest">
-              Objectives
-            </p>
-            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
-              {objectives.map((o) => {
-                const checked = draft.objectives.includes(o.id);
-                return (
-                  <label
-                    key={o.id}
-                    className="flex items-center gap-2 cursor-pointer"
-                    onClick={() =>
-                      onChange({
-                        ...draft,
-                        objectives: toggle(draft.objectives, o.id),
-                      })
-                    }
-                  >
-                    <div
-                      className="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all"
-                      style={{
-                        borderColor: checked ? o.color : '#475569',
-                        backgroundColor: checked ? o.color : 'transparent',
-                      }}
-                    >
-                      {checked && (
-                        <span className="text-white text-[10px] leading-none font-bold">
-                          ✓
-                        </span>
-                      )}
-                    </div>
-                    <ObjectivePill objective={o} size="sm" />
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Actions — clear only */}
-        <div className="flex gap-2 pt-1 border-t border-slate-800">
-          <button
-            onClick={onClear}
-            className="w-full text-sm text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors"
-          >
-            Clear all
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
 export default function CardGallery({
   deckId,
   colorIdentity,
@@ -327,13 +155,16 @@ export default function CardGallery({
   onUnassign,
   onAddSwap,
   onSaveAsVersion,
-  onUndoSwaps,
+  onUndoSwap,
 }: CardGalleryProps) {
-  const [sort, setSort] = useState<SortKey>('type');
-  const [sortDir, setSortDir] = useState<SortDirection>('asc');
+  const [sort, setSort] = useState<SortKey>("type");
+  const [sortDir, setSortDir] = useState<SortDirection>("asc");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [popover, setPopover] = useState<string | null>(null);
   const [swapping, setSwapping] = useState<ScryfallCard | null>(null);
+  const [swappedWishlistCards, setSwappedWishlistCards] = useState<
+    ScryfallCard[]
+  >([]);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
 
@@ -347,6 +178,9 @@ export default function CardGallery({
   const swappedOutIds = new Set(pendingSwaps.map((s) => s.removeCardId));
   const filterCount = activeFilterCount(filters);
 
+  const { getForDeck } = useWishlist();
+  const deckWishlist = getForDeck(deckId);
+
   const handleClearFilters = () => {
     setFilters(EMPTY_FILTERS);
     setShowFilters(false);
@@ -358,6 +192,19 @@ export default function CardGallery({
     setSwapping(null);
   };
 
+  const handleUndoSwap = (removeCardId: string) => {
+    const swapToRemove = pendingSwaps.find(
+      (s) => s.removeCardId === removeCardId,
+    );
+    if (swapToRemove) {
+      onUndoSwap(removeCardId);
+      // Remove from swappedWishlistCards if present
+      setSwappedWishlistCards((prev) =>
+        prev.filter((c) => c.id !== swapToRemove.addCard.id),
+      );
+    }
+  };
+
   const filtered = applyFilters(filteredEntries, filters);
   const sorted = sortEntries(filtered, sort, sortDir);
 
@@ -367,7 +214,7 @@ export default function CardGallery({
       <SwapBanner
         swaps={pendingSwaps}
         onSaveAsVersion={onSaveAsVersion}
-        onUndo={onUndoSwaps}
+        onUndo={handleUndoSwap}
       />
 
       {/* Controls row */}
@@ -376,16 +223,31 @@ export default function CardGallery({
           Sort by
         </span>
 
-        {/* Sort key */}
-        <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
+        {/* Mobile Dropdown */}
+        <div className="sm:hidden w-full">
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1971c2]"
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.key} value={opt.key}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Desktop Pills */}
+        <div className="hidden sm:flex gap-1 bg-slate-800 p-1 rounded-lg">
           {SORT_OPTIONS.map((opt) => (
             <button
               key={opt.key}
               onClick={() => setSort(opt.key)}
               className="px-3 py-1.5 rounded-md text-sm font-semibold transition-colors hover:cursor-pointer"
               style={{
-                backgroundColor: sort === opt.key ? '#1971c2' : 'transparent',
-                color: sort === opt.key ? '#fff' : '#64748b',
+                backgroundColor: sort === opt.key ? "#1971c2" : "transparent",
+                color: sort === opt.key ? "#fff" : "#64748b",
               }}
             >
               {opt.label}
@@ -395,51 +257,37 @@ export default function CardGallery({
 
         {/* Sort direction */}
         <button
-          onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+          onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
           className="flex items-center gap-1.5 text-sm font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
         >
-          {sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}
+          {sortDir === "asc" ? "↑ Asc" : "↓ Desc"}
         </button>
 
-        {/* Filter button */}
-        <div className="relative">
-          <button
-            onClick={() => setShowFilters((v) => !v)}
-            className="flex items-center gap-1.5 text-sm font-semibold border px-3 py-1.5 rounded-lg transition-colors"
-            style={{
-              borderColor: filterCount > 0 ? '#1971c2' : '#334155',
-              color: filterCount > 0 ? '#1971c2' : '#94a3b8',
-              backgroundColor: filterCount > 0 ? '#1971c211' : 'transparent',
-            }}
-          >
-            Filter
-            {filterCount > 0 && (
-              <span
-                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: '#1971c2', color: '#fff' }}
-              >
-                {filterCount}
-              </span>
-            )}
-          </button>
-
-          {showFilters && (
-            <FilterPopover
-              colorIdentity={colorIdentity}
-              objectives={safeObjectives}
-              draft={filters}
-              onChange={(f) => setFilters(f)}
-              onClear={handleClearFilters}
-              onClose={() => setShowFilters(false)}
-            />
-          )}
-        </div>
-
         {/* Result count */}
-        <span className="text-sm text-slate-500 ml-auto">
+        <span className="text-sm text-slate-500">
           {sorted.length} of {filteredEntries.length} cards
         </span>
       </div>
+
+      {/* Filter Section */}
+      <FilterSection
+        isOpen={showFilters}
+        onToggle={setShowFilters}
+        colorIdentity={colorIdentity}
+        cardCategories={CATEGORY_ORDER}
+        objectives={safeObjectives}
+        draft={{ ...filters, decks: [] }}
+        onChange={(f) =>
+          setFilters({
+            colors: f.colors,
+            types: f.types,
+            objectives: f.objectives,
+            cmc: f.cmc,
+          })
+        }
+        onClear={handleClearFilters}
+        filterCount={filterCount}
+      />
 
       {/* Empty state */}
       {sorted.length === 0 && (
@@ -494,7 +342,7 @@ export default function CardGallery({
                     }
                     className="md:w-full rounded-xl cursor-pointer transition-transform duration-200 group-hover:scale-[1.02] shadow-lg border border-slate-700"
                     style={{
-                      borderColor: isSwappedOut ? '#ef4444' : undefined,
+                      borderColor: isSwappedOut ? "#ef4444" : undefined,
                     }}
                   />
                 ) : (
@@ -599,7 +447,7 @@ export default function CardGallery({
 
                 {isSwappedOut && (
                   <button
-                    onClick={() => onUndoSwaps()}
+                    onClick={() => handleUndoSwap(entry.card.id)}
                     className="text-sm text-red-400 hover:text-red-300 border border-red-800 rounded-full px-2.5 py-1 transition-colors"
                   >
                     Undo
@@ -636,10 +484,12 @@ export default function CardGallery({
       {swapping && (
         <SwapSidebar
           cardToSwap={swapping}
-          deckId={deckId}
+          deckWishlist={deckWishlist}
           colorIdentity={colorIdentity}
           onConfirm={handleConfirmSwap}
           onClose={() => setSwapping(null)}
+          swappedEntries={swappedWishlistCards}
+          onSwapEntry={setSwappedWishlistCards}
         />
       )}
     </div>
