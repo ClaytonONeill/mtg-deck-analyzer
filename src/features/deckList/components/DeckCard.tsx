@@ -21,7 +21,6 @@ export default function DeckCard({
   onDelete,
 }: DeckCardProps) {
   const cardCount = getDeckCardCount(deck);
-  console.log(deck);
 
   const commanderImage = deck.commander?.image_uris?.normal;
   const partnerImage = deck.partner?.image_uris?.normal;
