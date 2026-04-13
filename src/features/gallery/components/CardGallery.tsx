@@ -165,8 +165,9 @@ function FilterPopover({
 }) {
   return (
     <>
+      {/* Backdrop */}
       <div className="fixed inset-0 z-20" onClick={onClose} />
-      <div className="absolute top-full left-[150%] sm:left-0 -translate-x-1/2 sm:translate-x-0 mt-2 z-30 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-5 w-80 max-w-[calc(100vw-2rem)] flex flex-col gap-5 max-h-[70vh] overflow-y-auto">
+      <div className="absolute top-full mt-2 right-0 -translate-x-[calc(0%-11rem)] sm:translate-x-0 z-30 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-5 w-80 max-w-[calc(100vw-2rem)] flex flex-col gap-5 max-h-[70vh] overflow-y-auto">
         {/* Color */}
         <div className="flex flex-col gap-2">
           <p className="text-sm text-slate-400 uppercase tracking-widest">
@@ -271,7 +272,8 @@ function FilterPopover({
             <p className="text-sm text-slate-400 uppercase tracking-widest">
               Objectives
             </p>
-            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
+            {/* Border + rounded container makes the scroll area visually distinct */}
+            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto border border-slate-700 rounded-lg px-2.5 py-2">
               {objectives.map((o) => {
                 const checked = draft.objectives.includes(o.id);
                 return (
