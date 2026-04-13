@@ -4,7 +4,7 @@ import type { PendingSwap } from "@/types/index";
 interface SwapBannerProps {
   swaps: PendingSwap[];
   onSaveAsVersion: () => void;
-  onUndo: () => void;
+  onUndo: (removeCardId: string) => void;
 }
 
 export default function SwapBanner({
@@ -22,11 +22,19 @@ export default function SwapBanner({
         </p>
         <div className="flex flex-col gap-1.5">
           {swaps.map((swap, i) => (
-            <p key={i} className="text-slate-400 text-xs leading-relaxed">
-              <span className="text-red-400">− {swap.removeCardName}</span>
-              <span className="text-slate-600 mx-1">→</span>
-              <span className="text-green-400">+ {swap.addCard.name}</span>
-            </p>
+            <div key={i} className="flex items-center justify-between">
+              <p className="text-slate-400 text-xs leading-relaxed flex-1">
+                <span className="text-red-400">− {swap.removeCardName}</span>
+                <span className="text-slate-600 mx-1">→</span>
+                <span className="text-green-400">+ {swap.addCard.name}</span>
+              </p>
+              <button
+                onClick={() => onUndo(swap.removeCardId)}
+                className="text-slate-500 hover:text-red-400 text-xs ml-2"
+              >
+                Undo
+              </button>
+            </div>
           ))}
         </div>
       </div>
@@ -36,12 +44,6 @@ export default function SwapBanner({
           className="flex-1 sm:flex-none bg-[#1971c2] hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
         >
           Save as Version
-        </button>
-        <button
-          onClick={onUndo}
-          className="flex-1 sm:flex-none text-sm text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors"
-        >
-          Undo Changes
         </button>
       </div>
     </div>
