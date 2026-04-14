@@ -54,6 +54,38 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
     ...versions.map((v) => ({ value: v.id, label: v.name })),
   ];
 
+  // Compute card diff between left and right
+  const getCardDiff = (fromId: CompareTarget, toId: CompareTarget) => {
+    if (fromId === toId) return null;
+
+    // Get the swaps that define the "to" version relative to main
+    const toVersion =
+      toId === 'main' ? null : versions.find((v) => v.id === toId);
+    const fromVersion =
+      fromId === 'main' ? null : versions.find((v) => v.id === fromId);
+
+    // Build card sets for each side
+    const fromEntryIds = new Set(
+      resolveDeck(fromId).entries.map((e) => e.card.id),
+    );
+    const toEntryIds = new Set(resolveDeck(toId).entries.map((e) => e.card.id));
+
+    const fromEntries = resolveDeck(fromId).entries;
+    const toEntries = resolveDeck(toId).entries;
+
+    const removed = fromEntries.filter((e) => !toEntryIds.has(e.card.id));
+    const added = toEntries.filter((e) => !fromEntryIds.has(e.card.id));
+
+    // Suppress unused variable warnings
+    void toVersion;
+    void fromVersion;
+
+    return { removed, added };
+  };
+
+  const diff = getCardDiff(leftId, rightId);
+  const hasDiff = diff && (diff.removed.length > 0 || diff.added.length > 0);
+
   return (
     <div className="flex flex-col gap-6">
       {/* Selectors */}
@@ -80,6 +112,77 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
           </div>
         ))}
       </div>
+
+      {/* Card diff */}
+      {hasDiff && (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
+          <p className="text-xs text-slate-400 uppercase tracking-widest">
+            Cards Changed — {getVersionLabel(deck, leftId)} →{' '}
+            {getVersionLabel(deck, rightId)}
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Removed from left */}
+            <div className="flex flex-col gap-1.5">
+              <p className="text-xs text-red-400 uppercase tracking-widest">
+                − Removed ({diff.removed.length})
+              </p>
+              {diff.removed.length === 0 ? (
+                <p className="text-slate-600 text-xs italic">
+                  No cards removed
+                </p>
+              ) : (
+                diff.removed.map((e) => (
+                  <div key={e.card.id} className="flex items-center gap-2">
+                    {e.card.image_uris?.small && (
+                      <img
+                        src={e.card.image_uris.small}
+                        alt={e.card.name}
+                        className="w-8 rounded shrink-0"
+                      />
+                    )}
+                    <span className="text-red-300 text-xs truncate">
+                      {e.card.name}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Added in right */}
+            <div className="flex flex-col gap-1.5">
+              <p className="text-xs text-green-400 uppercase tracking-widest">
+                + Added ({diff.added.length})
+              </p>
+              {diff.added.length === 0 ? (
+                <p className="text-slate-600 text-xs italic">No cards added</p>
+              ) : (
+                diff.added.map((e) => (
+                  <div key={e.card.id} className="flex items-center gap-2">
+                    {e.card.image_uris?.small && (
+                      <img
+                        src={e.card.image_uris.small}
+                        alt={e.card.name}
+                        className="w-8 rounded shrink-0"
+                      />
+                    )}
+                    <span className="text-green-300 text-xs truncate">
+                      {e.card.name}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!hasDiff && leftId !== rightId && (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3">
+          <p className="text-slate-500 text-xs text-center">
+            No card differences between these versions.
+          </p>
+        </div>
+      )}
 
       {/* Chart type + land toggle controls */}
       <div className="flex items-center justify-between">
@@ -119,13 +222,13 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
         {[
           {
             id: leftId,
-            side: 'left', // To avoid duplicate key when same deck versions are compared
+            side: 'left',
             typeData: leftTypeData,
             cmcData: leftCMCData,
           },
           {
             id: rightId,
-            side: 'right', // To avoid duplicate key when same deck versions are compared
+            side: 'right',
             typeData: rightTypeData,
             cmcData: rightCMCData,
           },
