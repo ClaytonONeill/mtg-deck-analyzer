@@ -21,6 +21,7 @@ import ObjectivePill from '@/features/objectives/components/ObjectivePill';
 interface SwapSidebarProps {
   cardToSwap: ScryfallCard;
   deckWishlist: WishlistEntry[];
+  deckEntryIds: Set<string>;
   colorIdentity: string[];
   onConfirm: (replacement: ScryfallCard) => void;
   onClose: () => void;
@@ -65,6 +66,7 @@ function toggle<T>(arr: T[], val: T): T[] {
 export default function SwapSidebar({
   cardToSwap,
   deckWishlist,
+  deckEntryIds,
   colorIdentity,
   onConfirm,
   onClose,
@@ -437,6 +439,7 @@ export default function SwapSidebar({
                   const isSwapped = swappedEntries.some(
                     (c) => c.id === entry.card.id,
                   );
+                  const isInDeck = deckEntryIds.has(entry.card.id);
 
                   return (
                     <div
@@ -447,8 +450,14 @@ export default function SwapSidebar({
                           ? '#1971c2'
                           : !legal
                             ? '#7f1d1d'
-                            : '#334155',
-                        backgroundColor: isSelected ? '#1971c211' : '#1e293b',
+                            : isInDeck
+                              ? '#854d0e' // amber tint for "already in deck"
+                              : '#334155',
+                        backgroundColor: isSelected
+                          ? '#1971c211'
+                          : isInDeck
+                            ? '#1c1008'
+                            : '#1e293b',
                         opacity: isSwapped ? 0.4 : legal ? 1 : 0.5,
                       }}
                     >
@@ -510,6 +519,10 @@ export default function SwapSidebar({
                         ) : isSwapped ? (
                           <p className="text-slate-400 text-xs text-center">
                             Card currently swapped
+                          </p>
+                        ) : isInDeck ? (
+                          <p className="text-amber-500 text-xs text-center">
+                            Already in this deck
                           </p>
                         ) : (
                           <button
