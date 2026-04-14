@@ -1,23 +1,23 @@
 // Modules
-import { useState } from "react";
+import { useState } from 'react';
 
 // Types
-import type { CardCategory, DeckEntry, Objective, ScryfallCard } from "@/types";
+import type { CardCategory, DeckEntry, Objective, ScryfallCard } from '@/types';
 
 // Hooks
-import { useWishlist } from "@/hooks/useWishlist";
+import { useWishlist } from '@/hooks/useWishlist';
 
 // Utils
-import { BASIC_LANDS } from "@/features/deckBuilder/utils/basicLands";
+import { BASIC_LANDS } from '@/features/deckBuilder/utils/basicLands';
 
 // Components
-import ObjectivePill from "@/features/objectives/components/ObjectivePill";
-import SwapSidebar from "@/features/gallery/components/SwapSidebar";
-import SwapBanner from "@/features/gallery/components/SwapBanner";
-import FilterSection from "@/components/FilterSection/FilterSection";
+import ObjectivePill from '@/features/objectives/components/ObjectivePill';
+import SwapSidebar from '@/features/gallery/components/SwapSidebar';
+import SwapBanner from '@/features/gallery/components/SwapBanner';
+import FilterSection from '@/components/FilterSection/FilterSection';
 
 // Types
-import type { PendingSwap } from "@/types/index";
+import type { PendingSwap } from '@/types/index';
 
 interface CardGalleryProps {
   deckId: string;
@@ -36,26 +36,26 @@ interface CardGalleryProps {
   onUndoSwap: (removeCardId: string) => void;
 }
 
-type SortKey = "type" | "color" | "cmc" | "name";
-type SortDirection = "asc" | "desc";
+type SortKey = 'type' | 'color' | 'cmc' | 'name';
+type SortDirection = 'asc' | 'desc';
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "type", label: "Type" },
-  { key: "color", label: "Color Identity" },
-  { key: "cmc", label: "Mana Value" },
-  { key: "name", label: "Name" },
+  { key: 'type', label: 'Type' },
+  { key: 'color', label: 'Color Identity' },
+  { key: 'cmc', label: 'Mana Value' },
+  { key: 'name', label: 'Name' },
 ];
 
-const COLOR_ORDER = ["W", "U", "B", "R", "G"];
+const COLOR_ORDER = ['W', 'U', 'B', 'R', 'G'];
 const CATEGORY_ORDER: CardCategory[] = [
-  "Creature",
-  "Instant",
-  "Sorcery",
-  "Enchantment",
-  "Artifact",
-  "Planeswalker",
-  "Land",
-  "Other",
+  'Creature',
+  'Instant',
+  'Sorcery',
+  'Enchantment',
+  'Artifact',
+  'Planeswalker',
+  'Land',
+  'Other',
 ];
 
 interface ActiveFilters {
@@ -77,22 +77,22 @@ function sortEntries(
   sort: SortKey,
   direction: SortDirection,
 ): DeckEntry[] {
-  const mult = direction === "asc" ? 1 : -1;
+  const mult = direction === 'asc' ? 1 : -1;
   return [...entries].sort((a, b) => {
     switch (sort) {
-      case "name":
+      case 'name':
         return mult * a.card.name.localeCompare(b.card.name);
-      case "cmc":
+      case 'cmc':
         return mult * (a.card.cmc - b.card.cmc);
-      case "type":
+      case 'type':
         return (
           mult *
           (CATEGORY_ORDER.indexOf(a.category) -
             CATEGORY_ORDER.indexOf(b.category))
         );
-      case "color": {
-        const aFirst = COLOR_ORDER.indexOf(a.card.color_identity[0] ?? "");
-        const bFirst = COLOR_ORDER.indexOf(b.card.color_identity[0] ?? "");
+      case 'color': {
+        const aFirst = COLOR_ORDER.indexOf(a.card.color_identity[0] ?? '');
+        const bFirst = COLOR_ORDER.indexOf(b.card.color_identity[0] ?? '');
         return mult * (aFirst - bFirst);
       }
       default:
@@ -110,7 +110,7 @@ function applyFilters(
       const cardColors = entry.card.color_identity;
       const matches =
         cardColors.some((c) => filters.colors.includes(c)) ||
-        (cardColors.length === 0 && filters.colors.includes("C"));
+        (cardColors.length === 0 && filters.colors.includes('C'));
       if (!matches) return false;
     }
 
@@ -157,8 +157,8 @@ export default function CardGallery({
   onSaveAsVersion,
   onUndoSwap,
 }: CardGalleryProps) {
-  const [sort, setSort] = useState<SortKey>("type");
-  const [sortDir, setSortDir] = useState<SortDirection>("asc");
+  const [sort, setSort] = useState<SortKey>('type');
+  const [sortDir, setSortDir] = useState<SortDirection>('asc');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [popover, setPopover] = useState<string | null>(null);
   const [swapping, setSwapping] = useState<ScryfallCard | null>(null);
@@ -246,8 +246,8 @@ export default function CardGallery({
               onClick={() => setSort(opt.key)}
               className="px-3 py-1.5 rounded-md text-sm font-semibold transition-colors hover:cursor-pointer"
               style={{
-                backgroundColor: sort === opt.key ? "#1971c2" : "transparent",
-                color: sort === opt.key ? "#fff" : "#64748b",
+                backgroundColor: sort === opt.key ? '#1971c2' : 'transparent',
+                color: sort === opt.key ? '#fff' : '#64748b',
               }}
             >
               {opt.label}
@@ -257,10 +257,10 @@ export default function CardGallery({
 
         {/* Sort direction */}
         <button
-          onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+          onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
           className="flex items-center gap-1.5 text-sm font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
         >
-          {sortDir === "asc" ? "↑ Asc" : "↓ Desc"}
+          {sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}
         </button>
 
         {/* Result count */}
@@ -342,7 +342,7 @@ export default function CardGallery({
                     }
                     className="md:w-full rounded-xl cursor-pointer transition-transform duration-200 group-hover:scale-[1.02] shadow-lg border border-slate-700"
                     style={{
-                      borderColor: isSwappedOut ? "#ef4444" : undefined,
+                      borderColor: isSwappedOut ? '#ef4444' : undefined,
                     }}
                   />
                 ) : (
@@ -485,6 +485,7 @@ export default function CardGallery({
         <SwapSidebar
           cardToSwap={swapping}
           deckWishlist={deckWishlist}
+          deckEntryIds={new Set(entries.map((e) => e.card.id))}
           colorIdentity={colorIdentity}
           onConfirm={handleConfirmSwap}
           onClose={() => setSwapping(null)}
