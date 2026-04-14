@@ -1,5 +1,5 @@
 // Types
-import type { PendingSwap } from "@/types/index";
+import type { PendingSwap } from '@/types/index';
 
 interface SwapBannerProps {
   swaps: PendingSwap[];
@@ -18,7 +18,7 @@ export default function SwapBanner({
     <div className="flex flex-col gap-3 bg-slate-800 border border-[#1971c2] rounded-xl px-4 py-3 mb-2">
       <div className="flex flex-col gap-1.5">
         <p className="text-white text-sm font-semibold">
-          {swaps.length} pending swap{swaps.length !== 1 ? "s" : ""}
+          {swaps.length} pending swap{swaps.length !== 1 ? 's' : ''}
         </p>
         <div className="flex flex-col gap-1.5">
           {swaps.map((swap, i) => (
@@ -43,7 +43,7 @@ export default function SwapBanner({
           onClick={onSaveAsVersion}
           className="flex-1 sm:flex-none bg-[#1971c2] hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
         >
-          Save as Version
+          Save Changes
         </button>
       </div>
     </div>

@@ -5,18 +5,18 @@ import {
   useEffect,
   type Dispatch,
   type SetStateAction,
-} from "react";
+} from 'react';
 
 // Types
-import type { ScryfallCard, CardCategory, WishlistEntry } from "@/types";
+import type { ScryfallCard, CardCategory, WishlistEntry } from '@/types';
 
 // Hooks
-import { useObjectives } from "@/hooks/useObjectives";
+import { useObjectives } from '@/hooks/useObjectives';
 
 // Components
-import CardSearchPanel from "@/features/deckBuilder/components/CardSearchPanel";
-import ManaCost from "@/components/ManaSymbol/ManaCost";
-import ObjectivePill from "@/features/objectives/components/ObjectivePill";
+import CardSearchPanel from '@/features/deckBuilder/components/CardSearchPanel';
+import ManaCost from '@/components/ManaSymbol/ManaCost';
+import ObjectivePill from '@/features/objectives/components/ObjectivePill';
 
 interface SwapSidebarProps {
   cardToSwap: ScryfallCard;
@@ -28,29 +28,29 @@ interface SwapSidebarProps {
   onSwapEntry: Dispatch<SetStateAction<ScryfallCard[]>>;
 }
 
-type SidebarTab = "search" | "wishlist";
+type SidebarTab = 'search' | 'wishlist';
 
 const CATEGORY_ORDER: CardCategory[] = [
-  "Creature",
-  "Instant",
-  "Sorcery",
-  "Enchantment",
-  "Artifact",
-  "Planeswalker",
-  "Land",
-  "Other",
+  'Creature',
+  'Instant',
+  'Sorcery',
+  'Enchantment',
+  'Artifact',
+  'Planeswalker',
+  'Land',
+  'Other',
 ];
 
 function inferCategory(typeLine: string): CardCategory {
   const t = typeLine.toLowerCase();
-  if (t.includes("creature")) return "Creature";
-  if (t.includes("land")) return "Land";
-  if (t.includes("instant")) return "Instant";
-  if (t.includes("sorcery")) return "Sorcery";
-  if (t.includes("enchantment")) return "Enchantment";
-  if (t.includes("artifact")) return "Artifact";
-  if (t.includes("planeswalker")) return "Planeswalker";
-  return "Other";
+  if (t.includes('creature')) return 'Creature';
+  if (t.includes('land')) return 'Land';
+  if (t.includes('instant')) return 'Instant';
+  if (t.includes('sorcery')) return 'Sorcery';
+  if (t.includes('enchantment')) return 'Enchantment';
+  if (t.includes('artifact')) return 'Artifact';
+  if (t.includes('planeswalker')) return 'Planeswalker';
+  return 'Other';
 }
 
 function isLegalForDeck(card: ScryfallCard, colorIdentity: string[]): boolean {
@@ -72,7 +72,7 @@ export default function SwapSidebar({
   onSwapEntry,
 }: SwapSidebarProps) {
   const [selected, setSelected] = useState<ScryfallCard | null>(null);
-  const [activeTab, setActiveTab] = useState<SidebarTab>("search");
+  const [activeTab, setActiveTab] = useState<SidebarTab>('search');
   const [colorError, setColorError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -84,9 +84,9 @@ export default function SwapSidebar({
 
   // Prevent page underneath scroll when sidebar is open
   useEffect(() => {
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     };
   }, []);
 
@@ -152,7 +152,7 @@ export default function SwapSidebar({
     setColorError(null);
   };
 
-  const isWishlist = activeTab === "wishlist";
+  const isWishlist = activeTab === 'wishlist';
 
   return (
     <>
@@ -165,7 +165,7 @@ export default function SwapSidebar({
           fixed top-0 right-0 h-full z-40 bg-slate-900 border-l border-slate-700
           flex flex-col shadow-2xl transition-[width] duration-300 ease-in-out
           w-[87.5vw]
-          ${isWishlist ? "md:w-[52rem]" : "md:w-100"}
+          ${isWishlist ? 'md:w-[52rem]' : 'md:w-100'}
         `}
       >
         {/* Header */}
@@ -188,7 +188,7 @@ export default function SwapSidebar({
 
         {/* Tab switcher */}
         <div className="flex gap-1 bg-slate-800 m-4 p-1 rounded-lg shrink-0">
-          {(["search", "wishlist"] as SidebarTab[]).map((tab) => (
+          {(['search', 'wishlist'] as SidebarTab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => {
@@ -198,32 +198,32 @@ export default function SwapSidebar({
               }}
               className="flex-1 py-1.5 rounded-md text-xs font-semibold transition-colors"
               style={{
-                backgroundColor: activeTab === tab ? "#1971c2" : "transparent",
-                color: activeTab === tab ? "#fff" : "#64748b",
+                backgroundColor: activeTab === tab ? '#1971c2' : 'transparent',
+                color: activeTab === tab ? '#fff' : '#64748b',
               }}
             >
-              {tab === "search"
-                ? "Search"
+              {tab === 'search'
+                ? 'Search'
                 : `Wishlist (${deckWishlist.length})`}
             </button>
           ))}
         </div>
 
         {/* Fixed top controls for wishlist */}
-        {activeTab === "wishlist" && (
+        {activeTab === 'wishlist' && (
           <div className="px-5 shrink-0">
             <button
               onClick={handleConfirm}
               disabled={!selected}
               className={`w-full font-semibold text-sm py-2.5 rounded-lg transition-colors mb-4 ${
                 selected
-                  ? "bg-[#1971c2] hover:bg-blue-500 text-white hover:cursor-pointer"
-                  : "bg-slate-800 text-slate-600 cursor-not-allowed"
+                  ? 'bg-[#1971c2] hover:bg-blue-500 text-white hover:cursor-pointer'
+                  : 'bg-slate-800 text-slate-600 cursor-not-allowed'
               }`}
             >
               {selected
                 ? `Confirm Swap — ${selected.name}`
-                : "Select a card to swap"}
+                : 'Select a card to swap'}
             </button>
 
             {/* Filter controls */}
@@ -233,17 +233,17 @@ export default function SwapSidebar({
                   onClick={() => setShowFilters((v) => !v)}
                   className="flex items-center gap-1.5 text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors"
                   style={{
-                    borderColor: filterCount > 0 ? "#1971c2" : "#334155",
-                    color: filterCount > 0 ? "#1971c2" : "#94a3b8",
+                    borderColor: filterCount > 0 ? '#1971c2' : '#334155',
+                    color: filterCount > 0 ? '#1971c2' : '#94a3b8',
                     backgroundColor:
-                      filterCount > 0 ? "#1971c211" : "transparent",
+                      filterCount > 0 ? '#1971c211' : 'transparent',
                   }}
                 >
                   Filter
                   {filterCount > 0 && (
                     <span
                       className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                      style={{ backgroundColor: "#1971c2", color: "#fff" }}
+                      style={{ backgroundColor: '#1971c2', color: '#fff' }}
                     >
                       {filterCount}
                     </span>
@@ -271,14 +271,14 @@ export default function SwapSidebar({
                               className="text-xs px-2.5 py-1 rounded-full border transition-all hover:cursor-pointer"
                               style={{
                                 borderColor: typeFilters.includes(cat)
-                                  ? "#1971c2"
-                                  : "#334155",
+                                  ? '#1971c2'
+                                  : '#334155',
                                 backgroundColor: typeFilters.includes(cat)
-                                  ? "#1971c222"
-                                  : "transparent",
+                                  ? '#1971c222'
+                                  : 'transparent',
                                 color: typeFilters.includes(cat)
-                                  ? "#1971c2"
-                                  : "#94a3b8",
+                                  ? '#1971c2'
+                                  : '#94a3b8',
                               }}
                             >
                               {cat}
@@ -305,8 +305,8 @@ export default function SwapSidebar({
                                 style={{
                                   outline: objectiveFilters.includes(o.id)
                                     ? `2px solid ${o.color}`
-                                    : "2px solid transparent",
-                                  outlineOffset: "2px",
+                                    : '2px solid transparent',
+                                  outlineOffset: '2px',
                                 }}
                               >
                                 <ObjectivePill objective={o} size="sm" />
@@ -324,13 +324,13 @@ export default function SwapSidebar({
                             className="w-9 h-5 rounded-full transition-colors relative cursor-pointer"
                             style={{
                               backgroundColor: hideSwapped
-                                ? "#1971c2"
-                                : "#334155",
+                                ? '#1971c2'
+                                : '#334155',
                             }}
                           >
                             <span
                               className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200"
-                              style={{ left: hideSwapped ? "18px" : "2px" }}
+                              style={{ left: hideSwapped ? '18px' : '2px' }}
                             />
                           </div>
                           Hide swapped cards
@@ -364,7 +364,7 @@ export default function SwapSidebar({
           </div>
         )}
         {/* Search tab */}
-        {activeTab === "search" && (
+        {activeTab === 'search' && (
           <div className="m-4">
             <CardSearchPanel
               label="Search for replacement"
@@ -375,7 +375,7 @@ export default function SwapSidebar({
         )}
 
         {/* Fixed top controls for search */}
-        {activeTab === "search" && selected && (
+        {activeTab === 'search' && selected && (
           <div className="px-5 shrink-0">
             <div className="flex flex-col gap-3 mb-4">
               <p className="text-xs text-slate-400 uppercase tracking-widest">
@@ -426,7 +426,7 @@ export default function SwapSidebar({
           )}
 
           {/* Wishlist tab */}
-          {activeTab === "wishlist" && (
+          {activeTab === 'wishlist' && (
             <>
               {/* Card grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pb-2">
@@ -444,11 +444,11 @@ export default function SwapSidebar({
                       className="flex flex-col items-center gap-2 rounded-xl border p-3 transition-all duration-150"
                       style={{
                         borderColor: isSelected
-                          ? "#1971c2"
+                          ? '#1971c2'
                           : !legal
-                            ? "#7f1d1d"
-                            : "#334155",
-                        backgroundColor: isSelected ? "#1971c211" : "#1e293b",
+                            ? '#7f1d1d'
+                            : '#334155',
+                        backgroundColor: isSelected ? '#1971c211' : '#1e293b',
                         opacity: isSwapped ? 0.4 : legal ? 1 : 0.5,
                       }}
                     >
@@ -517,14 +517,14 @@ export default function SwapSidebar({
                             disabled={!legal}
                             className="w-full text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors hover:cursor-pointer disabled:opacity-40"
                             style={{
-                              borderColor: isSelected ? "#1971c2" : "#334155",
-                              color: isSelected ? "#1971c2" : "#94a3b8",
+                              borderColor: isSelected ? '#1971c2' : '#334155',
+                              color: isSelected ? '#1971c2' : '#94a3b8',
                               backgroundColor: isSelected
-                                ? "#1971c222"
-                                : "transparent",
+                                ? '#1971c222'
+                                : 'transparent',
                             }}
                           >
-                            {isSelected ? "Selected ✓" : "Select"}
+                            {isSelected ? 'Selected ✓' : 'Select'}
                           </button>
                         )}
                       </div>

@@ -136,6 +136,28 @@ export function useDeckVersions(
     [safeDeck, onDeckChange],
   );
 
+  const appendToVersion = useCallback(
+    (versionId: string, newSwaps: PendingSwap[]) => {
+      const updated: Deck = {
+        ...safeDeck,
+        versions: safeDeck.versions.map((v) =>
+          v.id === versionId
+            ? {
+                ...v,
+                swaps: [...v.swaps, ...newSwaps],
+              }
+            : v,
+        ),
+        updatedAt: new Date().toISOString(),
+      };
+      onDeckChange(updated);
+      void deckStore.save(updated).catch(() => {
+        onDeckChange(safeDeck);
+      });
+    },
+    [safeDeck, onDeckChange],
+  );
+
   return {
     versions: safeDeck.versions,
     saveAsVersion,
@@ -143,5 +165,6 @@ export function useDeckVersions(
     updateVersion,
     assignObjectiveToVersion,
     unassignObjectiveFromVersion,
+    appendToVersion,
   };
 }
