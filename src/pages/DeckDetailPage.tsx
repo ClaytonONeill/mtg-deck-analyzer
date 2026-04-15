@@ -32,11 +32,12 @@ import VersionCompare from '@/features/deckVersions/components/VersionCompare';
 import SaveVersionModal from '@/features/deckVersions/components/SaveVersionModal';
 import WishlistDeckFilter from '@/features/wishlist/components/WishlistDeckFilter';
 import SelectedCategoryModal from '@/features/metrics/components/SelectedCategoryModal';
+import HandSimulator from '@/features/simulator/components/HandSimulator';
 
 // Types
 import type { Deck, PendingSwap } from '@/types';
 
-type Tab = 'metrics' | 'gallery' | 'wishlist';
+type Tab = 'metrics' | 'gallery' | 'wishlist' | 'simulator';
 type MetricView = 'types' | 'cmc' | 'compare';
 type VersionId = 'main' | string;
 
@@ -227,6 +228,7 @@ export default function DeckDetailPage() {
   const tabs: { key: Tab; label: string }[] = [
     { key: 'metrics', label: 'Metrics' },
     { key: 'gallery', label: 'Gallery' },
+    { key: 'simulator', label: 'Simulator' },
     { key: 'wishlist', label: `${activeDeck.name} Wishlist` },
   ];
 
@@ -305,7 +307,6 @@ export default function DeckDetailPage() {
             </div>
           </div>
         </div>
-
         {/* Version selector */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3">
           <span className="text-xs text-slate-500 uppercase tracking-widest shrink-0">
@@ -346,7 +347,6 @@ export default function DeckDetailPage() {
             </>
           )}
         </div>
-
         {/* Tabs */}
         <div className="flex gap-6 border-b border-slate-800 mb-8">
           {tabs.map((tab) => (
@@ -366,7 +366,6 @@ export default function DeckDetailPage() {
             </button>
           ))}
         </div>
-
         {/* Metrics tab */}
         {activeTab === 'metrics' && (
           <ChartSelectionProvider entries={displayDeck.entries}>
@@ -435,7 +434,6 @@ export default function DeckDetailPage() {
             <SelectedCategoryModal />
           </ChartSelectionProvider>
         )}
-
         {/* Gallery tab */}
         {activeTab === 'gallery' && (
           <CardGallery
@@ -464,6 +462,9 @@ export default function DeckDetailPage() {
           />
         )}
 
+        {activeTab === 'simulator' && (
+          <HandSimulator deck={displayDeck} objectives={objectives} />
+        )}
         {/* Wishlist tab */}
         {activeTab === 'wishlist' && (
           <WishlistDeckFilter
