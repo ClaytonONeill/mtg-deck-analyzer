@@ -1,14 +1,14 @@
 // Modules
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from "react";
 
 // Types
-import type { Deck, DeckEntry, Objective } from '@/types';
+import type { Deck, DeckEntry, Objective } from "@/types";
 
 // Components
-import ObjectivePill from '@/features/objectives/components/ObjectivePill';
+import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 // Utils
-import { BASIC_LAND_NAMES, configureBasicLandEndpoint } from '@/utils/utils';
+import { BASIC_LAND_NAMES, configureBasicLandEndpoint } from "@/utils/utils";
 
 interface HandSimulatorProps {
   deck: Deck;
@@ -93,6 +93,7 @@ export default function HandSimulator({
   objectives,
 }: HandSimulatorProps) {
   const [sim, setSim] = useState<SimState>(() => initState(deck.entries));
+  const [autoDiscard, setAutoDiscard] = useState(true);
 
   const [hiddenObjectives, setHiddenObjectives] = useState<Set<string>>(
     () => new Set(),
@@ -118,17 +119,38 @@ export default function HandSimulator({
   const drawCard = useCallback(() => {
     setSim((s) => {
       if (s.drawPile.length === 0 || s.awaitingDiscard) return s;
-      const [card, ...rest] = s.drawPile;
+
+      const [drawnCard, ...remainingDeck] = s.drawPile;
+
+      if (autoDiscard && s.hand.length >= 7) {
+        const lastCardInHand = s.hand[s.hand.length - 1];
+        const newHand = [...s.hand.slice(0, -1), drawnCard]; // Replace the last item
+
+        return {
+          ...s,
+          drawPile: remainingDeck,
+          hand: newHand,
+          discard: [...s.discard, lastCardInHand],
+          turn: s.turn + 1,
+          awaitingDiscard: false,
+          selectedCard:
+            s.selectedCard?.id === lastCardInHand.id ? null : s.selectedCard,
+          objCounts: countObjectives([drawnCard], s.objCounts),
+        };
+      }
+
+      // Standard Draw Logic
+      const newHand = [...s.hand, drawnCard];
       return {
         ...s,
-        drawPile: rest,
-        hand: [...s.hand, card],
+        drawPile: remainingDeck,
+        hand: newHand,
         turn: s.turn + 1,
-        awaitingDiscard: true,
-        objCounts: countObjectives([card], s.objCounts),
+        awaitingDiscard: newHand.length > 7,
+        objCounts: countObjectives([drawnCard], s.objCounts),
       };
     });
-  }, []);
+  }, [autoDiscard]);
 
   const discardHand = useCallback(() => {
     setSim((s) => {
@@ -214,6 +236,23 @@ export default function HandSimulator({
           </div>
 
           <div className="flex-1 flex flex-col sm:flex-row md:flex-col gap-3 md:gap-2 justify-center w-full">
+            {/* Auto Discard Toggle */}
+            <button
+              onClick={() => setAutoDiscard(!autoDiscard)}
+              className="flex items-center justify-between gap-2 px-2 py-1.5 bg-slate-900/50 rounded-lg border border-slate-800 hover:border-slate-700 transition-colors"
+            >
+              <span className="text-[9px] uppercase font-bold text-slate-500">
+                Auto Discard
+              </span>
+              <div
+                className={`w-6 h-3 rounded-full relative transition-colors ${autoDiscard ? "bg-blue-600" : "bg-slate-700"}`}
+              >
+                <div
+                  className={`absolute top-0.5 w-2 h-2 bg-white rounded-full transition-all ${autoDiscard ? "left-3.5" : "left-0.5"}`}
+                />
+              </div>
+            </button>
+
             <div className="flex-1 flex flex-col justify-center items-center md:items-stretch gap-2">
               <p className="text-[10px] sm:text-xs md:text-[10px] text-slate-500 text-center uppercase tracking-widest font-bold">
                 {sim.drawPile.length} Left
@@ -240,54 +279,56 @@ export default function HandSimulator({
 
         {/* Middle: selected (above) + hand (below) */}
         <div className="flex flex-col gap-6">
-          {/* Selected card detail */}
-          {sim.selectedCard && (
-            <div className="flex flex-row gap-3 sm:gap-4 bg-slate-900 border border-blue-900/50 rounded-xl p-3 sm:p-4 shadow-xl ring-1 ring-blue-500/20">
-              {sim.selectedCard.image_uris?.normal ? (
-                <img
-                  src={
-                    BASIC_LAND_NAMES.includes(
-                      sim.selectedCard.name.toLowerCase(),
-                    )
-                      ? configureBasicLandEndpoint(sim.selectedCard.name)
-                      : sim.selectedCard.image_uris.normal
-                  }
-                  alt={sim.selectedCard.name}
-                  className="w-20 sm:w-28 md:w-32 rounded-lg flex-shrink-0 shadow-lg"
-                />
-              ) : (
-                <div className="w-20 sm:w-28 md:w-32 aspect-[5/7] bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-slate-500 text-[10px] sm:text-xs text-center px-1">
-                    {sim.selectedCard.name}
-                  </span>
-                </div>
-              )}
-              <div className="flex flex-col gap-2 min-w-0 py-1 justify-center md:justify-start">
-                <div className="flex flex-col">
-                  <p className="text-white font-bold text-base sm:text-lg md:text-xl truncate">
-                    {sim.selectedCard.name}
-                  </p>
-                  <p className="text-slate-400 text-[10px] sm:text-xs">
-                    {sim.selectedCard.type_line}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-1 sm:gap-1.5 mt-1 sm:mt-2">
-                  {sim.selectedCard.objectiveIds.length === 0 ? (
-                    <span className="text-slate-600 text-[10px] sm:text-xs italic">
-                      No objectives
+          <div className="flex flex-row gap-3 sm:gap-4 bg-slate-900 border border-blue-900/50 rounded-xl p-3 sm:p-4 shadow-xl ring-1 ring-blue-500/20 min-h-[14rem]">
+            {/* Selected card detail */}
+            {sim.selectedCard && (
+              <>
+                {sim.selectedCard.image_uris?.normal ? (
+                  <img
+                    src={
+                      BASIC_LAND_NAMES.includes(
+                        sim.selectedCard.name.toLowerCase(),
+                      )
+                        ? configureBasicLandEndpoint(sim.selectedCard.name)
+                        : sim.selectedCard.image_uris.normal
+                    }
+                    alt={sim.selectedCard.name}
+                    className="w-20 sm:w-28 md:w-32 rounded-lg flex-shrink-0 shadow-lg"
+                  />
+                ) : (
+                  <div className="w-20 sm:w-28 md:w-32 aspect-[5/7] bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-slate-500 text-[10px] sm:text-xs text-center px-1">
+                      {sim.selectedCard.name}
                     </span>
-                  ) : (
-                    sim.selectedCard.objectiveIds
-                      .map((oid) => objectives.find((o) => o.id === oid))
-                      .filter((o): o is Objective => Boolean(o))
-                      .map((o) => (
-                        <ObjectivePill key={o.id} objective={o} size="sm" />
-                      ))
-                  )}
+                  </div>
+                )}
+                <div className="flex flex-col gap-2 min-w-0 py-1 justify-center md:justify-start">
+                  <div className="flex flex-col">
+                    <p className="text-white font-bold text-base sm:text-lg md:text-xl truncate">
+                      {sim.selectedCard.name}
+                    </p>
+                    <p className="text-slate-400 text-[10px] sm:text-xs">
+                      {sim.selectedCard.type_line}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1 sm:gap-1.5 mt-1 sm:mt-2">
+                    {sim.selectedCard.objectiveIds.length === 0 ? (
+                      <span className="text-slate-600 text-[10px] sm:text-xs italic">
+                        No objectives
+                      </span>
+                    ) : (
+                      sim.selectedCard.objectiveIds
+                        .map((oid) => objectives.find((o) => o.id === oid))
+                        .filter((o): o is Objective => Boolean(o))
+                        .map((o) => (
+                          <ObjectivePill key={o.id} objective={o} size="sm" />
+                        ))
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
+              </>
+            )}
+          </div>
 
           {sim.awaitingDiscard && (
             <div className="bg-amber-950/40 border border-amber-800/60 text-amber-300 text-[10px] sm:text-xs rounded-lg px-3 py-2.5 animate-pulse text-center">
@@ -310,11 +351,11 @@ export default function HandSimulator({
             {sim.hand.length === 0 ? (
               <p className="text-slate-500 text-xs sm:text-sm italic">
                 {deckExhausted
-                  ? 'Deck exhausted — no more actions.'
-                  : 'No cards in hand.'}
+                  ? "Deck exhausted — no more actions."
+                  : "No cards in hand."}
               </p>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+              <div className="grid grid-cols-2 gap-3 md:flex md:flex-row">
                 {sim.hand.map((card) => {
                   const isBasicLand = BASIC_LAND_NAMES.includes(
                     card.name.toLowerCase(),
@@ -327,12 +368,12 @@ export default function HandSimulator({
                           ? discardCard(card.id)
                           : selectCard(card)
                       }
-                      className={`relative w-full aspect-[5/7] rounded-lg md:rounded-xl border cursor-pointer transition-all duration-200 overflow-hidden flex items-center justify-center ${
+                      className={`relative w-1/2 aspect-[5/7] rounded-lg md:rounded-xl border cursor-pointer transition-all duration-200 overflow-hidden flex items-center justify-center ${
                         sim.selectedCard?.id === card.id
-                          ? 'border-blue-500 ring-2 ring-blue-500/50 -translate-y-1 md:-translate-y-2 shadow-2xl z-10'
+                          ? "border-blue-500 ring-2 ring-blue-500/50 -translate-y-1 md:-translate-y-2 shadow-2xl z-10"
                           : sim.awaitingDiscard
-                            ? 'border-amber-700 hover:border-red-500 hover:shadow-red-900/20'
-                            : 'border-slate-700 hover:-translate-y-1 hover:border-slate-500 shadow-md'
+                            ? "border-amber-700 hover:border-red-500 hover:shadow-red-900/20"
+                            : "border-slate-700 hover:-translate-y-1 hover:border-slate-500 shadow-md"
                       }`}
                     >
                       {card.image_uris?.normal ? (

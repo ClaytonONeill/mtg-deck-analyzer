@@ -2,11 +2,6 @@
 
 ## React Dev Items
 
-### Optimistic Update
-
-We should optimistically update the UI for objective tagging and wishlists (anything related to adding something to a list)
-seeing as the UI is pretty slow (relatively) now that it is reading/writing to the DB.
-
 ### Skeleton Loading
 
 Loading needs to be more robust than just a simple text line, skeleton is your friend here.
@@ -15,14 +10,13 @@ Loading needs to be more robust than just a simple text line, skeleton is your f
 
 When clicking on a chart bar in version compare, the contents of the modal that appears is stale to the first chart you interact with. This means cards that were added in the new version do not display and it can be confusing.
 
+## Save Version Updates Instead of Creating Entire New Version
+
+When you swap cards and create a new version of a deck, if you want to modify that version again you cannot save changes directly you would need to create ANOTHER version. This seems clunky
+and I think that users would want to be able to maintain multiple versions but also be able to optimize and further change a current version they are working on without having to continually make
+new versions.
+
 ## Auto Save Deck Build on Card Add
-
-## Add Better Swapping Logic
-
-Swapping out cards is a little clunky. Not being able to see any information about your wishlist cards when in the swap menu really slows down your ability to make meaningful deck versions:
-
-- You should be able to tag items in your deck's wishlist with objectives
-- Or you should at least be able to expand the cards in the wishlist swap area to better read their description
 
 ## Themes
 
@@ -49,7 +43,3 @@ It may be helpful to compare your decks against one another instead of just diff
 ## Sub-Sorting
 
 Users should be able to sort by multiple properties, such as `Type` and `Color` and get an organized view.
-
-## Move Filter Logic to Shareable Component
-
-The wishlist and the gallery share basically the same filtering logic with only one minor difference. The shared logic should be moved to its own file and shared across the pages.

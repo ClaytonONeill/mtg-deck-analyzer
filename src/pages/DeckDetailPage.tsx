@@ -1,57 +1,57 @@
 // Modules
-import { useState, useMemo, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Layers, BarChart2 } from 'lucide-react';
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Layers, BarChart2 } from "lucide-react";
 
 // Stores
-import { deckStore, getDeckCardCount } from '@/store/deckStore';
+import { deckStore, getDeckCardCount } from "@/store/deckStore";
 
 // Hooks
-import { useObjectives } from '@/hooks/useObjectives';
-import { useGallery } from '@/features/gallery/hooks/useGallery';
-import { useDeckVersions } from '@/features/deckVersions/hooks/useDeckVersions';
-import { useWishlist } from '@/hooks/useWishlist';
-import { useChartSelection } from '@/features/metrics/hooks/useChartSelection';
+import { useObjectives } from "@/hooks/useObjectives";
+import { useGallery } from "@/features/gallery/hooks/useGallery";
+import { useDeckVersions } from "@/features/deckVersions/hooks/useDeckVersions";
+import { useWishlist } from "@/hooks/useWishlist";
+import { useChartSelection } from "@/features/metrics/hooks/useChartSelection";
 
 // Context
-import { ChartSelectionProvider } from '@/features/metrics/context/ChartSelectionContext';
+import { ChartSelectionProvider } from "@/features/metrics/context/ChartSelectionContext";
 
 // Utils
 import {
   getTypeBreakdown,
   getCMCBreakdown,
-} from '@/features/metrics/utils/deckMetrics';
-import { applyVersionToDeck } from '@/features/deckVersions/utils/versionUtils';
+} from "@/features/metrics/utils/deckMetrics";
+import { applyVersionToDeck } from "@/features/deckVersions/utils/versionUtils";
 
 // Components
-import TypesChart from '@/features/metrics/components/TypesChart';
-import CMCChart from '@/features/metrics/components/CMCChart';
-import ColorPip from '@/components/ManaSymbol/ColorPip';
-import CardGallery from '@/features/gallery/components/CardGallery';
-import VersionCompare from '@/features/deckVersions/components/VersionCompare';
-import SaveVersionModal from '@/features/deckVersions/components/SaveVersionModal';
-import WishlistDeckFilter from '@/features/wishlist/components/WishlistDeckFilter';
-import SelectedCategoryModal from '@/features/metrics/components/SelectedCategoryModal';
-import HandSimulator from '@/features/simulator/components/HandSimulator';
+import TypesChart from "@/features/metrics/components/TypesChart";
+import CMCChart from "@/features/metrics/components/CMCChart";
+import ColorPip from "@/components/ManaSymbol/ColorPip";
+import CardGallery from "@/features/gallery/components/CardGallery";
+import VersionCompare from "@/features/deckVersions/components/VersionCompare";
+import SaveVersionModal from "@/features/deckVersions/components/SaveVersionModal";
+import WishlistDeckFilter from "@/features/wishlist/components/WishlistDeckFilter";
+import SelectedCategoryModal from "@/features/metrics/components/SelectedCategoryModal";
+import HandSimulator from "@/features/simulator/components/HandSimulator";
 
 // Types
-import type { Deck, PendingSwap } from '@/types';
+import type { Deck, PendingSwap } from "@/types";
 
-type Tab = 'metrics' | 'gallery' | 'wishlist' | 'simulator';
-type MetricView = 'types' | 'cmc' | 'compare';
-type VersionId = 'main' | string;
+type Tab = "metrics" | "gallery" | "wishlist" | "simulator";
+type MetricView = "types" | "cmc" | "compare";
+type VersionId = "main" | string;
 
 const EMPTY_DECK: Deck = {
-  id: '',
-  name: '',
+  id: "",
+  name: "",
   commander: null,
   partner: null,
   colorIdentity: [],
   entries: [],
   objectives: [],
   versions: [],
-  createdAt: '',
-  updatedAt: '',
+  createdAt: "",
+  updatedAt: "",
 };
 
 function ChartDisplayToggle() {
@@ -62,8 +62,8 @@ function ChartDisplayToggle() {
         onClick={() => setIsStacked(true)}
         className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all hover:cursor-pointer ${
           isStacked
-            ? 'bg-[#1971c2] text-white shadow-sm'
-            : 'text-slate-500 hover:text-slate-300'
+            ? "bg-[#1971c2] text-white shadow-sm"
+            : "text-slate-500 hover:text-slate-300"
         }`}
       >
         <Layers size={14} />
@@ -73,8 +73,8 @@ function ChartDisplayToggle() {
         onClick={() => setIsStacked(false)}
         className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all hover:cursor-pointer ${
           !isStacked
-            ? 'bg-[#1971c2] text-white shadow-sm'
-            : 'text-slate-500 hover:text-slate-300'
+            ? "bg-[#1971c2] text-white shadow-sm"
+            : "text-slate-500 hover:text-slate-300"
         }`}
       >
         <BarChart2 size={14} />
@@ -93,10 +93,10 @@ export default function DeckDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [allDecks, setAllDecks] = useState<Deck[]>([]);
 
-  const [activeTab, setActiveTab] = useState<Tab>('metrics');
-  const [metricView, setMetricView] = useState<MetricView>('types');
+  const [activeTab, setActiveTab] = useState<Tab>("metrics");
+  const [metricView, setMetricView] = useState<MetricView>("types");
   const [includeLands, setIncludeLands] = useState(true);
-  const [activeVersionId, setActiveVersionId] = useState<VersionId>('main');
+  const [activeVersionId, setActiveVersionId] = useState<VersionId>("main");
   const [pendingSwaps, setPendingSwaps] = useState<PendingSwap[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
 
@@ -111,10 +111,10 @@ export default function DeckDetailPage() {
       try {
         const result = await deckStore.getById(deckId);
         if (!isMounted) return;
-        if (!result) setError('Deck not found');
+        if (!result) setError("Deck not found");
         else setDeck(result);
       } catch {
-        if (isMounted) setError('Failed to load deck');
+        if (isMounted) setError("Failed to load deck");
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -158,7 +158,7 @@ export default function DeckDetailPage() {
 
   const displayDeck = useMemo<Deck>(() => {
     if (!activeDeck) return EMPTY_DECK;
-    if (activeVersionId === 'main') return activeDeck;
+    if (activeVersionId === "main") return activeDeck;
     const version = versions.find((v) => v.id === activeVersionId);
     return version ? applyVersionToDeck(activeDeck, version) : activeDeck;
   }, [activeDeck, activeVersionId, versions]);
@@ -174,9 +174,9 @@ export default function DeckDetailPage() {
   if (error || !activeDeck) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
-        {error ?? 'Deck not found.'}
+        {error ?? "Deck not found."}
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate("/")}
           className="ml-2 text-[#1971c2] hover:underline"
         >
           Go home
@@ -190,12 +190,12 @@ export default function DeckDetailPage() {
   const cmcData = getCMCBreakdown(displayDeck, includeLands);
 
   const versionOptions: { value: VersionId; label: string }[] = [
-    { value: 'main', label: `Main — ${activeDeck.name}` },
+    { value: "main", label: `Main — ${activeDeck.name}` },
     ...versions.map((v) => ({ value: v.id, label: v.name })),
   ];
 
   const activeVersionLabel =
-    versionOptions.find((o) => o.value === activeVersionId)?.label ?? 'Main';
+    versionOptions.find((o) => o.value === activeVersionId)?.label ?? "Main";
 
   const handleSaveVersion = (name: string, note: string) => {
     saveAsVersion(name, note, pendingSwaps);
@@ -210,7 +210,7 @@ export default function DeckDetailPage() {
   };
 
   const handleAssignObjective = (cardId: string, objectiveId: string) => {
-    if (activeVersionId === 'main') {
+    if (activeVersionId === "main") {
       assignObjective(cardId, objectiveId);
     } else {
       assignObjectiveToVersion(activeVersionId, cardId, objectiveId);
@@ -218,7 +218,7 @@ export default function DeckDetailPage() {
   };
 
   const handleUnassignObjective = (cardId: string, objectiveId: string) => {
-    if (activeVersionId === 'main') {
+    if (activeVersionId === "main") {
       unassignObjective(cardId, objectiveId);
     } else {
       unassignObjectiveFromVersion(activeVersionId, cardId, objectiveId);
@@ -226,17 +226,17 @@ export default function DeckDetailPage() {
   };
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'metrics', label: 'Metrics' },
-    { key: 'gallery', label: 'Gallery' },
-    { key: 'simulator', label: 'Simulator' },
-    { key: 'wishlist', label: 'Deck Wishlist' },
+    { key: "metrics", label: "Metrics" },
+    { key: "gallery", label: "Gallery" },
+    { key: "simulator", label: "Simulator" },
+    { key: "wishlist", label: "Deck Wishlist" },
   ];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="px-6 py-4 flex items-center justify-between">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate("/")}
           className="text-slate-400 hover:text-white text-sm transition-colors hover:cursor-pointer"
         >
           ← Back
@@ -249,7 +249,9 @@ export default function DeckDetailPage() {
         </button>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div
+        className={`mx-auto px-6 py-8 ${activeTab === "simulator" ? "lg:max-w-7/8" : "max-w-5xl"}`}
+      >
         {/* Deck identity block */}
         <div className="mb-6 flex items-start justify-between gap-4">
           <div className="flex flex-col gap-2">
@@ -291,7 +293,7 @@ export default function DeckDetailPage() {
           <div className="flex flex-col items-end gap-1 shrink-0">
             <span
               className="text-3xl font-bold font-mono"
-              style={{ color: cardCount === 100 ? '#1971c2' : '#f1f5f9' }}
+              style={{ color: cardCount === 100 ? "#1971c2" : "#f1f5f9" }}
             >
               {cardCount}
             </span>
@@ -301,7 +303,7 @@ export default function DeckDetailPage() {
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${Math.min((cardCount / 100) * 100, 100)}%`,
-                  backgroundColor: '#1971c2',
+                  backgroundColor: "#1971c2",
                 }}
               />
             </div>
@@ -323,12 +325,12 @@ export default function DeckDetailPage() {
               </option>
             ))}
           </select>
-          {activeVersionId !== 'main' && (
+          {activeVersionId !== "main" && (
             <>
               <button
                 onClick={() => {
                   deleteVersion(activeVersionId);
-                  setActiveVersionId('main');
+                  setActiveVersionId("main");
                 }}
                 className="text-xs text-slate-500 hover:text-red-400 transition-colors shrink-0"
               >
@@ -337,9 +339,9 @@ export default function DeckDetailPage() {
               <span
                 className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
                 style={{
-                  backgroundColor: '#1971c222',
-                  color: '#1971c2',
-                  border: '1px solid #1971c255',
+                  backgroundColor: "#1971c222",
+                  color: "#1971c2",
+                  border: "1px solid #1971c255",
                 }}
               >
                 {activeVersionLabel}
@@ -354,26 +356,26 @@ export default function DeckDetailPage() {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className="pb-3 text-sm font-semibold transition-colors relative hover:cursor-pointer"
-              style={{ color: activeTab === tab.key ? '#1971c2' : '#64748b' }}
+              style={{ color: activeTab === tab.key ? "#1971c2" : "#64748b" }}
             >
               {tab.label}
               {activeTab === tab.key && (
                 <span
                   className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                  style={{ backgroundColor: '#1971c2' }}
+                  style={{ backgroundColor: "#1971c2" }}
                 />
               )}
             </button>
           ))}
         </div>
         {/* Metrics tab */}
-        {activeTab === 'metrics' && (
+        {activeTab === "metrics" && (
           <ChartSelectionProvider entries={displayDeck.entries}>
             <div className="flex flex-col gap-8">
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="flex flex-wrap gap-1 bg-slate-800 p-1 rounded-lg w-fit">
-                    {(['types', 'cmc', 'compare'] as MetricView[]).map(
+                    {(["types", "cmc", "compare"] as MetricView[]).map(
                       (view) => (
                         <button
                           key={view}
@@ -381,34 +383,34 @@ export default function DeckDetailPage() {
                           className="px-4 py-1.5 rounded-md text-sm font-semibold transition-colors hover:cursor-pointer"
                           style={{
                             backgroundColor:
-                              metricView === view ? '#1971c2' : 'transparent',
-                            color: metricView === view ? '#fff' : '#64748b',
+                              metricView === view ? "#1971c2" : "transparent",
+                            color: metricView === view ? "#fff" : "#64748b",
                           }}
                         >
-                          {view === 'types'
-                            ? 'Types'
-                            : view === 'cmc'
-                              ? 'Mana Curve'
-                              : 'Compare'}
+                          {view === "types"
+                            ? "Types"
+                            : view === "cmc"
+                              ? "Mana Curve"
+                              : "Compare"}
                         </button>
                       ),
                     )}
                   </div>
-                  {metricView !== 'compare' && <ChartDisplayToggle />}
+                  {metricView !== "compare" && <ChartDisplayToggle />}
                 </div>
 
-                {metricView !== 'compare' && (
+                {metricView !== "compare" && (
                   <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
                     <div
                       onClick={() => setIncludeLands((v) => !v)}
                       className="w-9 h-5 rounded-full transition-colors relative cursor-pointer"
                       style={{
-                        backgroundColor: includeLands ? '#1971c2' : '#334155',
+                        backgroundColor: includeLands ? "#1971c2" : "#334155",
                       }}
                     >
                       <span
                         className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200"
-                        style={{ left: includeLands ? '18px' : '2px' }}
+                        style={{ left: includeLands ? "18px" : "2px" }}
                       />
                     </div>
                     Include Lands
@@ -416,12 +418,12 @@ export default function DeckDetailPage() {
                 )}
               </div>
 
-              {metricView !== 'compare' && (
+              {metricView !== "compare" && (
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                   <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-6">
-                    {metricView === 'types' ? 'Card Types' : 'Mana Curve'}
+                    {metricView === "types" ? "Card Types" : "Mana Curve"}
                   </h2>
-                  {metricView === 'types' ? (
+                  {metricView === "types" ? (
                     <TypesChart data={typeData} />
                   ) : (
                     <CMCChart data={cmcData} />
@@ -429,13 +431,13 @@ export default function DeckDetailPage() {
                 </div>
               )}
 
-              {metricView === 'compare' && <VersionCompare deck={activeDeck} />}
+              {metricView === "compare" && <VersionCompare deck={activeDeck} />}
             </div>
             <SelectedCategoryModal />
           </ChartSelectionProvider>
         )}
         {/* Gallery tab */}
-        {activeTab === 'gallery' && (
+        {activeTab === "gallery" && (
           <CardGallery
             deckId={activeDeck.id}
             colorIdentity={activeDeck.colorIdentity}
@@ -462,11 +464,11 @@ export default function DeckDetailPage() {
           />
         )}
 
-        {activeTab === 'simulator' && (
+        {activeTab === "simulator" && (
           <HandSimulator deck={displayDeck} objectives={objectives} />
         )}
         {/* Wishlist tab */}
-        {activeTab === 'wishlist' && (
+        {activeTab === "wishlist" && (
           <WishlistDeckFilter
             deckId={activeDeck.id}
             entries={wishlistEntries}
