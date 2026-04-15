@@ -7,6 +7,9 @@ import type { Deck, DeckEntry, Objective } from '@/types';
 // Components
 import ObjectivePill from '@/features/objectives/components/ObjectivePill';
 
+// Utils
+import { BASIC_LAND_NAMES, configureBasicLandEndpoint } from '@/utils/utils';
+
 interface HandSimulatorProps {
   deck: Deck;
   objectives: Objective[];
@@ -178,25 +181,14 @@ export default function HandSimulator({
         <div className="flex flex-col gap-3">
           {sim.drawPile.length > 0 && (
             <img
-              className="w-40 mb-6 hover:cursor-pointer"
+              className="w-40 hover:cursor-pointer"
               src="/mtg-card-image-back.jpeg"
+              onClick={drawCard}
             ></img>
-            // <div className="w-20 aspect-[5/7] bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center text-2xl font-bold text-white">
-            //   {sim.drawPile.length}
-            // </div>
           )}
-          <p className="text-xs text-slate-500">
-            {sim.drawPile.length > 0
-              ? `${sim.drawPile.length} left`
-              : 'Deck empty'}
+          <p className="text-xs text-slate-500 text-center">
+            {sim.drawPile.length > 0 ? 'Click to draw' : 'Deck empty'}
           </p>
-          <button
-            onClick={drawCard}
-            disabled={sim.drawPile.length === 0 || sim.awaitingDiscard}
-            className="text-xs font-semibold text-white border border-slate-700 hover:border-slate-500 px-3 py-2 rounded-lg transition-colors hover:cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Draw card
-          </button>
           <button
             onClick={discardHand}
             disabled={sim.hand.length === 0 || sim.awaitingDiscard}
@@ -234,50 +226,60 @@ export default function HandSimulator({
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {sim.hand.map((card) => (
-                  <div
-                    key={card.id}
-                    onClick={() =>
-                      sim.awaitingDiscard
-                        ? discardCard(card.id)
-                        : selectCard(card)
-                    }
-                    className={`relative w-16 aspect-[5/7] rounded-lg border cursor-pointer transition-all duration-150 overflow-hidden flex items-center justify-center ${
-                      sim.selectedCard?.id === card.id
-                        ? 'border-[#1971c2] -translate-y-2 shadow-lg'
-                        : sim.awaitingDiscard
-                          ? 'border-amber-700 hover:-translate-y-1 hover:border-red-500'
-                          : 'border-slate-700 hover:-translate-y-1'
-                    }`}
-                    title={
-                      sim.awaitingDiscard ? `Discard ${card.name}` : card.name
-                    }
-                  >
-                    {card.image_uris?.normal ? (
-                      <img
-                        src={card.image_uris.normal}
-                        alt={card.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-slate-800 flex items-center justify-center p-1">
-                        <span className="text-slate-400 text-[9px] text-center leading-tight">
-                          {card.name}
-                        </span>
-                      </div>
-                    )}
-                    {sim.awaitingDiscard && (
-                      <div className="absolute inset-0 bg-red-950/40 flex items-center justify-center">
-                        <span className="text-red-300 text-[10px] font-semibold">
-                          Discard?
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {sim.hand.map((card) => {
+                  const isBasicLand = BASIC_LAND_NAMES.includes(
+                    card.name.toLowerCase(),
+                  );
+                  return (
+                    <div
+                      key={card.id}
+                      onClick={() =>
+                        sim.awaitingDiscard
+                          ? discardCard(card.id)
+                          : selectCard(card)
+                      }
+                      className={`relative w-20 aspect-[5/7] rounded-lg border cursor-pointer transition-all duration-150 overflow-hidden flex items-center justify-center ${
+                        sim.selectedCard?.id === card.id
+                          ? 'border-[#1971c2] -translate-y-2 shadow-lg'
+                          : sim.awaitingDiscard
+                            ? 'border-amber-700 hover:-translate-y-1 hover:border-red-500'
+                            : 'border-slate-700 hover:-translate-y-1'
+                      }`}
+                      title={
+                        sim.awaitingDiscard ? `Discard ${card.name}` : card.name
+                      }
+                    >
+                      {card.image_uris?.normal ? (
+                        <img
+                          src={
+                            isBasicLand
+                              ? configureBasicLandEndpoint(card.name)
+                              : card.image_uris.normal
+                          }
+                          alt={card.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display =
+                              'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-slate-800 flex items-center justify-center p-1">
+                          <span className="text-slate-400 text-[9px] text-center leading-tight">
+                            {card.name}
+                          </span>
+                        </div>
+                      )}
+                      {sim.awaitingDiscard && (
+                        <div className="absolute inset-0 bg-red-950/40 flex items-center justify-center">
+                          <span className="text-red-300 text-[10px] font-semibold">
+                            Discard?
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

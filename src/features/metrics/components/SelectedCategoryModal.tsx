@@ -1,5 +1,10 @@
 import { X } from 'lucide-react';
+
+// Hooks
 import { useChartSelection } from '../hooks/useChartSelection';
+
+// Utils
+import { BASIC_LAND_NAMES, configureBasicLandEndpoint } from '@/utils/utils';
 
 export default function SelectedCategoryModal() {
   const { selectedCategory, setSelectedCategory, viewableEntries } =
@@ -9,11 +14,6 @@ export default function SelectedCategoryModal() {
 
   // CMC View Categories are strings of integers
   const CMC_VIEW = /^[0-9]+$/.test(selectedCategory);
-  const BASIC_LAND_NAMES = ['plains', 'island', 'swamp', 'mountain', 'forest'];
-
-  const configureBasicLandEndpoint = (land: string) => {
-    return `https://api.scryfall.com/cards/named?exact=${land}&format=image&version=normal`;
-  };
 
   const filteredEntries = viewableEntries.filter((e) => {
     const cat = selectedCategory.toLowerCase();
