@@ -94,6 +94,7 @@ export default function HandSimulator({
 }: HandSimulatorProps) {
   const [sim, setSim] = useState<SimState>(() => initState(deck.entries));
   const [autoDiscard, setAutoDiscard] = useState(true);
+  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
 
   const [hiddenObjectives, setHiddenObjectives] = useState<Set<string>>(
     () => new Set(),
@@ -119,13 +120,10 @@ export default function HandSimulator({
   const drawCard = useCallback(() => {
     setSim((s) => {
       if (s.drawPile.length === 0 || s.awaitingDiscard) return s;
-
       const [drawnCard, ...remainingDeck] = s.drawPile;
-
       if (autoDiscard && s.hand.length >= 7) {
         const lastCardInHand = s.hand[s.hand.length - 1];
-        const newHand = [...s.hand.slice(0, -1), drawnCard]; // Replace the last item
-
+        const newHand = [...s.hand.slice(0, -1), drawnCard];
         return {
           ...s,
           drawPile: remainingDeck,
@@ -138,8 +136,6 @@ export default function HandSimulator({
           objCounts: countObjectives([drawnCard], s.objCounts),
         };
       }
-
-      // Standard Draw Logic
       const newHand = [...s.hand, drawnCard];
       return {
         ...s,
@@ -197,6 +193,97 @@ export default function HandSimulator({
 
   const deckExhausted = sim.drawPile.length === 0 && sim.hand.length === 0;
 
+  const getCardStyle = (
+    index: number,
+    cardId: string,
+    isSelected: boolean,
+  ): React.CSSProperties => {
+    const isHovered = hoveredCardId === cardId;
+
+    if (isSelected) {
+      return {
+        transform: `translateY(-36px) scale(1.05)`,
+        transformOrigin: "bottom center",
+        zIndex: 50,
+        transition: "transform 0.2s ease",
+      };
+    }
+    if (isHovered) {
+      return {
+        transform: `translateY(-24px) scale(1.03)`,
+        transformOrigin: "bottom center",
+        zIndex: 40,
+        transition: "transform 0.15s ease",
+      };
+    }
+    return {
+      transform: `translateY(0)`,
+      transformOrigin: "bottom center",
+      zIndex: index,
+      transition: "transform 0.2s ease",
+    };
+  };
+
+  // Shared objectives panel — rendered once, used below everything
+  const ObjectivesPanel = (
+    <div className="flex flex-col gap-4 bg-slate-900/50 p-3 sm:p-4 rounded-xl border border-slate-800">
+      <div className="flex justify-between items-end">
+        <div>
+          <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest">
+            Objectives
+          </p>
+          <p className="text-[9px] sm:text-[10px] text-slate-600">
+            Turn {sim.turn}
+          </p>
+        </div>
+        <p className="text-[9px] text-slate-600 italic">Click to hide</p>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-3">
+        {objectives.length === 0 ? (
+          <p className="text-slate-600 text-[10px] sm:text-xs italic col-span-full">
+            No objectives defined.
+          </p>
+        ) : Object.keys(sim.objCounts).length === 0 ? (
+          <p className="text-slate-600 text-[10px] sm:text-xs italic col-span-full">
+            Draw cards to track.
+          </p>
+        ) : (
+          objectives
+            .filter((o) => !hiddenObjectives.has(o.id))
+            .map((o) => {
+              const count = sim.objCounts[o.id] ?? 0;
+              const pct = Math.round((count / maxObjCount) * 100);
+              return (
+                <div
+                  key={o.id}
+                  onClick={() => toggleObjective(o.id)}
+                  className="flex flex-col gap-1 cursor-pointer group"
+                >
+                  <div className="flex justify-between items-center">
+                    <span
+                      className="text-[10px] sm:text-xs font-medium truncate pr-2 group-hover:opacity-80 transition-opacity"
+                      style={{ color: o.color }}
+                    >
+                      {o.label}
+                    </span>
+                    <span className="text-[10px] sm:text-xs text-slate-400 font-mono">
+                      {count}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-800 rounded-full h-1.5 sm:h-2 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${pct}%`, backgroundColor: o.color }}
+                    />
+                  </div>
+                </div>
+              );
+            })
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-6">
       {/* Top bar */}
@@ -215,7 +302,8 @@ export default function HandSimulator({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[140px_1fr_220px] lg:grid-cols-[160px_1fr_250px] gap-6 md:gap-8 items-start">
+      {/* Deck + hand row — two columns only, objectives removed from here */}
+      <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] lg:grid-cols-[160px_1fr] gap-6 md:gap-8 items-start">
         {/* Left: deck pile + actions */}
         <div className="flex flex-row md:flex-col items-center md:items-stretch gap-4 md:gap-3 bg-slate-900/40 md:bg-transparent p-3 md:p-0 rounded-xl border border-slate-800/50 md:border-transparent">
           <div className="w-20 sm:w-24 md:w-full shrink-0 aspect-[5/7]">
@@ -236,7 +324,6 @@ export default function HandSimulator({
           </div>
 
           <div className="flex-1 flex flex-col sm:flex-row md:flex-col gap-3 md:gap-2 justify-center w-full">
-            {/* Auto Discard Toggle */}
             <button
               onClick={() => setAutoDiscard(!autoDiscard)}
               className="flex items-center justify-between gap-2 px-2 py-1.5 bg-slate-900/50 rounded-lg border border-slate-800 hover:border-slate-700 transition-colors"
@@ -277,9 +364,8 @@ export default function HandSimulator({
           </div>
         </div>
 
-        {/* Middle: selected (above) + hand (below) */}
+        {/* Middle: selected card detail + hand */}
         <div className="flex flex-col gap-6">
-          {/* Selected card detail */}
           {sim.selectedCard && (
             <div className="flex flex-row gap-3 sm:gap-4 bg-slate-900 border border-blue-900/50 rounded-xl p-3 sm:p-4 shadow-xl ring-1 ring-blue-500/20">
               {sim.selectedCard.image_uris?.normal ? (
@@ -335,17 +421,6 @@ export default function HandSimulator({
           )}
 
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest">
-                Current hand
-              </p>
-              {sim.hand.length > 0 && (
-                <p className="text-[10px] text-slate-600 font-mono">
-                  {sim.hand.length} / 7
-                </p>
-              )}
-            </div>
-
             {sim.hand.length === 0 ? (
               <p className="text-slate-500 text-xs sm:text-sm italic">
                 {deckExhausted
@@ -353,118 +428,124 @@ export default function HandSimulator({
                   : "No cards in hand."}
               </p>
             ) : (
-              <div className="grid grid-cols-2 gap-2 min-[800px]:flex min-[800px]:flex-row">
-                {sim.hand.map((card) => {
-                  const isBasicLand = BASIC_LAND_NAMES.includes(
-                    card.name.toLowerCase(),
-                  );
-                  return (
-                    <div
-                      key={card.id}
-                      onClick={() =>
-                        sim.awaitingDiscard
-                          ? discardCard(card.id)
-                          : selectCard(card)
-                      }
-                      className={`relative w-full min-[800px]:w-auto min-[800px]:flex-1 aspect-[5/7] aspect-[5/7] rounded-lg md:rounded-xl border cursor-pointer transition-all duration-200 overflow-hidden flex items-center justify-center ${
-                        sim.selectedCard?.id === card.id
-                          ? "border-blue-500 ring-2 ring-blue-500/50 -translate-y-1 md:-translate-y-2 shadow-2xl z-10"
-                          : sim.awaitingDiscard
-                            ? "border-amber-700 hover:border-red-500 hover:shadow-red-900/20"
-                            : "border-slate-700 hover:-translate-y-1 hover:border-slate-500 shadow-md"
-                      }`}
-                    >
-                      {card.image_uris?.normal ? (
-                        <img
-                          src={
-                            isBasicLand
-                              ? configureBasicLandEndpoint(card.name)
-                              : card.image_uris.normal
-                          }
-                          alt={card.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-slate-800 flex items-center justify-center p-2 text-center">
-                          <span className="text-slate-400 text-[11px] md:text-xs leading-tight">
-                            {card.name}
-                          </span>
-                        </div>
-                      )}
-                      {sim.awaitingDiscard && (
-                        <div className="absolute inset-0 bg-red-950/60 backdrop-blur-[1px] flex items-center justify-center">
-                          <span className="text-red-100 text-[11px] md:text-xs font-bold bg-red-600 px-2 py-1 rounded shadow-lg">
-                            DISCARD
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right: objective bar chart */}
-        <div className="flex flex-col gap-4 bg-slate-900/50 p-3 sm:p-4 rounded-xl border border-slate-800">
-          <div className="flex justify-between items-end">
-            <div>
-              <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest">
-                Objectives
-              </p>
-              <p className="text-[9px] sm:text-[10px] text-slate-600">
-                Turn {sim.turn}
-              </p>
-            </div>
-            <p className="text-[9px] text-slate-600 italic">Click to hide</p>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {objectives.length === 0 ? (
-              <p className="text-slate-600 text-[10px] sm:text-xs italic">
-                No objectives defined.
-              </p>
-            ) : Object.keys(sim.objCounts).length === 0 ? (
-              <p className="text-slate-600 text-[10px] sm:text-xs italic">
-                Draw cards to track.
-              </p>
-            ) : (
-              objectives
-                .filter((o) => !hiddenObjectives.has(o.id))
-                .map((o) => {
-                  const count = sim.objCounts[o.id] ?? 0;
-                  const pct = Math.round((count / maxObjCount) * 100);
-                  return (
-                    <div
-                      key={o.id}
-                      onClick={() => toggleObjective(o.id)}
-                      className="flex flex-col gap-1 cursor-pointer group"
-                    >
-                      <div className="flex justify-between items-center">
-                        <span
-                          className="text-[10px] sm:text-xs font-medium truncate pr-2 group-hover:opacity-80 transition-opacity"
-                          style={{ color: o.color }}
-                        >
-                          {o.label}
-                        </span>
-                        <span className="text-[10px] sm:text-xs text-slate-400 font-mono">
-                          {count}
-                        </span>
+              <>
+                {/* Mobile: 2-col grid */}
+                <div className="grid grid-cols-2 gap-2 min-[800px]:hidden">
+                  {sim.hand.map((card) => {
+                    const isBasicLand = BASIC_LAND_NAMES.includes(
+                      card.name.toLowerCase(),
+                    );
+                    return (
+                      <div
+                        key={card.id}
+                        onClick={() =>
+                          sim.awaitingDiscard
+                            ? discardCard(card.id)
+                            : selectCard(card)
+                        }
+                        className={`relative w-full aspect-[5/7] rounded-lg border cursor-pointer transition-all duration-200 overflow-hidden flex items-center justify-center ${
+                          sim.selectedCard?.id === card.id
+                            ? "border-blue-500 ring-2 ring-blue-500/50 -translate-y-1 shadow-2xl z-10"
+                            : sim.awaitingDiscard
+                              ? "border-amber-700 hover:border-red-500"
+                              : "border-slate-700 hover:-translate-y-1 hover:border-slate-500 shadow-md"
+                        }`}
+                      >
+                        {card.image_uris?.normal ? (
+                          <img
+                            src={
+                              isBasicLand
+                                ? configureBasicLandEndpoint(card.name)
+                                : card.image_uris.normal
+                            }
+                            alt={card.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-slate-800 flex items-center justify-center p-2 text-center">
+                            <span className="text-slate-400 text-[11px] leading-tight">
+                              {card.name}
+                            </span>
+                          </div>
+                        )}
+                        {sim.awaitingDiscard && (
+                          <div className="absolute inset-0 bg-red-950/60 backdrop-blur-[1px] flex items-center justify-center">
+                            <span className="text-red-100 text-[11px] font-bold bg-red-600 px-2 py-1 rounded shadow-lg">
+                              DISCARD
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      <div className="w-full bg-slate-800 rounded-full h-1.5 sm:h-2 overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500 ease-out"
-                          style={{ width: `${pct}%`, backgroundColor: o.color }}
-                        />
+                    );
+                  })}
+                </div>
+
+                {/* Desktop: fan hand */}
+                <div className="hidden min-[800px]:flex min-[800px]:flex-row min-[800px]:items-end min-[800px]:justify-center pb-10 pt-4 w-full max-w-full">
+                  {sim.hand.map((card, index) => {
+                    const isBasicLand = BASIC_LAND_NAMES.includes(
+                      card.name.toLowerCase(),
+                    );
+                    const isSelected = sim.selectedCard?.id === card.id;
+                    const cardStyle = getCardStyle(index, card.id, isSelected);
+
+                    return (
+                      <div
+                        key={card.id}
+                        style={cardStyle}
+                        onMouseEnter={() => setHoveredCardId(card.id)}
+                        onMouseLeave={() => setHoveredCardId(null)}
+                        onClick={() =>
+                          sim.awaitingDiscard
+                            ? discardCard(card.id)
+                            : selectCard(card)
+                        }
+                        className={`relative w-28 lg:w-36 xl:w-44 aspect-[5/7] rounded-xl border cursor-pointer overflow-hidden flex items-center justify-center flex-shrink-0 ${
+                          index > 0 ? "-ml-10 lg:-ml-14 xl:-ml-16" : ""
+                        } ${
+                          isSelected
+                            ? "border-blue-500 ring-2 ring-blue-500/50 shadow-2xl shadow-blue-900/40"
+                            : sim.awaitingDiscard
+                              ? "border-amber-700 hover:border-red-500"
+                              : "border-slate-700 hover:border-slate-400 shadow-md"
+                        }`}
+                      >
+                        {card.image_uris?.normal ? (
+                          <img
+                            src={
+                              isBasicLand
+                                ? configureBasicLandEndpoint(card.name)
+                                : card.image_uris.normal
+                            }
+                            alt={card.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-slate-800 flex items-center justify-center p-2 text-center">
+                            <span className="text-slate-400 text-xs leading-tight">
+                              {card.name}
+                            </span>
+                          </div>
+                        )}
+                        {sim.awaitingDiscard && (
+                          <div className="absolute inset-0 bg-red-950/60 backdrop-blur-[1px] flex items-center justify-center z-10">
+                            <span className="text-red-100 text-xs font-bold bg-red-600 px-2 py-1 rounded shadow-lg">
+                              DISCARD
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
         </div>
       </div>
+
+      {/* Objectives — always full width below everything */}
+      {ObjectivesPanel}
     </div>
   );
 }

@@ -250,7 +250,7 @@ export default function DeckDetailPage() {
       </div>
 
       <div
-        className={`mx-auto px-6 py-8 ${activeTab === "simulator" ? "lg:max-w-7/8" : "max-w-5xl"}`}
+        className={`mx-auto px-6 py-8 ${activeTab === "simulator" ? "lg:max-w-6xl" : "max-w-5xl"}`}
       >
         {/* Deck identity block */}
         <div className="mb-6 flex items-start justify-between gap-4">
