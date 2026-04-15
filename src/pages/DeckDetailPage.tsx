@@ -229,7 +229,7 @@ export default function DeckDetailPage() {
     { key: 'metrics', label: 'Metrics' },
     { key: 'gallery', label: 'Gallery' },
     { key: 'simulator', label: 'Simulator' },
-    { key: 'wishlist', label: `${activeDeck.name} Wishlist` },
+    { key: 'wishlist', label: 'Deck Wishlist' },
   ];
 
   return (
