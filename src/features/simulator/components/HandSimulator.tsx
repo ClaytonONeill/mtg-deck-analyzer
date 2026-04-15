@@ -279,56 +279,54 @@ export default function HandSimulator({
 
         {/* Middle: selected (above) + hand (below) */}
         <div className="flex flex-col gap-6">
-          <div className="flex flex-row gap-3 sm:gap-4 bg-slate-900 border border-blue-900/50 rounded-xl p-3 sm:p-4 shadow-xl ring-1 ring-blue-500/20 min-h-[14rem]">
-            {/* Selected card detail */}
-            {sim.selectedCard && (
-              <>
-                {sim.selectedCard.image_uris?.normal ? (
-                  <img
-                    src={
-                      BASIC_LAND_NAMES.includes(
-                        sim.selectedCard.name.toLowerCase(),
-                      )
-                        ? configureBasicLandEndpoint(sim.selectedCard.name)
-                        : sim.selectedCard.image_uris.normal
-                    }
-                    alt={sim.selectedCard.name}
-                    className="w-20 sm:w-28 md:w-32 rounded-lg flex-shrink-0 shadow-lg"
-                  />
-                ) : (
-                  <div className="w-20 sm:w-28 md:w-32 aspect-[5/7] bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <span className="text-slate-500 text-[10px] sm:text-xs text-center px-1">
-                      {sim.selectedCard.name}
-                    </span>
-                  </div>
-                )}
-                <div className="flex flex-col gap-2 min-w-0 py-1 justify-center md:justify-start">
-                  <div className="flex flex-col">
-                    <p className="text-white font-bold text-base sm:text-lg md:text-xl truncate">
-                      {sim.selectedCard.name}
-                    </p>
-                    <p className="text-slate-400 text-[10px] sm:text-xs">
-                      {sim.selectedCard.type_line}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-1 sm:gap-1.5 mt-1 sm:mt-2">
-                    {sim.selectedCard.objectiveIds.length === 0 ? (
-                      <span className="text-slate-600 text-[10px] sm:text-xs italic">
-                        No objectives
-                      </span>
-                    ) : (
-                      sim.selectedCard.objectiveIds
-                        .map((oid) => objectives.find((o) => o.id === oid))
-                        .filter((o): o is Objective => Boolean(o))
-                        .map((o) => (
-                          <ObjectivePill key={o.id} objective={o} size="sm" />
-                        ))
-                    )}
-                  </div>
+          {/* Selected card detail */}
+          {sim.selectedCard && (
+            <div className="flex flex-row gap-3 sm:gap-4 bg-slate-900 border border-blue-900/50 rounded-xl p-3 sm:p-4 shadow-xl ring-1 ring-blue-500/20">
+              {sim.selectedCard.image_uris?.normal ? (
+                <img
+                  src={
+                    BASIC_LAND_NAMES.includes(
+                      sim.selectedCard.name.toLowerCase(),
+                    )
+                      ? configureBasicLandEndpoint(sim.selectedCard.name)
+                      : sim.selectedCard.image_uris.normal
+                  }
+                  alt={sim.selectedCard.name}
+                  className="w-20 sm:w-28 md:w-32 rounded-lg flex-shrink-0 shadow-lg"
+                />
+              ) : (
+                <div className="w-20 sm:w-28 md:w-32 aspect-[5/7] bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-slate-500 text-[10px] sm:text-xs text-center px-1">
+                    {sim.selectedCard.name}
+                  </span>
                 </div>
-              </>
-            )}
-          </div>
+              )}
+              <div className="flex flex-col gap-2 min-w-0 py-1 justify-center md:justify-start">
+                <div className="flex flex-col">
+                  <p className="text-white font-bold text-base sm:text-lg md:text-xl truncate">
+                    {sim.selectedCard.name}
+                  </p>
+                  <p className="text-slate-400 text-[10px] sm:text-xs">
+                    {sim.selectedCard.type_line}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1 sm:gap-1.5 mt-1 sm:mt-2">
+                  {sim.selectedCard.objectiveIds.length === 0 ? (
+                    <span className="text-slate-600 text-[10px] sm:text-xs italic">
+                      No objectives
+                    </span>
+                  ) : (
+                    sim.selectedCard.objectiveIds
+                      .map((oid) => objectives.find((o) => o.id === oid))
+                      .filter((o): o is Objective => Boolean(o))
+                      .map((o) => (
+                        <ObjectivePill key={o.id} objective={o} size="sm" />
+                      ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {sim.awaitingDiscard && (
             <div className="bg-amber-950/40 border border-amber-800/60 text-amber-300 text-[10px] sm:text-xs rounded-lg px-3 py-2.5 animate-pulse text-center">
@@ -355,7 +353,7 @@ export default function HandSimulator({
                   : "No cards in hand."}
               </p>
             ) : (
-              <div className="grid grid-cols-2 gap-3 md:flex md:flex-row">
+              <div className="grid grid-cols-2 gap-2 min-[800px]:flex min-[800px]:flex-row">
                 {sim.hand.map((card) => {
                   const isBasicLand = BASIC_LAND_NAMES.includes(
                     card.name.toLowerCase(),
@@ -368,7 +366,7 @@ export default function HandSimulator({
                           ? discardCard(card.id)
                           : selectCard(card)
                       }
-                      className={`relative w-1/2 aspect-[5/7] rounded-lg md:rounded-xl border cursor-pointer transition-all duration-200 overflow-hidden flex items-center justify-center ${
+                      className={`relative w-full min-[800px]:w-auto min-[800px]:flex-1 aspect-[5/7] aspect-[5/7] rounded-lg md:rounded-xl border cursor-pointer transition-all duration-200 overflow-hidden flex items-center justify-center ${
                         sim.selectedCard?.id === card.id
                           ? "border-blue-500 ring-2 ring-blue-500/50 -translate-y-1 md:-translate-y-2 shadow-2xl z-10"
                           : sim.awaitingDiscard
