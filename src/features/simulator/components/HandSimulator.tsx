@@ -352,68 +352,11 @@ export default function HandSimulator({
                 Discard Hand
               </button>
             </div>
-
-            <div className="flex-1 flex flex-col justify-center md:mt-2">
-              <p className="text-[10px] sm:text-xs md:text-[10px] text-slate-500 uppercase tracking-widest mb-1 text-center">
-                Discard Pile
-              </p>
-              <div className="bg-slate-900/80 border border-slate-700/50 rounded-lg py-1.5 md:py-2 text-center text-xs font-mono text-slate-400">
-                {sim.discard.length}
-              </div>
-            </div>
           </div>
         </div>
 
         {/* Middle: selected card detail + hand */}
         <div className="flex flex-col gap-6">
-          {sim.selectedCard && (
-            <div className="flex flex-row gap-3 sm:gap-4 bg-slate-900 border border-blue-900/50 rounded-xl p-3 sm:p-4 shadow-xl ring-1 ring-blue-500/20">
-              {sim.selectedCard.image_uris?.normal ? (
-                <img
-                  src={
-                    BASIC_LAND_NAMES.includes(
-                      sim.selectedCard.name.toLowerCase(),
-                    )
-                      ? configureBasicLandEndpoint(sim.selectedCard.name)
-                      : sim.selectedCard.image_uris.normal
-                  }
-                  alt={sim.selectedCard.name}
-                  className="w-20 sm:w-28 md:w-32 rounded-lg flex-shrink-0 shadow-lg"
-                />
-              ) : (
-                <div className="w-20 sm:w-28 md:w-32 aspect-[5/7] bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-slate-500 text-[10px] sm:text-xs text-center px-1">
-                    {sim.selectedCard.name}
-                  </span>
-                </div>
-              )}
-              <div className="flex flex-col gap-2 min-w-0 py-1 justify-center md:justify-start">
-                <div className="flex flex-col">
-                  <p className="text-white font-bold text-base sm:text-lg md:text-xl truncate">
-                    {sim.selectedCard.name}
-                  </p>
-                  <p className="text-slate-400 text-[10px] sm:text-xs">
-                    {sim.selectedCard.type_line}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-1 sm:gap-1.5 mt-1 sm:mt-2">
-                  {sim.selectedCard.objectiveIds.length === 0 ? (
-                    <span className="text-slate-600 text-[10px] sm:text-xs italic">
-                      No objectives
-                    </span>
-                  ) : (
-                    sim.selectedCard.objectiveIds
-                      .map((oid) => objectives.find((o) => o.id === oid))
-                      .filter((o): o is Objective => Boolean(o))
-                      .map((o) => (
-                        <ObjectivePill key={o.id} objective={o} size="sm" />
-                      ))
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
           {sim.awaitingDiscard && (
             <div className="bg-amber-950/40 border border-amber-800/60 text-amber-300 text-[10px] sm:text-xs rounded-lg px-3 py-2.5 animate-pulse text-center">
               You drew a card — click a card in your hand to discard it.
@@ -543,7 +486,75 @@ export default function HandSimulator({
           </div>
         </div>
       </div>
+      {/* Floating Selected Card Panel */}
+      {sim.selectedCard && (
+        <div
+          className="
+      fixed inset-x-0 bottom-0 
+      md:inset-auto md:bottom-4 md:right-4
+      z-[100]
+      flex justify-center md:block
+      px-3 pb-3 md:p-0
+      w-[20rem]
+    "
+        >
+          <div
+            className="
+        bg-slate-900 border border-blue-900/50 
+        rounded-xl shadow-2xl ring-1 ring-blue-500/20 
+        backdrop-blur-md
+        w-full max-w-md
+        h-[10rem] sm:h-[12rem] md:h-[15rem]
 
+        flex flex-col
+      "
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-3 border-b border-slate-800">
+              <div className="min-w-0">
+                <p className="text-white font-bold text-sm truncate">
+                  {sim.selectedCard.name}
+                </p>
+                <p className="text-slate-400 text-[10px] truncate">
+                  {sim.selectedCard.type_line}
+                </p>
+              </div>
+
+              <button
+                onClick={() => setSim((s) => ({ ...s, selectedCard: null }))}
+                className="text-slate-400 hover:text-white text-xs ml-2 flex-shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body (scrollable) */}
+            <div className="flex gap-3 p-3 overflow-y-auto flex-1">
+              {/* Content */}
+              <div className="flex flex-col gap-2 min-w-0">
+                <p className="text-[10px] uppercase text-slate-500">
+                  Objectives
+                </p>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {sim.selectedCard.objectiveIds.length === 0 ? (
+                    <span className="text-slate-600 text-[10px] italic">
+                      None
+                    </span>
+                  ) : (
+                    sim.selectedCard.objectiveIds
+                      .map((oid) => objectives.find((o) => o.id === oid))
+                      .filter((o): o is Objective => Boolean(o))
+                      .map((o) => (
+                        <ObjectivePill key={o.id} objective={o} size="sm" />
+                      ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Objectives — always full width below everything */}
       {ObjectivesPanel}
     </div>
