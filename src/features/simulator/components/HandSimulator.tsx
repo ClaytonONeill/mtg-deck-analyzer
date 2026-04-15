@@ -193,13 +193,13 @@ export default function HandSimulator({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[120px_1fr_220px] gap-6 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-[140px_1fr_220px] lg:grid-cols-[160px_1fr_250px] gap-6 md:gap-8 items-start">
         {/* Left: deck pile + actions */}
-        <div className="flex flex-col gap-3">
-          <div className="relative w-full aspect-[5/7]">
+        <div className="flex flex-row md:flex-col items-center md:items-stretch gap-4 md:gap-3 bg-slate-900/40 md:bg-transparent p-3 md:p-0 rounded-xl border border-slate-800/50 md:border-transparent">
+          <div className="w-20 sm:w-24 md:w-full shrink-0 aspect-[5/7]">
             {sim.drawPile.length > 0 ? (
               <img
-                className="w-full h-full object-cover rounded-lg shadow-md cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+                className="w-full h-full object-cover rounded-lg shadow-md cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all active:scale-95"
                 src="/mtg-card-image-back.jpeg"
                 onClick={drawCard}
                 alt="Deck Back"
@@ -213,26 +213,27 @@ export default function HandSimulator({
             )}
           </div>
 
-          <p className="text-[10px] text-slate-500 text-center uppercase tracking-tighter">
-            {sim.drawPile.length > 0
-              ? `${sim.drawPile.length} left`
-              : 'Deck empty'}
-          </p>
+          <div className="flex-1 flex flex-col sm:flex-row md:flex-col gap-3 md:gap-2 justify-center w-full">
+            <div className="flex-1 flex flex-col justify-center items-center md:items-stretch gap-2">
+              <p className="text-[10px] sm:text-xs md:text-[10px] text-slate-500 text-center uppercase tracking-widest font-bold">
+                {sim.drawPile.length} Left
+              </p>
+              <button
+                onClick={discardHand}
+                disabled={sim.hand.length === 0 || sim.awaitingDiscard}
+                className="w-full text-[10px] sm:text-xs md:text-[10px] uppercase font-bold text-red-400 border border-red-800/40 hover:bg-red-950/30 px-2 py-2 md:py-2.5 rounded-lg transition-colors hover:cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+              >
+                Discard Hand
+              </button>
+            </div>
 
-          <button
-            onClick={discardHand}
-            disabled={sim.hand.length === 0 || sim.awaitingDiscard}
-            className="text-[10px] uppercase font-bold text-red-400 border border-red-800/40 hover:bg-red-950/20 px-2 py-2 rounded-lg transition-colors hover:cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
-          >
-            Discard hand
-          </button>
-
-          <div className="mt-2">
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1 text-center">
-              Discard
-            </p>
-            <div className="bg-slate-900/50 border border-slate-800 rounded-lg py-1.5 text-center text-xs font-mono text-slate-400">
-              {sim.discard.length}
+            <div className="flex-1 flex flex-col justify-center md:mt-2">
+              <p className="text-[10px] sm:text-xs md:text-[10px] text-slate-500 uppercase tracking-widest mb-1 text-center">
+                Discard Pile
+              </p>
+              <div className="bg-slate-900/80 border border-slate-700/50 rounded-lg py-1.5 md:py-2 text-center text-xs font-mono text-slate-400">
+                {sim.discard.length}
+              </div>
             </div>
           </div>
         </div>
@@ -241,7 +242,7 @@ export default function HandSimulator({
         <div className="flex flex-col gap-6">
           {/* Selected card detail */}
           {sim.selectedCard && (
-            <div className="flex gap-4 bg-slate-900 border border-blue-900/50 rounded-xl p-4 shadow-xl ring-1 ring-blue-500/20">
+            <div className="flex flex-row gap-3 sm:gap-4 bg-slate-900 border border-blue-900/50 rounded-xl p-3 sm:p-4 shadow-xl ring-1 ring-blue-500/20">
               {sim.selectedCard.image_uris?.normal ? (
                 <img
                   src={
@@ -252,27 +253,27 @@ export default function HandSimulator({
                       : sim.selectedCard.image_uris.normal
                   }
                   alt={sim.selectedCard.name}
-                  className="w-24 md:w-32 rounded-lg flex-shrink-0 shadow-lg"
+                  className="w-20 sm:w-28 md:w-32 rounded-lg flex-shrink-0 shadow-lg"
                 />
               ) : (
-                <div className="w-24 md:w-32 aspect-[5/7] bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-slate-500 text-xs text-center px-1">
+                <div className="w-20 sm:w-28 md:w-32 aspect-[5/7] bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-slate-500 text-[10px] sm:text-xs text-center px-1">
                     {sim.selectedCard.name}
                   </span>
                 </div>
               )}
-              <div className="flex flex-col gap-2 min-w-0 py-1">
+              <div className="flex flex-col gap-2 min-w-0 py-1 justify-center md:justify-start">
                 <div className="flex flex-col">
-                  <p className="text-white font-bold text-lg truncate">
+                  <p className="text-white font-bold text-base sm:text-lg md:text-xl truncate">
                     {sim.selectedCard.name}
                   </p>
-                  <p className="text-slate-400 text-xs">
+                  <p className="text-slate-400 text-[10px] sm:text-xs">
                     {sim.selectedCard.type_line}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-1.5 mt-2">
+                <div className="flex flex-wrap gap-1 sm:gap-1.5 mt-1 sm:mt-2">
                   {sim.selectedCard.objectiveIds.length === 0 ? (
-                    <span className="text-slate-600 text-xs italic">
+                    <span className="text-slate-600 text-[10px] sm:text-xs italic">
                       No objectives
                     </span>
                   ) : (
@@ -289,23 +290,31 @@ export default function HandSimulator({
           )}
 
           {sim.awaitingDiscard && (
-            <div className="bg-amber-950/40 border border-amber-800/60 text-amber-300 text-xs rounded-lg px-3 py-2.5 animate-pulse text-center">
+            <div className="bg-amber-950/40 border border-amber-800/60 text-amber-300 text-[10px] sm:text-xs rounded-lg px-3 py-2.5 animate-pulse text-center">
               You drew a card — click a card in your hand to discard it.
             </div>
           )}
 
           <div>
-            <p className="text-xs text-slate-500 uppercase tracking-widest mb-3">
-              Current hand
-            </p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest">
+                Current hand
+              </p>
+              {sim.hand.length > 0 && (
+                <p className="text-[10px] text-slate-600 font-mono">
+                  {sim.hand.length} / 7
+                </p>
+              )}
+            </div>
+
             {sim.hand.length === 0 ? (
-              <p className="text-slate-500 text-sm italic">
+              <p className="text-slate-500 text-xs sm:text-sm italic">
                 {deckExhausted
                   ? 'Deck exhausted — no more actions.'
                   : 'No cards in hand.'}
               </p>
             ) : (
-              <div className="grid grid-cols-3 gap-3 md:gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                 {sim.hand.map((card) => {
                   const isBasicLand = BASIC_LAND_NAMES.includes(
                     card.name.toLowerCase(),
@@ -318,9 +327,9 @@ export default function HandSimulator({
                           ? discardCard(card.id)
                           : selectCard(card)
                       }
-                      className={`relative w-full aspect-[5/7] rounded-xl border cursor-pointer transition-all duration-200 overflow-hidden flex items-center justify-center ${
+                      className={`relative w-full aspect-[5/7] rounded-lg md:rounded-xl border cursor-pointer transition-all duration-200 overflow-hidden flex items-center justify-center ${
                         sim.selectedCard?.id === card.id
-                          ? 'border-blue-500 ring-2 ring-blue-500/50 -translate-y-2 shadow-2xl z-10'
+                          ? 'border-blue-500 ring-2 ring-blue-500/50 -translate-y-1 md:-translate-y-2 shadow-2xl z-10'
                           : sim.awaitingDiscard
                             ? 'border-amber-700 hover:border-red-500 hover:shadow-red-900/20'
                             : 'border-slate-700 hover:-translate-y-1 hover:border-slate-500 shadow-md'
@@ -338,14 +347,14 @@ export default function HandSimulator({
                         />
                       ) : (
                         <div className="w-full h-full bg-slate-800 flex items-center justify-center p-2 text-center">
-                          <span className="text-slate-400 text-[10px] md:text-xs leading-tight">
+                          <span className="text-slate-400 text-[11px] md:text-xs leading-tight">
                             {card.name}
                           </span>
                         </div>
                       )}
                       {sim.awaitingDiscard && (
                         <div className="absolute inset-0 bg-red-950/60 backdrop-blur-[1px] flex items-center justify-center">
-                          <span className="text-red-100 text-[10px] font-bold bg-red-600 px-1.5 py-0.5 rounded shadow-lg">
+                          <span className="text-red-100 text-[11px] md:text-xs font-bold bg-red-600 px-2 py-1 rounded shadow-lg">
                             DISCARD
                           </span>
                         </div>
@@ -359,21 +368,26 @@ export default function HandSimulator({
         </div>
 
         {/* Right: objective bar chart */}
-        <div className="flex flex-col gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-          <div>
-            <p className="text-xs text-slate-500 uppercase tracking-widest">
-              Objectives
-            </p>
-            <p className="text-[10px] text-slate-600">Turn {sim.turn}</p>
+        <div className="flex flex-col gap-4 bg-slate-900/50 p-3 sm:p-4 rounded-xl border border-slate-800">
+          <div className="flex justify-between items-end">
+            <div>
+              <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest">
+                Objectives
+              </p>
+              <p className="text-[9px] sm:text-[10px] text-slate-600">
+                Turn {sim.turn}
+              </p>
+            </div>
+            <p className="text-[9px] text-slate-600 italic">Click to hide</p>
           </div>
 
           <div className="flex flex-col gap-3">
             {objectives.length === 0 ? (
-              <p className="text-slate-600 text-xs italic">
+              <p className="text-slate-600 text-[10px] sm:text-xs italic">
                 No objectives defined.
               </p>
             ) : Object.keys(sim.objCounts).length === 0 ? (
-              <p className="text-slate-600 text-xs italic">
+              <p className="text-slate-600 text-[10px] sm:text-xs italic">
                 Draw cards to track.
               </p>
             ) : (
@@ -390,16 +404,16 @@ export default function HandSimulator({
                     >
                       <div className="flex justify-between items-center">
                         <span
-                          className="text-[10px] font-medium truncate pr-2"
+                          className="text-[10px] sm:text-xs font-medium truncate pr-2 group-hover:opacity-80 transition-opacity"
                           style={{ color: o.color }}
                         >
                           {o.label}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
+                        <span className="text-[10px] sm:text-xs text-slate-400 font-mono">
                           {count}
                         </span>
                       </div>
-                      <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                      <div className="w-full bg-slate-800 rounded-full h-1.5 sm:h-2 overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-500 ease-out"
                           style={{ width: `${pct}%`, backgroundColor: o.color }}
