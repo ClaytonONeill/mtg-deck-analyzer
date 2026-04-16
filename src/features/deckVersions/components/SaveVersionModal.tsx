@@ -1,10 +1,10 @@
 // Modules
-import { useState } from 'react';
+import { useState } from "react";
 
 // Types
-import type { DeckVersion } from '@/types';
+import type { DeckVersion } from "@/types";
 
-type SaveMode = 'new' | 'update';
+type SaveMode = "new" | "update";
 
 interface SaveVersionModalProps {
   existingVersions: DeckVersion[];
@@ -20,16 +20,16 @@ export default function SaveVersionModal({
   onCancel,
 }: SaveVersionModalProps) {
   const [mode, setMode] = useState<SaveMode>(
-    existingVersions.length > 0 ? 'update' : 'new',
+    existingVersions.length > 0 ? "update" : "new",
   );
-  const [name, setName] = useState('');
-  const [note, setNote] = useState('');
+  const [name, setName] = useState("");
+  const [note, setNote] = useState("");
   const [selectedVersionId, setSelectedVersionId] = useState<string>(
-    existingVersions[0]?.id ?? '',
+    existingVersions[0]?.id ?? "",
   );
 
   const handleSave = () => {
-    if (mode === 'new') {
+    if (mode === "new") {
       if (!name.trim()) return;
       onSave(name, note);
     } else {
@@ -39,30 +39,22 @@ export default function SaveVersionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl flex flex-col gap-5">
-        <h2 className="text-white font-bold text-lg">Save Version</h2>
+    <div className="modal modal-open backdrop-blur-sm">
+      <div className="modal-box bg-base-100 border border-base-300 shadow-2xl max-w-md p-6 flex flex-col gap-6">
+        <h2 className="text-xl font-bold">Save Version</h2>
 
-        {/* Mode toggle — only show if versions exist */}
+        {/* Mode toggle — using DaisyUI Join */}
         {existingVersions.length > 0 && (
-          <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
+          <div className="join w-full">
             <button
-              onClick={() => setMode('update')}
-              className="flex-1 py-1.5 rounded-md text-xs font-semibold transition-colors"
-              style={{
-                backgroundColor: mode === 'update' ? '#1971c2' : 'transparent',
-                color: mode === 'update' ? '#fff' : '#64748b',
-              }}
+              onClick={() => setMode("update")}
+              className={`join-item btn btn-sm flex-1 ${mode === "update" ? "btn-primary" : "btn-ghost bg-base-200"}`}
             >
               Update Existing
             </button>
             <button
-              onClick={() => setMode('new')}
-              className="flex-1 py-1.5 rounded-md text-xs font-semibold transition-colors"
-              style={{
-                backgroundColor: mode === 'new' ? '#1971c2' : 'transparent',
-                color: mode === 'new' ? '#fff' : '#64748b',
-              }}
+              onClick={() => setMode("new")}
+              className={`join-item btn btn-sm flex-1 ${mode === "new" ? "btn-primary" : "btn-ghost bg-base-200"}`}
             >
               Save as New
             </button>
@@ -70,74 +62,83 @@ export default function SaveVersionModal({
         )}
 
         {/* Update existing */}
-        {mode === 'update' && existingVersions.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-slate-400">
-                Select Version to Update
-              </label>
-              <select
-                value={selectedVersionId}
-                onChange={(e) => setSelectedVersionId(e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1971c2] transition-colors"
-              >
-                {existingVersions.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <p className="text-slate-500 text-xs">
-              The new swaps will be appended to this version's existing swaps.
+        {mode === "update" && existingVersions.length > 0 && (
+          <div className="form-control w-full gap-2">
+            <label className="label py-0">
+              <span className="label-text-alt font-bold opacity-60">
+                SELECT VERSION
+              </span>
+            </label>
+            <select
+              value={selectedVersionId}
+              onChange={(e) => setSelectedVersionId(e.target.value)}
+              className="select select-bordered select-sm w-full bg-base-200"
+            >
+              {existingVersions.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-[10px] opacity-50 italic">
+              New swaps will be appended to this version's history.
             </p>
           </div>
         )}
 
         {/* Save as new */}
-        {mode === 'new' && (
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-slate-400">Version Name</label>
+        {mode === "new" && (
+          <div className="flex flex-col gap-4">
+            <div className="form-control w-full gap-1.5">
+              <label className="label py-0">
+                <span className="label-text-alt font-bold opacity-60">
+                  VERSION NAME
+                </span>
+              </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. More Ramp, Control Build..."
-                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#1971c2] transition-colors"
+                className="input input-bordered input-sm w-full bg-base-200"
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-slate-400">
-                Note <span className="text-slate-600">(optional)</span>
+            <div className="form-control w-full gap-1.5">
+              <label className="label py-0">
+                <span className="label-text-alt font-bold opacity-60">
+                  NOTE (OPTIONAL)
+                </span>
               </label>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="What are you trying to improve?"
                 rows={2}
-                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#1971c2] transition-colors resize-none"
+                className="textarea textarea-bordered w-full bg-base-200 resize-none"
               />
             </div>
           </div>
         )}
 
-        <div className="flex gap-2">
-          <button
-            onClick={handleSave}
-            disabled={mode === 'new' ? !name.trim() : !selectedVersionId}
-            className="flex-1 bg-[#1971c2] hover:bg-blue-500 disabled:opacity-40 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors"
-          >
-            {mode === 'new' ? 'Save Version' : 'Update Version'}
+        {/* Footer Actions */}
+        <div className="modal-action mt-2">
+          <button onClick={onCancel} className="btn btn-ghost">
+            Cancel
           </button>
           <button
-            onClick={onCancel}
-            className="flex-1 text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 text-sm py-2.5 rounded-lg transition-colors"
+            onClick={handleSave}
+            disabled={mode === "new" ? !name.trim() : !selectedVersionId}
+            className="btn btn-primary px-8"
           >
-            Cancel
+            {mode === "new" ? "Save Version" : "Update Version"}
           </button>
         </div>
       </div>
+
+      {/* Click outside to close helper */}
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={onCancel}>close</button>
+      </form>
     </div>
   );
 }

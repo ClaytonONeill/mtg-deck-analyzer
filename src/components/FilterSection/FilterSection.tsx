@@ -1,12 +1,11 @@
 import type { CardCategory, Objective } from "@/types";
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
-// 1. Define the interface for the filter state
 export interface ActiveFilters {
   colors: string[];
   types: CardCategory[];
   objectives: string[];
-  decks: string[]; // Keep as required for consistency, or make optional
+  decks: string[];
   cmc: { min: number | null; max: number | null };
 }
 
@@ -18,8 +17,8 @@ interface FilterSectionProps {
   objectives?: Objective[];
   decks?: { id: string; name: string }[];
   cmc?: { min: number | null; max: number | null };
-  draft: ActiveFilters; // Use the interface here
-  onChange: (draft: ActiveFilters) => void; // Replace 'any' with ActiveFilters
+  draft: ActiveFilters;
+  onChange: (draft: ActiveFilters) => void;
   onClear: () => void;
   filterCount: number;
 }
@@ -42,52 +41,52 @@ export default function FilterSection({
   filterCount,
 }: FilterSectionProps) {
   return (
-    <div className="flex flex-col gap-3 w-full">
+    <div className="w-full">
       <button
         onClick={() => onToggle(!isOpen)}
-        className="flex items-center gap-1.5 text-sm font-semibold border px-3 py-1.5 rounded-lg transition-colors w-full sm:w-auto"
-        style={{
-          borderColor: filterCount > 0 ? "#1971c2" : "#334155",
-          color: filterCount > 0 ? "#1971c2" : "#94a3b8",
-          backgroundColor: filterCount > 0 ? "#1971c211" : "transparent",
-        }}
+        className={`btn btn-sm gap-2 w-full sm:w-auto ${
+          filterCount > 0 ? "btn-primary" : "btn-outline opacity-70"
+        }`}
       >
-        Filter
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+          />
+        </svg>
+        Filters
         {filterCount > 0 && (
-          <span
-            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-            style={{ backgroundColor: "#1971c2", color: "#fff" }}
-          >
-            {filterCount}
-          </span>
+          <div className="badge badge-secondary badge-sm">{filterCount}</div>
         )}
       </button>
 
       {isOpen && (
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col gap-5">
+        <div className="mt-4 p-6 bg-base-100 border border-base-300 rounded-2xl shadow-inner grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Color Identity */}
-          {colorIdentity && colorIdentity.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <p className="text-sm text-slate-400 uppercase tracking-widest">
+          {colorIdentity && (
+            <div className="space-y-3">
+              <label className="text-[10px] font-black opacity-40 uppercase tracking-widest">
                 Color Identity
-              </p>
-              <div className="flex gap-2 flex-wrap">
+              </label>
+              <div className="flex gap-1.5 flex-wrap">
                 {colorIdentity.map((c) => (
                   <button
                     key={c}
                     onClick={() =>
                       onChange({ ...draft, colors: toggle(draft.colors, c) })
                     }
-                    className="w-8 h-8 rounded-full text-sm font-bold border-2 transition-all"
-                    style={{
-                      borderColor: draft.colors.includes(c)
-                        ? "#1971c2"
-                        : "#334155",
-                      backgroundColor: draft.colors.includes(c)
-                        ? "#1971c222"
-                        : "transparent",
-                      color: "#f1f5f9",
-                    }}
+                    className={`btn btn-circle btn-sm font-bold ${
+                      draft.colors.includes(c)
+                        ? "btn-primary"
+                        : "btn-outline opacity-50"
+                    }`}
                   >
                     {c}
                   </button>
@@ -96,47 +95,15 @@ export default function FilterSection({
             </div>
           )}
 
-          {/* Card Type */}
-          {cardCategories && cardCategories.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <p className="text-sm text-slate-400 uppercase tracking-widest">
-                Card Type
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {cardCategories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() =>
-                      onChange({ ...draft, types: toggle(draft.types, cat) })
-                    }
-                    className="text-sm px-2.5 py-1 rounded-full border transition-all"
-                    style={{
-                      borderColor: draft.types.includes(cat)
-                        ? "#1971c2"
-                        : "#334155",
-                      backgroundColor: draft.types.includes(cat)
-                        ? "#1971c222"
-                        : "transparent",
-                      color: draft.types.includes(cat) ? "#1971c2" : "#94a3b8",
-                    }}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* CMC Range */}
           {cmc && (
-            <div className="flex flex-col gap-2">
-              <p className="text-sm text-slate-400 uppercase tracking-widest">
-                Mana Value (CMC)
-              </p>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black opacity-40 uppercase tracking-widest">
+                Mana Value
+              </label>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  min={0}
                   placeholder="Min"
                   value={draft.cmc.min ?? ""}
                   onChange={(e) =>
@@ -149,12 +116,11 @@ export default function FilterSection({
                       },
                     })
                   }
-                  className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#1971c2] transition-colors"
+                  className="input input-bordered input-sm w-full max-w-[80px]"
                 />
-                <span className="text-slate-500 text-sm">—</span>
+                <span className="opacity-30">—</span>
                 <input
                   type="number"
-                  min={0}
                   placeholder="Max"
                   value={draft.cmc.max ?? ""}
                   onChange={(e) =>
@@ -167,112 +133,115 @@ export default function FilterSection({
                       },
                     })
                   }
-                  className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#1971c2] transition-colors"
+                  className="input input-bordered input-sm w-full max-w-[80px]"
                 />
               </div>
             </div>
           )}
 
-          {/* Objectives */}
-          {objectives && objectives.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <p className="text-sm text-slate-400 uppercase tracking-widest">
+          {/* Card Types */}
+          {cardCategories && (
+            <div className="space-y-3 lg:col-span-1">
+              <label className="text-[10px] font-black opacity-40 uppercase tracking-widest">
+                Type
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {cardCategories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() =>
+                      onChange({ ...draft, types: toggle(draft.types, cat) })
+                    }
+                    className={`btn btn-xs rounded-full normal-case ${
+                      draft.types.includes(cat)
+                        ? "btn-primary"
+                        : "btn-ghost bg-base-200 opacity-60"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Objectives Checklist */}
+          {objectives && (
+            <div className="space-y-3">
+              <label className="text-[10px] font-black opacity-40 uppercase tracking-widest">
                 Objectives
-              </p>
-              <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto border border-slate-700 rounded-lg px-2.5 py-2">
-                {objectives.map((o) => {
-                  const checked = draft.objectives.includes(o.id);
-                  return (
-                    <label
-                      key={o.id}
-                      className="flex items-center gap-2 cursor-pointer"
-                      onClick={() =>
+              </label>
+              <div className="max-h-40 overflow-y-auto space-y-1 bg-base-200/50 p-2 rounded-lg border border-base-300 flex flex-col">
+                {objectives.map((o) => (
+                  <label
+                    key={o.id}
+                    className="label cursor-pointer justify-start gap-3 py-1 hover:bg-base-300 rounded-md transition-colors px-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={draft.objectives.includes(o.id)}
+                      onChange={() =>
                         onChange({
                           ...draft,
                           objectives: toggle(draft.objectives, o.id),
                         })
                       }
-                    >
-                      <div
-                        className="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all"
-                        style={{
-                          borderColor: checked ? o.color : "#475569",
-                          backgroundColor: checked ? o.color : "transparent",
-                        }}
-                      >
-                        {checked && (
-                          <span className="text-white text-[10px] leading-none font-bold">
-                            ✓
-                          </span>
-                        )}
-                      </div>
-                      <ObjectivePill objective={o} size="sm" />
-                    </label>
-                  );
-                })}
+                      className="checkbox checkbox-xs checkbox-primary"
+                    />
+                    <ObjectivePill objective={o} size="sm" />
+                  </label>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Decks */}
-          {decks && decks.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <p className="text-sm text-slate-400 uppercase tracking-widest">
-                Decks
-              </p>
-              <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
-                {decks.map((deck) => {
-                  const checked = draft.decks.includes(deck.id);
-                  return (
-                    <label
-                      key={deck.id}
-                      className="flex items-center gap-2 cursor-pointer"
-                      onClick={() =>
+          {/* Decks Checklist */}
+          {decks && (
+            <div className="space-y-3">
+              <label className="text-[10px] font-black opacity-40 uppercase tracking-widest">
+                In Decks
+              </label>
+              <div className="max-h-40 overflow-y-auto space-y-1 bg-base-200/50 p-2 rounded-lg border border-base-300">
+                {decks.map((deck) => (
+                  <label
+                    key={deck.id}
+                    className="label cursor-pointer justify-start gap-3 py-1 hover:bg-base-300 rounded-md transition-colors px-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={draft.decks.includes(deck.id)}
+                      onChange={() =>
                         onChange({
                           ...draft,
                           decks: toggle(draft.decks, deck.id),
                         })
                       }
-                    >
-                      <div
-                        className="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all"
-                        style={{
-                          borderColor: checked ? "#1971c2" : "#475569",
-                          backgroundColor: checked ? "#1971c2" : "transparent",
-                        }}
-                      >
-                        {checked && (
-                          <span className="text-white text-[10px] leading-none font-bold">
-                            ✓
-                          </span>
-                        )}
-                      </div>
-                      <span
-                        className="text-sm font-semibold px-2 py-0.5 rounded-full"
-                        style={{
-                          backgroundColor: "#1971c222",
-                          color: "#1971c2",
-                          border: "1px solid #1971c255",
-                        }}
-                      >
-                        {deck.name}
-                      </span>
-                    </label>
-                  );
-                })}
+                      className="checkbox checkbox-xs checkbox-primary"
+                    />
+                    <span className="text-xs font-semibold opacity-70">
+                      {deck.name}
+                    </span>
+                  </label>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Clear button */}
-          {filterCount > 0 && (
+          {/* Footer Actions */}
+          <div className="md:col-span-2 lg:col-span-3 pt-4 border-t border-base-300 flex justify-end gap-2">
             <button
               onClick={onClear}
-              className="text-sm text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors"
+              className="btn btn-ghost btn-sm text-error"
             >
-              Clear all
+              Clear All Filters
             </button>
-          )}
+            <button
+              onClick={() => onToggle(false)}
+              className="btn btn-primary btn-sm px-8"
+            >
+              Apply
+            </button>
+          </div>
         </div>
       )}
     </div>

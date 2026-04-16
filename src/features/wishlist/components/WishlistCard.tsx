@@ -1,12 +1,12 @@
 // Modules
-import { useState } from 'react';
+import { useState } from "react";
 
 // Types
-import type { Deck, Objective, WishlistEntry } from '@/types';
+import type { Deck, Objective, WishlistEntry } from "@/types";
 
 // Components
-import ManaCost from '@/components/ManaSymbol/ManaCost';
-import ObjectivePill from '@/features/objectives/components/ObjectivePill';
+import ManaCost from "@/components/ManaSymbol/ManaCost";
+import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 interface WishlistCardProps {
   entry: WishlistEntry;
@@ -30,8 +30,6 @@ export default function WishlistCard({
   onUnassignObjective,
 }: WishlistCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const [showPopover, setShowPopover] = useState(false);
-  const [showDeckPopover, setShowDeckPopover] = useState(false);
 
   const taggedDecks = allDecks.filter((d) =>
     (entry.deckIds ?? []).includes(d.id),
@@ -39,6 +37,7 @@ export default function WishlistCard({
   const untagged = allDecks.filter(
     (d) => !(entry.deckIds ?? []).includes(d.id),
   );
+
   const assignedObjectives = entry.objectives ?? [];
   const assignedIds = assignedObjectives.map((o) => o.id);
   const unassignedObjectives = allObjectives.filter(
@@ -46,170 +45,183 @@ export default function WishlistCard({
   );
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full h-full">
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:p-4">
-        {/* Card image */}
-        <div className="shrink-0 w-full sm:w-56 md:w-48 self-start">
-          {entry.card.image_uris?.large ? (
-            <img
-              src={entry.card.image_uris.large}
-              alt={entry.card.name}
-              className="w-full sm:w-full md:w-xl cursor-pointer transition-transform shadow-lg sm:rounded-xl sm:border sm:border-slate-700 sm:hover:scale-105"
-              onClick={() => setExpanded((v) => !v)}
-            />
-          ) : (
-            <div className="w-full aspect-5/7 bg-slate-800 sm:rounded-xl sm:border sm:border-slate-700 flex items-center justify-center">
-              <span className="text-slate-500 text-xs text-center px-2">
-                {entry.card.name}
-              </span>
-            </div>
-          )}
+    <div className="card lg:card-side bg-base-100 border border-base-300 shadow-xl overflow-hidden w-full">
+      {/* Card Image Section */}
+      <figure className="shrink-0 w-full sm:w-56 md:w-48 bg-base-300">
+        {entry.card.image_uris?.large ? (
+          <img
+            src={entry.card.image_uris.large}
+            alt={entry.card.name}
+            className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
+            onClick={() => setExpanded(true)}
+          />
+        ) : (
+          <div className="flex items-center justify-center p-4 text-center">
+            <span className="text-xs opacity-40 font-bold uppercase tracking-tighter">
+              {entry.card.name}
+            </span>
+          </div>
+        )}
+      </figure>
+
+      <div className="card-body p-4 sm:p-6 gap-4">
+        {/* Header */}
+        <div className="flex justify-between items-start gap-2">
+          <div className="min-w-0">
+            <h3 className="card-title text-base-content truncate">
+              {entry.card.name}
+            </h3>
+            <p className="text-xs opacity-60">{entry.card.type_line}</p>
+          </div>
+          <button
+            onClick={() => onRemove(entry.id)}
+            className="btn btn-ghost btn-xs btn-circle text-error"
+          >
+            ✕
+          </button>
         </div>
 
-        {/* Right content */}
-        <div className="flex flex-col gap-3 flex-1 min-w-0 px-3 py-3 sm:p-4">
-          {/* Title row */}
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <h3 className="text-white font-bold text-base truncate">
-                {entry.card.name}
-              </h3>
-              <p className="text-slate-400 text-sm">{entry.card.type_line}</p>
+        {/* Mana Cost */}
+        {entry.card.cmc > 0 && (
+          <div className="flex">
+            <ManaCost cost={entry.card.mana_cost} size={16} />
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+          {/* Objectives Column */}
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">
+              Objectives
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {assignedObjectives.map((o) => (
+                <ObjectivePill
+                  key={o.id}
+                  objective={o}
+                  onRemove={() => onUnassignObjective(entry.id, o.id)}
+                />
+              ))}
+
+              {unassignedObjectives.length > 0 && (
+                <div className="dropdown dropdown-top md:dropdown-right">
+                  <div
+                    tabIndex={0}
+                    role="button"
+                    className="btn btn-xs btn-outline btn-primary rounded-full"
+                  >
+                    + Objective
+                  </div>
+                  <ul
+                    tabIndex={0}
+                    className="dropdown-content z-[1] menu p-2 shadow-2xl bg-base-200 border border-base-300 rounded-box w-52 mb-2"
+                  >
+                    {unassignedObjectives.map((o) => (
+                      <li key={o.id}>
+                        <button
+                          onClick={() => onAssignObjective(entry.id, o)}
+                          className="text-xs"
+                        >
+                          <span
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: o.color }}
+                          />
+                          {o.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-            <button
-              onClick={() => onRemove(entry.id)}
-              className="text-slate-600 hover:text-red-400 transition-colors text-sm shrink-0 ml-1"
-            >
-              ✕
-            </button>
           </div>
 
-          {/* Mana cost */}
-          {entry.card.cmc > 0 && (
-            <ManaCost cost={entry.card.mana_cost} size={16} />
-          )}
-
-          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0">
-            {/* Objectives Column */}
-            <div className="flex flex-col border border-slate-800 rounded-xl p-2 min-h-0 relative">
-              <div className="text-xs text-slate-400 mb-1">Objectives</div>
-
-              <div className="flex-1 overflow-y-auto pr-1 flex flex-wrap gap-1.5 content-start">
-                {assignedObjectives.map((o) => (
-                  <ObjectivePill
-                    key={o.id}
-                    objective={o}
-                    onRemove={() => onUnassignObjective(entry.id, o.id)}
-                  />
-                ))}
-              </div>
-
-              {showPopover && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowPopover(false)}
-                  />
-                  <div className="absolute bottom-10 left-0 mt-2 z-20 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-2 flex flex-col gap-1 w-max">
-                    {unassignedObjectives.map((o) => (
-                      <button
-                        key={o.id}
-                        onClick={() => {
-                          onAssignObjective(entry.id, o);
-                          setShowPopover(false);
-                        }}
-                        className="text-left px-2 py-1 rounded hover:bg-slate-800 transition-colors"
-                      >
-                        <ObjectivePill objective={o} />
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {allObjectives.length > 0 && unassignedObjectives.length > 0 && (
-                <button
-                  onClick={() => setShowPopover((v) => !v)}
-                  className="text-sm text-slate-500 hover:text-slate-300 border border-slate-700 hover:border-slate-500 rounded-full mt-2 px-2 py-0.5 h-7 transition-colors"
+          {/* Decks Column */}
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">
+              Tagged Decks
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {taggedDecks.map((d) => (
+                <div
+                  key={d.id}
+                  className="badge badge-primary badge-outline gap-1 pl-2.5 py-3"
                 >
-                  + Objective
-                </button>
-              )}
-            </div>
-
-            {/* Decks Column */}
-            <div className="flex flex-col border border-slate-800 rounded-xl p-2 min-h-0 relative">
-              <div className="text-xs text-slate-400 mb-1">Decks</div>
-              <div className="flex-1 overflow-y-auto pr-1 flex flex-wrap gap-1.5 content-start">
-                {taggedDecks.map((d) => (
-                  <span
-                    key={d.id}
-                    className="inline-flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-full"
-                    style={{
-                      backgroundColor: '#1971c222',
-                      color: '#1971c2',
-                      border: '1px solid #1971c255',
-                    }}
+                  <span className="text-xs font-semibold">{d.name}</span>
+                  <button
+                    onClick={() => onUntagDeck(entry.id, d.id)}
+                    className="hover:text-error transition-colors"
                   >
-                    {d.name}
-                    <button
-                      onClick={() => onUntagDeck(entry.id, d.id)}
-                      className="hover:opacity-70 leading-none"
+                    <svg
+                      className="w-3 h-3"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-
-              {showDeckPopover && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowDeckPopover(false)}
-                  />
-                  <div className="absolute bottom-10 left-0 mt-2 z-20 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-2 flex flex-col gap-1 w-max min-w-[120px]">
-                    {untagged.map((d) => (
-                      <button
-                        key={d.id}
-                        onClick={() => {
-                          onTagDeck(entry.id, d.id);
-                          setShowDeckPopover(false);
-                        }}
-                        className="text-left px-3 py-1.5 rounded text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
-                      >
-                        {d.name}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              ))}
 
               {untagged.length > 0 && (
-                <button
-                  onClick={() => setShowDeckPopover((v) => !v)}
-                  className="text-sm text-slate-500 hover:text-slate-300 border border-slate-700 hover:border-slate-500 rounded-full mt-2 px-2 py-0.5 h-7 transition-colors"
-                >
-                  + Add to Deck
-                </button>
+                <div className="dropdown dropdown-top md:dropdown-right">
+                  <div
+                    tabIndex={0}
+                    role="button"
+                    className="btn btn-xs btn-outline rounded-full"
+                  >
+                    + Add to Deck
+                  </div>
+                  <ul
+                    tabIndex={0}
+                    className="dropdown-content z-[1] menu p-2 shadow-2xl bg-base-200 border border-base-300 rounded-box w-52 mb-2"
+                  >
+                    {untagged.map((d) => (
+                      <li key={d.id}>
+                        <button
+                          onClick={() => onTagDeck(entry.id, d.id)}
+                          className="text-xs"
+                        >
+                          {d.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Expanded image overlay */}
-      {expanded && entry.card.image_uris?.large && (
+      {/* Expanded Modal */}
+      {expanded && (
         <div
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center"
+          className="modal modal-open modal-middle backdrop-blur-md bg-black/40"
           onClick={() => setExpanded(false)}
         >
-          <img
-            src={entry.card.image_uris.large}
-            alt={entry.card.name}
-            className="max-h-[90vh] rounded-2xl shadow-2xl border border-slate-700"
+          <div
+            className="relative max-w-sm mx-auto"
             onClick={(e) => e.stopPropagation()}
-          />
+          >
+            <img
+              src={entry.card.image_uris?.large}
+              alt={entry.card.name}
+              className="rounded-2xl shadow-2xl ring-1 ring-white/20"
+            />
+            <button
+              onClick={() => setExpanded(false)}
+              className="btn btn-circle btn-sm absolute -top-2 -right-2 btn-primary border-2 border-base-100"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
     </div>
