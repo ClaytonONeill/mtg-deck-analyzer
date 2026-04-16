@@ -27,9 +27,9 @@ export default function DeckCard({
   const hasPartner = Boolean(deck.partner && partnerImage);
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col hover:border-slate-600 transition-colors">
+    <div className="card card-compact bg-base-200 border border-base-300 shadow-sm transition-colors">
       {/* Image header  */}
-      <div className="relative h-52 w-full overflow-hidden shrink-0">
+      <figure className="relative h-52 w-full overflow-hidden shrink-0 rounded-none m-0">
         {hasPartner ? (
           <div className="flex w-full h-full">
             {/* Commander */}
@@ -57,14 +57,15 @@ export default function DeckCard({
             className="w-full h-full object-cover object-top"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-900/30 to-slate-900" />
-      </div>
+        {/* Theme-aware gradient overlay matching the bg-base-200 card background */}
+        <div className="absolute inset-0 bg-linear-to-b from-transparent via-base-200/30 to-base-200" />
+      </figure>
 
       {/* Content */}
-      <div className="p-5 flex flex-col gap-4 flex-1">
+      <div className="card-body">
         {/* Top row */}
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-bold text-white text-lg leading-tight">
+          <h3 className="card-title text-base-content text-lg leading-tight">
             {deck.name}
           </h3>
           <div className="flex gap-1 shrink-0">
@@ -75,9 +76,9 @@ export default function DeckCard({
         </div>
 
         {/* Meta */}
-        <div className="text-sm text-slate-400 space-y-1">
+        <div className="text-sm text-base-content/70 space-y-1">
           <p>
-            <span className="text-slate-500">Commander: </span>
+            <span className="opacity-70">Commander: </span>
             {deck.commander ? (
               deck.commander.name
             ) : (
@@ -87,40 +88,41 @@ export default function DeckCard({
 
           {deck.partner && (
             <p>
-              <span className="text-slate-500">Partner: </span>
+              <span className="opacity-70">Partner: </span>
               {deck.partner.name}
             </p>
           )}
 
           <p>
-            <span className="text-slate-500">Cards: </span>
+            <span className="opacity-70">Cards: </span>
             {cardCount} / 100
           </p>
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 mt-auto pt-2 border-t border-slate-800">
+        <div className="card-actions flex-nowrap mt-auto pt-4">
           <button
             onClick={onOpen}
-            className="flex-1 text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors"
+            className="btn btn-sm btn-neutral flex-1 hover:border-primary/50"
           >
             View
           </button>
           <button
             onClick={onEdit}
-            className="flex-1 text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors"
+            className="btn btn-sm btn-neutral flex-1 hover:border-primary/50"
           >
             Edit
           </button>
           <button
             onClick={() => exportDeck(deck)}
-            className="flex-1 text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors"
+            className="btn btn-sm btn-neutral flex-1 hover:border-primary/50"
           >
             Export
           </button>
           <button
             onClick={onDelete}
-            className="text-sm font-semibold bg-slate-800 hover:bg-red-900 text-slate-400 hover:text-red-300 px-3 py-2 rounded-lg transition-colors"
+            className="btn btn-sm btn-outline btn-error px-3"
+            aria-label="Delete Deck"
           >
             ✕
           </button>

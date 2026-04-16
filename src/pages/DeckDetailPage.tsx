@@ -1,7 +1,7 @@
 // Modules
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Layers, BarChart2 } from "lucide-react";
+import { Layers, BarChart2, ChevronLeft, Edit3 } from "lucide-react";
 
 // Stores
 import { deckStore, getDeckCardCount } from "@/store/deckStore";
@@ -57,25 +57,17 @@ const EMPTY_DECK: Deck = {
 function ChartDisplayToggle() {
   const { isStacked, setIsStacked } = useChartSelection();
   return (
-    <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 p-1 rounded-lg lg:ml-4 w-fit">
+    <div className="join lg:ml-4">
       <button
         onClick={() => setIsStacked(true)}
-        className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all hover:cursor-pointer ${
-          isStacked
-            ? "bg-[#1971c2] text-white shadow-sm"
-            : "text-slate-500 hover:text-slate-300"
-        }`}
+        className={`btn btn-sm join-item ${isStacked ? "btn-primary" : "btn-ghost bg-base-300/50"}`}
       >
         <Layers size={14} />
         Stacked
       </button>
       <button
         onClick={() => setIsStacked(false)}
-        className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all hover:cursor-pointer ${
-          !isStacked
-            ? "bg-[#1971c2] text-white shadow-sm"
-            : "text-slate-500 hover:text-slate-300"
-        }`}
+        className={`btn btn-sm join-item ${!isStacked ? "btn-primary" : "btn-ghost bg-base-300/50"}`}
       >
         <BarChart2 size={14} />
         Individual
@@ -165,21 +157,24 @@ export default function DeckDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
-        Loading deck...
+      <div className="min-h-screen bg-base-100 flex flex-col gap-4 items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+        <p className="text-base-content/60 animate-pulse">
+          Scanning the multiverse...
+        </p>
       </div>
     );
   }
 
   if (error || !activeDeck) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
-        {error ?? "Deck not found."}
+      <div className="min-h-screen bg-base-100 flex flex-col items-center justify-center gap-4">
+        <p className="text-error font-bold">{error ?? "Deck not found."}</p>
         <button
           onClick={() => navigate("/")}
-          className="ml-2 text-[#1971c2] hover:underline"
+          className="btn btn-primary btn-outline btn-sm"
         >
-          Go home
+          <ChevronLeft size={16} /> Go home
         </button>
       </div>
     );
@@ -233,19 +228,19 @@ export default function DeckDetailPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="px-6 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-base-100 text-base-content">
+      <div className="px-6 py-4 flex items-center justify-between border-b border-base-300 bg-base-100/50 backdrop-blur sticky top-0 z-30">
         <button
           onClick={() => navigate("/")}
-          className="text-slate-400 hover:text-white text-sm transition-colors hover:cursor-pointer"
+          className="btn btn-ghost btn-sm text-base-content/70 hover:text-base-content"
         >
-          ← Back
+          <ChevronLeft size={18} /> Back
         </button>
         <button
           onClick={() => navigate(`/build/${activeDeck.id}`)}
-          className="text-sm font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors hover:cursor-pointer"
+          className="btn btn-sm btn-outline border-base-300"
         >
-          Edit Deck
+          <Edit3 size={14} /> Edit Deck
         </button>
       </div>
 
@@ -253,71 +248,61 @@ export default function DeckDetailPage() {
         className={`mx-auto px-6 py-8 ${activeTab === "simulator" ? "lg:max-w-6xl" : "max-w-5xl"}`}
       >
         {/* Deck identity block */}
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white">
+        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl font-black tracking-tight">
                 {activeDeck.name}
               </h1>
               <div className="flex gap-1">
                 {activeDeck.colorIdentity.map((c) => (
-                  <ColorPip key={c} color={c} size={22} />
+                  <ColorPip key={c} color={c} size={24} />
                 ))}
               </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <p className="text-slate-400 text-sm">
-                <span className="text-slate-500">Commander: </span>
-                {activeDeck.commander?.name ?? (
-                  <span className="italic">None set</span>
-                )}
+
+            <div className="space-y-1 opacity-80">
+              <p className="text-sm">
+                <span className="font-semibold opacity-50">Commander:</span>{" "}
+                {activeDeck.commander?.name ?? "None set"}
               </p>
               {activeDeck.partner && (
-                <p className="text-slate-400 text-sm">
-                  <span className="text-slate-500">Partner: </span>
+                <p className="text-sm">
+                  <span className="font-semibold opacity-50">Partner:</span>{" "}
                   {activeDeck.partner.name}
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
-              <span>
-                Created {new Date(activeDeck.createdAt).toLocaleDateString()}
-              </span>
-              <span>·</span>
-              <span>
-                Updated {new Date(activeDeck.updatedAt).toLocaleDateString()}
-              </span>
-            </div>
           </div>
 
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            <span
-              className="text-3xl font-bold font-mono"
-              style={{ color: cardCount === 100 ? "#1971c2" : "#f1f5f9" }}
-            >
-              {cardCount}
-            </span>
-            <span className="text-slate-500 text-xs">/ 100 cards</span>
-            <div className="w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden mt-1">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${Math.min((cardCount / 100) * 100, 100)}%`,
-                  backgroundColor: "#1971c2",
-                }}
-              />
+          <div className="flex flex-col items-start md:items-end gap-2 shrink-0">
+            <div className="flex items-baseline gap-1">
+              <span
+                className={`text-4xl font-mono font-black ${cardCount === 100 ? "text-primary" : "text-base-content"}`}
+              >
+                {cardCount}
+              </span>
+              <span className="text-base-content/50 text-sm font-bold">
+                / 100 cards
+              </span>
             </div>
+            {/* Native DaisyUI Progress Bar */}
+            <progress
+              className={`progress w-48 ${cardCount === 100 ? "progress-primary" : "progress-neutral"}`}
+              value={cardCount}
+              max="100"
+            ></progress>
           </div>
         </div>
         {/* Version selector */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3">
-          <span className="text-xs text-slate-500 uppercase tracking-widest shrink-0">
+        <div className="flex flex-col sm:flex-row items-center gap-4 mb-8 p-4 bg-base-200 border border-base-300 rounded-2xl shadow-inner">
+          <label className="text-[10px] uppercase font-black tracking-widest opacity-50 px-2">
             Viewing
-          </span>
+          </label>
           <select
             value={activeVersionId}
             onChange={(e) => setActiveVersionId(e.target.value as VersionId)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#1971c2] transition-colors w-full"
+            className="select select-bordered select-sm flex-1 sm:max-w-xs bg-base-100"
           >
             {versionOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -325,46 +310,34 @@ export default function DeckDetailPage() {
               </option>
             ))}
           </select>
+
           {activeVersionId !== "main" && (
-            <>
+            <div className="flex items-center gap-3">
+              <div className="badge badge-primary badge-outline font-bold py-3">
+                {activeVersionLabel}
+              </div>
               <button
                 onClick={() => {
                   deleteVersion(activeVersionId);
                   setActiveVersionId("main");
                 }}
-                className="text-xs text-slate-500 hover:text-red-400 transition-colors shrink-0"
+                className="btn btn-ghost btn-xs text-error hover:bg-error/10"
               >
                 Delete Version
               </button>
-              <span
-                className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
-                style={{
-                  backgroundColor: "#1971c222",
-                  color: "#1971c2",
-                  border: "1px solid #1971c255",
-                }}
-              >
-                {activeVersionLabel}
-              </span>
-            </>
+            </div>
           )}
         </div>
         {/* Tabs */}
-        <div className="flex gap-6 border-b border-slate-800 mb-8">
+        <div role="tablist" className="tabs tabs-bordered mb-8">
           {tabs.map((tab) => (
             <button
               key={tab.key}
+              role="tab"
               onClick={() => setActiveTab(tab.key)}
-              className="pb-3 text-sm font-semibold transition-colors relative hover:cursor-pointer"
-              style={{ color: activeTab === tab.key ? "#1971c2" : "#64748b" }}
+              className={`tab h-12 font-bold transition-all ${activeTab === tab.key ? "tab-active border-primary! text-primary" : "text-base-content/50"}`}
             >
               {tab.label}
-              {activeTab === tab.key && (
-                <span
-                  className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                  style={{ backgroundColor: "#1971c2" }}
-                />
-              )}
             </button>
           ))}
         </div>
@@ -372,62 +345,56 @@ export default function DeckDetailPage() {
         {activeTab === "metrics" && (
           <ChartSelectionProvider entries={displayDeck.entries}>
             <div className="flex flex-col gap-8">
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div className="flex flex-wrap gap-1 bg-slate-800 p-1 rounded-lg w-fit">
-                    {(["types", "cmc", "compare"] as MetricView[]).map(
-                      (view) => (
-                        <button
-                          key={view}
-                          onClick={() => setMetricView(view)}
-                          className="px-4 py-1.5 rounded-md text-sm font-semibold transition-colors hover:cursor-pointer"
-                          style={{
-                            backgroundColor:
-                              metricView === view ? "#1971c2" : "transparent",
-                            color: metricView === view ? "#fff" : "#64748b",
-                          }}
-                        >
-                          {view === "types"
-                            ? "Types"
-                            : view === "cmc"
-                              ? "Mana Curve"
-                              : "Compare"}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                  {metricView !== "compare" && <ChartDisplayToggle />}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="join bg-base-300/30 p-1">
+                  {(["types", "cmc", "compare"] as MetricView[]).map((view) => (
+                    <button
+                      key={view}
+                      onClick={() => setMetricView(view)}
+                      className={`btn btn-sm join-item border-none ${metricView === view ? "btn-primary" : "btn-ghost"}`}
+                    >
+                      {view === "types"
+                        ? "Types"
+                        : view === "cmc"
+                          ? "Mana Curve"
+                          : "Compare"}
+                    </button>
+                  ))}
                 </div>
 
                 {metricView !== "compare" && (
-                  <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
-                    <div
-                      onClick={() => setIncludeLands((v) => !v)}
-                      className="w-9 h-5 rounded-full transition-colors relative cursor-pointer"
-                      style={{
-                        backgroundColor: includeLands ? "#1971c2" : "#334155",
-                      }}
-                    >
-                      <span
-                        className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200"
-                        style={{ left: includeLands ? "18px" : "2px" }}
-                      />
+                  <div className="flex flex-col items-left md:flex-row md:items-center gap-6">
+                    {/* DaisyUI Toggle Component */}
+                    <div className="form-control">
+                      <label className="label cursor-pointer gap-3">
+                        <span className="label-text font-bold opacity-70">
+                          Include Lands
+                        </span>
+                        <input
+                          type="checkbox"
+                          className="toggle toggle-primary toggle-sm"
+                          checked={includeLands}
+                          onChange={() => setIncludeLands(!includeLands)}
+                        />
+                      </label>
                     </div>
-                    Include Lands
-                  </label>
+                    <ChartDisplayToggle />
+                  </div>
                 )}
               </div>
 
               {metricView !== "compare" && (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                  <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-6">
-                    {metricView === "types" ? "Card Types" : "Mana Curve"}
-                  </h2>
-                  {metricView === "types" ? (
-                    <TypesChart data={typeData} />
-                  ) : (
-                    <CMCChart data={cmcData} />
-                  )}
+                <div className="card bg-base-200 border border-base-300 shadow-sm">
+                  <div className="card-body">
+                    <h2 className="card-title text-xs uppercase tracking-widest opacity-50 mb-4">
+                      {metricView === "types" ? "Card Types" : "Mana Curve"}
+                    </h2>
+                    {metricView === "types" ? (
+                      <TypesChart data={typeData} />
+                    ) : (
+                      <CMCChart data={cmcData} />
+                    )}
+                  </div>
                 </div>
               )}
 

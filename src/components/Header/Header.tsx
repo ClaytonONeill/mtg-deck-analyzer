@@ -42,7 +42,7 @@ export default function Header() {
           {!isObjectivesPage && (
             <button
               onClick={() => navTo("/objectives")}
-              className="text-sm font-semibold text-base-content opacity-70 hover:text-primary border border-base-300 hover:border-primary px-4 py-2 rounded-lg transition-colors cursor-pointer"
+              className="btn btn-sm btn-outline border-base-300 text-base-content/70 hover:bg-transparent hover:text-primary hover:border-primary font-semibold"
             >
               Objectives
             </button>
@@ -50,7 +50,7 @@ export default function Header() {
           {!isWishlistPage && (
             <button
               onClick={() => navTo("/wishlist")}
-              className="text-sm font-semibold text-base-content opacity-70 hover:text-base-content border border-base-300 hover:border-base-content px-4 py-2 rounded-lg transition-colors cursor-pointer"
+              className="btn btn-sm btn-outline border-base-300 text-base-content/70 hover:bg-transparent hover:text-base-content hover:border-base-content font-semibold"
             >
               ✨ Wishlist
             </button>
@@ -59,14 +59,14 @@ export default function Header() {
           {!isBuildPage && (
             <button
               onClick={() => navTo("/build")}
-              className="btn btn-primary btn-sm"
+              className="btn btn-sm btn-primary font-semibold"
             >
               + New Deck
             </button>
           )}
           <button
             onClick={handleSignOut}
-            className="text-sm font-semibold text-base-content opacity-50 hover:text-error border border-base-300 hover:border-error px-4 py-2 rounded-lg transition-colors cursor-pointer"
+            className="btn btn-sm btn-outline border-base-300 text-base-content/50 hover:bg-error hover:text-error-content hover:border-error font-semibold"
           >
             Sign Out
           </button>
@@ -76,7 +76,7 @@ export default function Header() {
         <select
           value={theme}
           onChange={(e) => setTheme(e.target.value)}
-          className="select select-bordered select-sm"
+          className="select select-bordered select-sm w-36"
         >
           <option value="dark">Dark</option>
           <option value="light">Light</option>
@@ -93,7 +93,7 @@ export default function Header() {
         {/* Hamburger Toggle */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="md:hidden text-base-content opacity-70 hover:text-base-content p-2"
+          className="btn btn-sm btn-ghost btn-square md:hidden text-base-content/70"
           aria-label="Toggle Menu"
         >
           <svg
@@ -123,11 +123,11 @@ export default function Header() {
 
       {/* Mobile Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 bg-base-100 border-b border-base-300 p-4 flex flex-col gap-3 md:hidden animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-full left-0 right-0 bg-base-100 border-b border-base-300 p-4 flex flex-col gap-3 md:hidden animate-in fade-in slide-in-from-top-2 shadow-lg">
           {!isObjectivesPage && (
             <button
               onClick={() => navTo("/objectives")}
-              className="w-full text-left text-sm font-semibold text-base-content px-4 py-3 rounded-lg border border-base-300 hover:bg-base-200"
+              className="btn btn-outline border-base-300 justify-start text-base-content/70 w-full"
             >
               Objectives
             </button>
@@ -135,7 +135,7 @@ export default function Header() {
           {!isWishlistPage && (
             <button
               onClick={() => navTo("/wishlist")}
-              className="w-full text-left text-sm font-semibold text-base-content px-4 py-3 rounded-lg border border-base-300 hover:bg-base-200"
+              className="btn btn-outline border-base-300 justify-start text-base-content/70 w-full"
             >
               ✨ Wishlist
             </button>
@@ -143,14 +143,14 @@ export default function Header() {
           {!isBuildPage && (
             <button
               onClick={() => navTo("/build")}
-              className="btn btn-primary btn-sm w-full"
+              className="btn btn-primary justify-start w-full"
             >
               + New Deck
             </button>
           )}
           <button
             onClick={handleSignOut}
-            className="text-sm font-semibold text-error border border-base-300 hover:bg-base-200 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+            className="btn btn-outline btn-error justify-start w-full"
           >
             Sign Out
           </button>
