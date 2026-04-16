@@ -409,7 +409,10 @@ export default function SwapSidebar({
                     <div
                       key={entry.id}
                       onClick={() =>
-                        legal && !isSwapped && handleSelect(entry.card)
+                        legal &&
+                        !isSwapped &&
+                        !isInDeck &&
+                        handleSelect(entry.card)
                       }
                       className={`
                         relative group flex flex-col gap-3 p-3 rounded-2xl border transition-all cursor-pointer
@@ -424,17 +427,36 @@ export default function SwapSidebar({
                           alt={entry.card.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
-                        {isInDeck && (
-                          <div className="absolute inset-0 bg-warning/10 flex items-center justify-center">
+
+                        {isInDeck && !isSwapped && (
+                          <div className="absolute inset-0 bg-warning/20 flex flex-col items-center justify-center gap-1">
                             <span className="badge badge-warning font-black text-[9px]">
                               IN DECK
                             </span>
+                            <span className="text-[9px] font-bold text-warning-content/80 bg-black/50 rounded-full px-2 py-0.5">
+                              Already in your deck
+                            </span>
                           </div>
                         )}
+
+                        {isSwapped && (
+                          <div className="absolute inset-0 bg-error/20 flex flex-col items-center justify-center gap-1">
+                            <span className="badge badge-error font-black text-[9px]">
+                              SWAPPED
+                            </span>
+                            <span className="text-[9px] font-bold text-error-content/80 bg-black/50 rounded-full px-2 py-0.5">
+                              Already used in a swap
+                            </span>
+                          </div>
+                        )}
+
                         {!legal && (
-                          <div className="absolute inset-0 bg-error/20 flex items-center justify-center">
+                          <div className="absolute inset-0 bg-error/20 flex flex-col items-center justify-center gap-1">
                             <span className="badge badge-error font-black text-[9px]">
                               ILLEGAL
+                            </span>
+                            <span className="text-[9px] font-bold text-error-content/80 bg-black/50 rounded-full px-2 py-0.5">
+                              Outside color identity
                             </span>
                           </div>
                         )}

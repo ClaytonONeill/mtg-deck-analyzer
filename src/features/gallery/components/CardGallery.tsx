@@ -75,6 +75,7 @@ export default function CardGallery({
   const [sortDir, setSortDir] = useState<SortDirection>("asc");
   const [expandedCard, setExpandedCard] = useState<ScryfallCard | null>(null);
   const [swapping, setSwapping] = useState<ScryfallCard | null>(null);
+  const [swappedEntries, setSwappedEntries] = useState<ScryfallCard[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     colors: [] as string[],
@@ -366,8 +367,8 @@ export default function CardGallery({
             setSwapping(null);
           }}
           onClose={() => setSwapping(null)}
-          swappedEntries={[]}
-          onSwapEntry={() => {}}
+          swappedEntries={swappedEntries}
+          onSwapEntry={setSwappedEntries}
         />
       )}
     </div>
