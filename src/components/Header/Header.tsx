@@ -4,12 +4,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 // Context
 import { useAuth } from "@/hooks/useAuthContext";
+import { useTheme } from "@/hooks/useTheme";
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   const isBuildPage = location.pathname === "/build";
   const isWishlistPage = location.pathname === "/wishlist";
@@ -26,9 +28,9 @@ export default function Header() {
   };
 
   return (
-    <header className="relative border-b bg-slate-950 border-slate-800 px-6 py-4 flex items-center justify-between z-50">
+    <header className="relative border-b bg-base-100 border-base-300 px-6 py-4 flex items-center justify-between z-50">
       <h1
-        className="text-xl font-bold tracking-tight text-white hover:cursor-pointer"
+        className="text-xl font-bold tracking-tight text-base-content hover:cursor-pointer"
         onClick={() => navTo("/")}
       >
         MTG Deck Analyzer
@@ -40,7 +42,7 @@ export default function Header() {
           {!isObjectivesPage && (
             <button
               onClick={() => navTo("/objectives")}
-              className="text-sm font-semibold text-slate-400 hover:text-indigo-300 border border-slate-700 hover:border-indigo-500 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+              className="text-sm font-semibold text-base-content opacity-70 hover:text-primary border border-base-300 hover:border-primary px-4 py-2 rounded-lg transition-colors cursor-pointer"
             >
               Objectives
             </button>
@@ -48,7 +50,7 @@ export default function Header() {
           {!isWishlistPage && (
             <button
               onClick={() => navTo("/wishlist")}
-              className="text-sm font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+              className="text-sm font-semibold text-base-content opacity-70 hover:text-base-content border border-base-300 hover:border-base-content px-4 py-2 rounded-lg transition-colors cursor-pointer"
             >
               ✨ Wishlist
             </button>
@@ -57,23 +59,41 @@ export default function Header() {
           {!isBuildPage && (
             <button
               onClick={() => navTo("/build")}
-              className="bg-[#1971c2] hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
+              className="btn btn-primary btn-sm"
             >
               + New Deck
             </button>
           )}
           <button
             onClick={handleSignOut}
-            className="text-sm font-semibold text-slate-500 hover:text-red-400 border border-slate-700 hover:border-red-400 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+            className="text-sm font-semibold text-base-content opacity-50 hover:text-error border border-base-300 hover:border-error px-4 py-2 rounded-lg transition-colors cursor-pointer"
           >
             Sign Out
           </button>
         </nav>
 
+        {/* Theme Selector */}
+        <select
+          value={theme}
+          onChange={(e) => setTheme(e.target.value)}
+          className="select select-bordered select-sm"
+        >
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+          <option value="cupcake">Cupcake</option>
+          <option value="bumblebee">Bumblebee</option>
+          <option value="valentine">Valentine</option>
+          <option value="halloween">Halloween</option>
+          <option value="garden">Garden</option>
+          <option value="forest">Forest</option>
+          <option value="dracula">Dracula</option>
+          <option value="business">Business</option>
+        </select>
+
         {/* Hamburger Toggle */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="md:hidden text-slate-400 hover:text-white p-2"
+          className="md:hidden text-base-content opacity-70 hover:text-base-content p-2"
           aria-label="Toggle Menu"
         >
           <svg
@@ -103,11 +123,11 @@ export default function Header() {
 
       {/* Mobile Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 bg-slate-950 border-b border-slate-800 p-4 flex flex-col gap-3 md:hidden animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-full left-0 right-0 bg-base-100 border-b border-base-300 p-4 flex flex-col gap-3 md:hidden animate-in fade-in slide-in-from-top-2">
           {!isObjectivesPage && (
             <button
               onClick={() => navTo("/objectives")}
-              className="w-full text-left text-sm font-semibold text-slate-400 hover:text-white px-4 py-3 rounded-lg border border-slate-800"
+              className="w-full text-left text-sm font-semibold text-base-content px-4 py-3 rounded-lg border border-base-300 hover:bg-base-200"
             >
               Objectives
             </button>
@@ -115,7 +135,7 @@ export default function Header() {
           {!isWishlistPage && (
             <button
               onClick={() => navTo("/wishlist")}
-              className="w-full text-left text-sm font-semibold text-slate-400 hover:text-white px-4 py-3 rounded-lg border border-slate-800"
+              className="w-full text-left text-sm font-semibold text-base-content px-4 py-3 rounded-lg border border-base-300 hover:bg-base-200"
             >
               ✨ Wishlist
             </button>
@@ -123,14 +143,14 @@ export default function Header() {
           {!isBuildPage && (
             <button
               onClick={() => navTo("/build")}
-              className="w-full text-left text-sm font-semibold bg-[#1971c2] text-white px-4 py-3 rounded-lg"
+              className="btn btn-primary btn-sm w-full"
             >
               + New Deck
             </button>
           )}
           <button
             onClick={handleSignOut}
-            className="text-sm font-semibold text-slate-500 hover:text-red-400 border border-slate-700 hover:border-red-400 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+            className="text-sm font-semibold text-error border border-base-300 hover:bg-base-200 px-4 py-2 rounded-lg transition-colors cursor-pointer"
           >
             Sign Out
           </button>
