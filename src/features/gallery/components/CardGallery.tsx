@@ -302,7 +302,7 @@ export default function CardGallery({
                       )}
                       <button
                         onClick={() => setSwapping(entry.card)}
-                        className="btn btn-ghost btn-md rounded-full bg-base-200 border-none px-4 opacity-60 hover:opacity-100 hover:bg-amber-500/10 hover:text-amber-500 transition-all"
+                        className="btn btn-ghost btn-md rounded-full bg-base-200 border-none px-4 opacity-60 hover:opacity-100  transition-all"
                       >
                         ⇄ Swap
                       </button>
