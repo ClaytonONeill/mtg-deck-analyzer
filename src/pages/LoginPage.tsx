@@ -41,88 +41,139 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
-      <div className="bg-slate-900 p-8 rounded-xl w-full max-w-md flex flex-col gap-6">
-        {/* Title */}
-        <h1 className="text-white text-2xl font-bold text-center">
-          MTG Deck Analyzer
-        </h1>
+    <div className="min-h-screen bg-base-300 flex items-center justify-center px-4">
+      <div className="card w-full max-w-md bg-base-100 shadow-2xl border border-base-content/5">
+        <div className="card-body p-8 gap-6">
+          {/* Brand/Title */}
+          <div className="text-center space-y-1">
+            <h1 className="text-3xl font-black tracking-tighter text-primary italic">
+              MTG <span className="text-base-content">DECK ANALYZER</span>
+            </h1>
+            <p className="text-xs uppercase tracking-widest font-bold opacity-40">
+              {view === "sign_in" && "Welcome Back"}
+              {view === "sign_up" && "Create Operative"}
+              {view === "forgot_password" && "Initiate Recovery"}
+            </p>
+          </div>
 
-        {/* View heading */}
-        <p className="text-slate-400 text-sm text-center">
-          {view === "sign_in" && "Sign in to your account"}
-          {view === "sign_up" && "Create an account"}
-          {view === "forgot_password" && "Reset your password"}
-        </p>
-
-        {/* Fields */}
-        <div className="flex flex-col gap-3">
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="bg-slate-800 text-white placeholder-slate-500 rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#1971c2]"
-          />
-          {view !== "forgot_password" && (
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-              className="bg-slate-800 text-white placeholder-slate-500 rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#1971c2]"
-            />
-          )}
-        </div>
-
-        {/* Error / success messages */}
-        {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-        {message && (
-          <p className="text-green-400 text-sm text-center">{message}</p>
-        )}
-
-        {/* Submit */}
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="bg-[#1971c2] hover:bg-[#1864ab] disabled:opacity-50 text-white font-semibold rounded-lg px-4 py-2.5 text-sm hover:cursor-pointer transition-colors"
-        >
-          {loading
-            ? "Loading..."
-            : view === "sign_in"
-              ? "Sign In"
-              : view === "sign_up"
-                ? "Create Account"
-                : "Send Reset Link"}
-        </button>
-
-        {/* View switcher */}
-        <div className="flex flex-col gap-2 text-center text-sm">
-          {view === "sign_in" && (
-            <>
-              <button
-                onClick={() => setView("forgot_password")}
-                className="text-slate-400 hover:text-white hover:cursor-pointer transition-colors"
+          {/* Feedback Messages */}
+          {error && (
+            <div className="alert alert-error text-xs py-2 rounded-md animate-in fade-in slide-in-from-top-1">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="stroke-current shrink-0 h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
               >
-                Forgot your password?
-              </button>
-              <button
-                onClick={() => setView("sign_up")}
-                className="text-slate-400 hover:text-white hover:cursor-pointer transition-colors"
-              >
-                Don't have an account? Sign up
-              </button>
-            </>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>{error}</span>
+            </div>
           )}
-          {(view === "sign_up" || view === "forgot_password") && (
+          {message && (
+            <div className="alert alert-success text-xs py-2 rounded-md animate-in fade-in slide-in-from-top-1">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="stroke-current shrink-0 h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 12l2 2l4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>{message}</span>
+            </div>
+          )}
+
+          {/* Form Fields */}
+          <div className="form-control gap-4">
+            <div className="space-y-1">
+              <label className="label-text-alt font-bold opacity-50 px-1">
+                Email Address
+              </label>
+              <input
+                type="email"
+                placeholder="planeswalker@bolas.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="input input-bordered w-full bg-base-200 focus:input-primary transition-all"
+              />
+            </div>
+
+            {view !== "forgot_password" && (
+              <div className="space-y-1">
+                <label className="label-text-alt font-bold opacity-50 px-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                  className="input input-bordered w-full bg-base-200 focus:input-primary transition-all"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Submit Action */}
+          <div className="card-actions mt-2">
             <button
-              onClick={() => setView("sign_in")}
-              className="text-slate-400 hover:text-white hover:cursor-pointer transition-colors"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="btn btn-primary btn-block shadow-lg shadow-primary/20"
             >
-              Back to sign in
+              {loading && (
+                <span className="loading loading-spinner loading-xs"></span>
+              )}
+              {view === "sign_in" && "Sign In"}
+              {view === "sign_up" && "Create Account"}
+              {view === "forgot_password" && "Send Reset Link"}
             </button>
-          )}
+          </div>
+
+          {/* View Switcher */}
+          <div className="divider opacity-5 text-[10px] uppercase font-bold tracking-widest">
+            or
+          </div>
+
+          <div className="flex flex-col gap-3 text-center">
+            {view === "sign_in" && (
+              <>
+                <button
+                  onClick={() => setView("sign_up")}
+                  className="text-xs font-bold opacity-50 hover:opacity-100 hover:text-primary transition-all"
+                >
+                  Don't have an account?{" "}
+                  <span className="underline">Sign up</span>
+                </button>
+                <button
+                  onClick={() => setView("forgot_password")}
+                  className="text-[10px] uppercase tracking-tighter opacity-30 hover:opacity-100 transition-all"
+                >
+                  Forgot password?
+                </button>
+              </>
+            )}
+            {(view === "sign_up" || view === "forgot_password") && (
+              <button
+                onClick={() => setView("sign_in")}
+                className="text-xs font-bold opacity-50 hover:opacity-100 hover:text-primary transition-all"
+              >
+                ← Back to sign in
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

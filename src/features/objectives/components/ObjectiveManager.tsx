@@ -65,117 +65,172 @@ export default function ObjectiveManager({
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Create form */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col gap-4">
-        <h3 className="text-base font-semibold text-slate-300 uppercase tracking-widest">
-          New Objective
-        </h3>
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-slate-400">Short Label</label>
+    <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-12">
+      {/* Create Section */}
+      <aside className="space-y-6">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-MD font-black uppercase tracking-[0.2em] text-primary">
+            New Objective
+          </h3>
+          <p className="text-SM text-base-content/50 font-medium">
+            Add a strategic tag for your cards.
+          </p>
+        </div>
+
+        <div className="form-control w-full gap-4">
+          <div className="space-y-1.5">
+            <label className="label py-0">
+              <span className="label-text-alt font-bold opacity-60">
+                Short Label
+              </span>
+            </label>
             <input
               type="text"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="e.g. Ramp, Win-Con, Removal..."
+              placeholder="e.g. Ramp"
               maxLength={20}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-base text-white placeholder-slate-500 focus:outline-none focus:border-[#1971c2] transition-colors"
+              className="input input-bordered w-full bg-base-200/50 focus:input-primary"
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-slate-400">
-              Description <span className="text-slate-600">(optional)</span>
+
+          <div className="space-y-1.5 my-3">
+            <label className="label py-0">
+              <span className="label-text-alt font-bold opacity-60">
+                Description (Optional)
+              </span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-base text-white placeholder-slate-500 focus:outline-none focus:border-[#1971c2] transition-colors resize-none"
+              rows={3}
+              className="textarea textarea-bordered w-full bg-base-200/50 focus:textarea-primary resize-none"
+              placeholder="How does this help you win?"
             />
           </div>
+
           <button
             onClick={handleCreate}
             disabled={!label.trim()}
-            className="self-start bg-[#1971c2] hover:bg-blue-500 disabled:opacity-40 text-white text-base font-semibold px-4 py-2 rounded-lg transition-colors"
+            className="btn btn-primary btn-block shadow-lg shadow-primary/20"
           >
-            Add Objective
+            Create Objective
           </button>
         </div>
-      </div>
+      </aside>
 
-      {/* Objective list */}
-      {safeObjectives.length === 0 ? (
-        <p className="text-slate-500 text-base text-center py-8">
-          No objectives yet — add one above.
-        </p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {safeObjectives.map((o) => (
-            <div
-              key={o.id}
-              className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-3"
-            >
-              {editingId === o.id ? (
-                <div className="flex flex-col gap-3">
-                  <input
-                    type="text"
-                    value={editLabel}
-                    onChange={(e) => setEditLabel(e.target.value)}
-                    maxLength={20}
-                    className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-base text-white focus:outline-none focus:border-[#1971c2] transition-colors"
-                  />
-                  <textarea
-                    value={editDesc}
-                    onChange={(e) => setEditDesc(e.target.value)}
-                    rows={2}
-                    className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-base text-white focus:outline-none focus:border-[#1971c2] transition-colors resize-none"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={commitEdit}
-                      className="text-base font-semibold bg-[#1971c2] hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="text-base text-slate-400 hover:text-white px-3 py-1.5 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between gap-3">
-                    <ObjectivePill objective={o} size="md" />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => startEdit(o)}
-                        className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => onDelete(o.id)}
-                        className="text-sm text-slate-500 hover:text-red-400 transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                  {o.description && (
-                    <p className="text-slate-400 text-sm leading-relaxed">
-                      {o.description}
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-          ))}
+      {/* List Section */}
+      <section className="space-y-6">
+        <div className="flex items-center gap-4">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">
+            Existing Objectives
+          </h3>
+          <div className="h-px flex-1 bg-base-content/5"></div>
         </div>
-      )}
+
+        {safeObjectives.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-base-200/30 rounded-3xl border-2 border-dashed border-base-content/5">
+            <p className="text-base-content/30 font-medium italic">
+              No objectives defined yet.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {safeObjectives.map((o) => (
+              <div
+                key={o.id}
+                className="card bg-base-200/50 border border-base-content/5 transition-all hover:bg-base-200"
+              >
+                <div className="card-body p-5">
+                  {editingId === o.id ? (
+                    <div className="flex flex-col gap-3">
+                      <input
+                        type="text"
+                        value={editLabel}
+                        onChange={(e) => setEditLabel(e.target.value)}
+                        className="input input-sm input-bordered w-full"
+                      />
+                      <textarea
+                        value={editDesc}
+                        onChange={(e) => setEditDesc(e.target.value)}
+                        rows={2}
+                        className="textarea textarea-sm textarea-bordered w-full resize-none"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={commitEdit}
+                          className="btn btn-primary btn-xs px-4"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="btn btn-ghost btn-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-start justify-between">
+                        <ObjectivePill objective={o} size="md" />
+                        <div className="dropdown dropdown-end">
+                          <label
+                            tabIndex={0}
+                            className="btn btn-ghost btn-xs btn-circle opacity-40 hover:opacity-100"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                              />
+                            </svg>
+                          </label>
+                          <ul
+                            tabIndex={0}
+                            className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-32 border border-base-content/10"
+                          >
+                            <li>
+                              <button
+                                onClick={() => startEdit(o)}
+                                className="text-xs"
+                              >
+                                Edit
+                              </button>
+                            </li>
+                            <li>
+                              <button
+                                onClick={() => onDelete(o.id)}
+                                className="text-xs text-error"
+                              >
+                                Delete
+                              </button>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                      {o.description && (
+                        <p className="mt-3 text-xs text-base-content/60 leading-relaxed line-clamp-2">
+                          {o.description}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

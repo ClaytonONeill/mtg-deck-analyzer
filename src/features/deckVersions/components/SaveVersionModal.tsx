@@ -43,7 +43,6 @@ export default function SaveVersionModal({
       <div className="modal-box bg-base-100 border border-base-300 shadow-2xl max-w-md p-6 flex flex-col gap-6">
         <h2 className="text-xl font-bold">Save Version</h2>
 
-        {/* Mode toggle — using DaisyUI Join */}
         {existingVersions.length > 0 && (
           <div className="join w-full">
             <button
