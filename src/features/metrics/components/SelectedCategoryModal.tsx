@@ -24,6 +24,8 @@ export default function SelectedCategoryModal() {
     );
   });
 
+  const CARD_TEXT = filteredEntries.length === 1 ? "Card" : "Cards";
+
   return (
     <div className="modal modal-open modal-bottom sm:modal-middle backdrop-blur-sm">
       <div className="modal-box max-w-3xl max-h-[85vh] p-0 bg-base-100 border border-base-content/10 shadow-2xl overflow-hidden flex flex-col">
@@ -40,7 +42,7 @@ export default function SelectedCategoryModal() {
               </span>
             </h2>
             <div className="badge badge-sm badge-outline opacity-40 font-mono">
-              {filteredEntries.length} Results Found
+              {filteredEntries.length} {CARD_TEXT} Found
             </div>
           </div>
 
@@ -73,7 +75,7 @@ export default function SelectedCategoryModal() {
                     <img
                       src={imageSrc}
                       alt={entry.card.name}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-101"
                       loading="lazy"
                     />
                   </div>

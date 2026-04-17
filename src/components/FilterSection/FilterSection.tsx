@@ -152,7 +152,7 @@ export default function FilterSection({
                     onClick={() =>
                       onChange({ ...draft, types: toggle(draft.types, cat) })
                     }
-                    className={`btn btn-xs rounded-full normal-case ${
+                    className={`btn btn-sm rounded-full normal-case ${
                       draft.types.includes(cat)
                         ? "btn-primary"
                         : "btn-ghost bg-base-200 opacity-60"
@@ -234,12 +234,6 @@ export default function FilterSection({
               className="btn btn-ghost btn-sm text-error"
             >
               Clear All Filters
-            </button>
-            <button
-              onClick={() => onToggle(false)}
-              className="btn btn-primary btn-sm px-8"
-            >
-              Apply
             </button>
           </div>
         </div>

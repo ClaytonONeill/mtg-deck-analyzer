@@ -145,6 +145,7 @@ export default function WishlistPage() {
   const [sortDir, setSortDir] = useState<SortDirection>("desc");
   const [filters, setFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
   const {
@@ -162,7 +163,10 @@ export default function WishlistPage() {
   const filterCount = activeFilterCount(filters);
 
   useEffect(() => {
-    deckStore.getAll().then(setAllDecks);
+    deckStore.getAll().then((decks) => {
+      setAllDecks(decks);
+      setLoading(false);
+    });
   }, []);
 
   const filtered = useMemo(
@@ -173,6 +177,17 @@ export default function WishlistPage() {
     () => sortEntries(filtered, sort, sortDir),
     [filtered, sort, sortDir],
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-base-200 flex flex-col gap-4 items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+        <p className="text-base-content/70 text-sm font-semibold">
+          Loading wishlist...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-base-200 text-base-content pb-20">

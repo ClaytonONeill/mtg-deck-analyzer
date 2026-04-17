@@ -364,7 +364,6 @@ export default function DeckDetailPage() {
 
                 {metricView !== "compare" && (
                   <div className="flex flex-col items-left md:flex-row md:items-center gap-6">
-                    {/* DaisyUI Toggle Component */}
                     <div className="form-control">
                       <label className="label cursor-pointer gap-3">
                         <span className="label-text font-bold opacity-70">
@@ -400,7 +399,10 @@ export default function DeckDetailPage() {
 
               {metricView === "compare" && <VersionCompare deck={activeDeck} />}
             </div>
-            <SelectedCategoryModal />
+
+            {/* Only render the top-level modal when NOT in compare mode —
+        compare panels each own their own SelectedCategoryModal */}
+            {metricView !== "compare" && <SelectedCategoryModal />}
           </ChartSelectionProvider>
         )}
         {/* Gallery tab */}

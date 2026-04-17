@@ -14,9 +14,13 @@ import {
   getCMCBreakdown,
 } from "@/features/metrics/utils/deckMetrics";
 
+// Context
+import { ChartSelectionProvider } from "@/features/metrics/context/ChartSelectionContext";
+
 // Components
 import TypesChart from "@/features/metrics/components/TypesChart";
 import CMCChart from "@/features/metrics/components/CMCChart";
+import SelectedCategoryModal from "@/features/metrics/components/SelectedCategoryModal";
 
 interface VersionCompareProps {
   deck: Deck;
@@ -72,6 +76,23 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
   const diff = getCardDiff(leftId, rightId);
   const hasDiff = diff && (diff.removed.length > 0 || diff.added.length > 0);
 
+  const panels = [
+    {
+      id: leftId,
+      side: "left",
+      deck: leftDeck,
+      typeData: leftTypeData,
+      cmcData: leftCMCData,
+    },
+    {
+      id: rightId,
+      side: "right",
+      deck: rightDeck,
+      typeData: rightTypeData,
+      cmcData: rightCMCData,
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-8">
       {/* Selectors */}
@@ -112,7 +133,6 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-base-300">
-            {/* Removed */}
             <div className="p-4">
               <div className="flex items-center gap-2 mb-3">
                 <span className="badge badge-error badge-sm badge-outline">
@@ -148,7 +168,6 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
               </div>
             </div>
 
-            {/* Added */}
             <div className="p-4">
               <div className="flex items-center gap-2 mb-3">
                 <span className="badge badge-success badge-sm badge-outline">
@@ -224,39 +243,26 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
         </div>
       </div>
 
-      {/* Side by side charts */}
+      {/* Side by side charts — each in its own provider */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {[
-          {
-            id: leftId,
-            side: "left",
-            typeData: leftTypeData,
-            cmcData: leftCMCData,
-          },
-          {
-            id: rightId,
-            side: "right",
-            typeData: rightTypeData,
-            cmcData: rightCMCData,
-          },
-        ].map(({ id, side, typeData, cmcData }) => (
-          <div
-            key={side}
-            className="card bg-base-100 border border-base-300 shadow-xl"
-          >
-            <div className="card-body p-5">
-              <h3 className="card-title text-sm font-black opacity-80 mb-4 border-l-4 border-primary pl-3 uppercase tracking-wider">
-                {getVersionLabel(deck, id)}
-              </h3>
-              <div className="h-[250px] w-full">
-                {chartView === "types" ? (
-                  <TypesChart data={typeData} />
-                ) : (
-                  <CMCChart data={cmcData} />
-                )}
+        {panels.map(({ id, side, deck: panelDeck, typeData, cmcData }) => (
+          <ChartSelectionProvider key={side} entries={panelDeck.entries}>
+            <div className="card bg-base-100 border border-base-300 shadow-xl">
+              <div className="card-body p-5">
+                <h3 className="card-title text-sm font-black opacity-80 mb-4 border-l-4 border-primary pl-3 uppercase tracking-wider">
+                  {getVersionLabel(deck, id)}
+                </h3>
+                <div className="h-[250px] w-full">
+                  {chartView === "types" ? (
+                    <TypesChart data={typeData} />
+                  ) : (
+                    <CMCChart data={cmcData} />
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+            <SelectedCategoryModal />
+          </ChartSelectionProvider>
         ))}
       </div>
     </div>

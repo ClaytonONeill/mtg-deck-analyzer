@@ -80,6 +80,9 @@ export default function Header() {
         >
           <option value="dark">Dark</option>
           <option value="light">Light</option>
+          <option value="emerald">Emerald</option>
+          <option value="fantasy">Fantasy</option>
+          <option value="retro">Retro</option>
           <option value="cupcake">Cupcake</option>
           <option value="bumblebee">Bumblebee</option>
           <option value="valentine">Valentine</option>
