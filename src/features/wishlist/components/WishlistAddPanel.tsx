@@ -35,52 +35,67 @@ export default function WishlistAddPanel({
     <div className="flex flex-col gap-4">
       <CardSearchPanel
         label="Search for a card to wishlist"
-        placeholder="Search cards..."
+        placeholder="Type a card name..."
         onSelectCard={handleSelect}
       />
 
       {pending && (
-        <div className="bg-slate-900 border border-[#1971c2] rounded-xl p-4 flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            {pending.image_uris?.small && (
-              <img
-                src={pending.image_uris.small}
-                alt={pending.name}
-                className="w-12 rounded-lg shrink-0"
-              />
-            )}
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <p className="text-white font-semibold text-sm truncate">
-                {pending.name}
-              </p>
-              <p className="text-slate-400 text-xs">{pending.type_line}</p>
+        <div className="card bg-base-100 border-2 border-primary/30 shadow-xl animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="card-body p-4 gap-4">
+            <div className="flex items-center gap-4">
+              <div className="avatar">
+                <div className="w-16 rounded-lg ring ring-primary ring-offset-base-100 ring-offset-2">
+                  {pending.image_uris?.small ? (
+                    <img src={pending.image_uris.small} alt={pending.name} />
+                  ) : (
+                    <div className="bg-neutral text-neutral-content flex items-center justify-center h-full">
+                      <span className="text-xs">MTG</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="min-w-0">
+                <h3 className="font-bold text-lg truncate">{pending.name}</h3>
+                <p className="text-xs opacity-60 uppercase tracking-tighter font-semibold">
+                  {pending.type_line}
+                </p>
+              </div>
             </div>
-          </div>
 
-          <input
-            type="text"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Why are you considering this card? (optional)"
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#1971c2] transition-colors"
-          />
+            <div className="form-control w-full">
+              <label className="label py-1">
+                <span className="label-text-alt font-bold opacity-50">
+                  WHY THIS CARD?
+                </span>
+              </label>
+              <input
+                type="text"
+                autoFocus
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="e.g. For the token subtheme..."
+                className="input input-bordered input-sm w-full focus:input-primary"
+              />
+            </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={handleAdd}
-              className="flex-1 bg-[#1971c2] hover:bg-blue-500 text-white font-semibold text-sm py-2 rounded-lg transition-colors"
-            >
-              Add to Wishlist
-            </button>
-            <button
-              onClick={() => {
-                setPending(null);
-                setNote("");
-              }}
-              className="text-sm text-slate-400 hover:text-white px-4 py-2 transition-colors"
-            >
-              Cancel
-            </button>
+            <div className="card-actions justify-end">
+              <button
+                onClick={() => {
+                  setPending(null);
+                  setNote("");
+                }}
+                className="btn btn-ghost btn-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAdd}
+                className="btn btn-primary btn-sm px-6"
+              >
+                Add to Wishlist
+              </button>
+            </div>
           </div>
         </div>
       )}

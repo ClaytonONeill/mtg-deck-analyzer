@@ -1,16 +1,15 @@
-// Modules
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from "react";
 
 // Hooks
-import { useCardSearch } from '@/features/deckBuilder/hooks/useCardSearch';
+import { useCardSearch } from "@/features/deckBuilder/hooks/useCardSearch";
 
 // Components
-import CardImageTooltip from '@/components/CardImageTooltip/CardImageTooltip';
-import ManaCost from '@/components/ManaSymbol/ManaCost';
-import ColorPip from '@/components/ManaSymbol/ColorPip';
+import CardImageTooltip from "@/components/CardImageTooltip/CardImageTooltip";
+import ManaCost from "@/components/ManaSymbol/ManaCost";
+import ColorPip from "@/components/ManaSymbol/ColorPip";
 
 // Types
-import type { ScryfallCard } from '@/types';
+import type { ScryfallCard } from "@/types";
 
 interface CardSearchPanelProps {
   commanderOnly?: boolean;
@@ -24,21 +23,18 @@ export default function CardSearchPanel({
   commanderOnly = false,
   onSelectCard,
   label,
-  placeholder = 'Search cards...',
+  placeholder = "Search cards...",
   disabled,
 }: CardSearchPanelProps) {
-  // State
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [hoveredCard, setHoveredCard] = useState<ScryfallCard | null>(null);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
 
-  // Refs
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  // Hook
   const { results, loading, error, search, searchNow, clear } = useCardSearch();
 
   const closeDropdown = useCallback(() => {
@@ -48,7 +44,7 @@ export default function CardSearchPanel({
     setActiveIndex(-1);
   }, [clear]);
 
-  // Click outside
+  // Click Outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -58,27 +54,27 @@ export default function CardSearchPanel({
         closeDropdown();
       }
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [closeDropdown]);
 
-  // Escape key — global listener so it works even if input loses focus
+  // Escape Key
   useEffect(() => {
     function handleEscape(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         closeDropdown();
         inputRef.current?.focus();
       }
     }
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
   }, [closeDropdown]);
 
-  // Scroll active item into view when arrow navigating
+  // Auto-scroll
   useEffect(() => {
     if (activeIndex < 0 || !listRef.current) return;
     const item = listRef.current.children[activeIndex] as HTMLElement;
-    item?.scrollIntoView({ block: 'nearest' });
+    item?.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
 
   const handleChange = (val: string) => {
@@ -90,12 +86,11 @@ export default function CardSearchPanel({
   const handleSelect = useCallback(
     (card: ScryfallCard) => {
       onSelectCard(card);
-      setQuery('');
+      setQuery("");
       setActiveIndex(-1);
       clear();
       setHoveredCard(null);
       setAnchorRect(null);
-      // Retain focus in input so user can type immediately
       inputRef.current?.focus();
     },
     [onSelectCard, clear],
@@ -103,7 +98,7 @@ export default function CardSearchPanel({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     switch (e.key) {
-      case 'Enter':
+      case "Enter":
         if (activeIndex >= 0 && results[activeIndex]) {
           e.preventDefault();
           handleSelect(results[activeIndex]);
@@ -111,18 +106,15 @@ export default function CardSearchPanel({
           searchNow(query, commanderOnly);
         }
         break;
-
-      case 'ArrowDown':
+      case "ArrowDown":
         e.preventDefault();
         setActiveIndex((i) => Math.min(i + 1, results.length - 1));
         break;
-
-      case 'ArrowUp':
+      case "ArrowUp":
         e.preventDefault();
         setActiveIndex((i) => Math.max(i - 1, 0));
         break;
-
-      case 'Escape':
+      case "Escape":
         closeDropdown();
         break;
     }
@@ -142,77 +134,90 @@ export default function CardSearchPanel({
   };
 
   return (
-    <div ref={containerRef} className="flex flex-col gap-2 w-full">
-      <label
-        className={`text-sm font-semibold ${disabled ? 'text-slate-600' : 'text-slate-300'}`}
-      >
-        {disabled ? 'Max Card Limit Reached' : label}
+    <div ref={containerRef} className="form-control w-full relative">
+      <label className="label py-1">
+        <span
+          className={`label-text font-bold tracking-wide ${disabled ? "text-neutral-content/40" : "opacity-70"}`}
+        >
+          {disabled ? "MAX CARD LIMIT REACHED" : label.toUpperCase()}
+        </span>
       </label>
 
-      <input
-        disabled={disabled}
-        ref={inputRef}
-        type="text"
-        value={query}
-        onChange={(e) => handleChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        className={`bg-slate-800 border rounded-lg px-4 py-2 text-sm transition-colors ${
-          disabled
-            ? 'border-slate-800 text-slate-600 placeholder-slate-700 cursor-not-allowed opacity-50'
-            : 'border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-[#1971c2]'
-        }`}
-      />
+      <div className="relative group">
+        <input
+          disabled={disabled}
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={(e) => handleChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          className={`input input-bordered w-full transition-all duration-200 ${
+            disabled ? "input-disabled" : "focus:input-primary bg-base-200/50"
+          }`}
+        />
+        {loading && (
+          <span className="loading loading-spinner loading-xs absolute right-4 top-1/2 -translate-y-1/2 opacity-50" />
+        )}
+      </div>
 
-      {loading && <p className="text-xs text-slate-500 px-1">Searching...</p>}
-      {error && <p className="text-xs text-red-400 px-1">{error}</p>}
+      {error && (
+        <label className="label pb-0">
+          <span className="label-text-alt text-error font-medium">{error}</span>
+        </label>
+      )}
 
       {results.length > 0 && (
         <ul
           ref={listRef}
-          className="bg-slate-900 border border-slate-700 rounded-xl overflow-y-auto max-h-105 divide-y divide-slate-800 shadow-2xl"
+          className="absolute left-0 right-0 z-100 mt-1 flex flex-col flex-nowrap max-h-100 overflow-y-auto overflow-x-hidden menu bg-base-100 rounded-box border border-base-300 shadow-2xl p-2 w-[95%] md:w-3xl"
         >
           {results.map((card, index) => (
-            <li key={card.id}>
+            <li key={card.id} className="w-full block">
               <button
+                type="button"
                 onClick={() => handleSelect(card)}
                 onMouseEnter={(e) => {
                   setActiveIndex(index);
                   handleMouseEnter(card, e);
                 }}
                 onMouseLeave={handleMouseLeave}
-                className="w-full text-left px-4 py-3 transition-colors"
-                style={{
-                  backgroundColor:
-                    activeIndex === index ? '#1e293b' : 'transparent',
-                }}
+                className={`flex flex-col items-start w-full p-3 rounded-md mb-1 ${
+                  activeIndex === index ? "active" : ""
+                }`}
               >
-                {/* Row 1 — name + color pips */}
-                <div className="flex items-center justify-between gap-3 mb-1">
-                  <span className="text-white font-semibold text-sm">
+                {/* Row 1: Name and Pips */}
+                <div className="flex justify-between items-center w-full min-w-0">
+                  <span className="font-bold text-sm truncate">
                     {card.name}
                   </span>
-                  <div className="flex gap-1 shrink-0">
+                  <div className="flex gap-0.5 shrink-0 ml-2">
                     {(card.color_identity ?? []).map((c) => (
-                      <ColorPip key={c} color={c} size={16} />
+                      <ColorPip key={c} color={c} size={14} />
                     ))}
                   </div>
                 </div>
 
-                {/* Row 2 — type line */}
-                <p className="text-slate-400 text-xs mb-2">{card.type_line}</p>
+                {/* Row 2: Type Line */}
+                <div className="text-[10px] opacity-50 uppercase truncate w-full">
+                  {card.type_line}
+                </div>
 
-                {/* Row 3 — stat chips */}
-                <div className="flex gap-2 flex-wrap">
-                  {card.cmc > 0 && <ManaCost cost={card.mana_cost} size={14} />}
-                  {card.power && card.toughness && (
-                    <span className="bg-slate-700 text-slate-300 text-[11px] font-mono px-2 py-0.5 rounded">
-                      {card.power} / {card.toughness}
-                    </span>
+                {/* Row 3: Stats */}
+                <div className="flex items-center gap-2 mt-1 w-full min-w-0">
+                  {card.mana_cost && (
+                    <div className="shrink-0">
+                      <ManaCost cost={card.mana_cost} size={14} />
+                    </div>
+                  )}
+                  {card.power && (
+                    <div className="badge badge-neutral badge-xs shrink-0">
+                      {card.power}/{card.toughness}
+                    </div>
                   )}
                   {card.oracle_text && (
-                    <span className="text-slate-500 text-[11px] italic truncate max-w-70">
-                      {card.oracle_text.split('\n')[0]}
+                    <span className="text-[11px] italic opacity-40 truncate flex-1">
+                      {card.oracle_text.split("\n")[0]}
                     </span>
                   )}
                 </div>

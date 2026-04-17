@@ -1,10 +1,10 @@
-import { X } from 'lucide-react';
+import { X } from "lucide-react";
 
 // Hooks
-import { useChartSelection } from '../hooks/useChartSelection';
+import { useChartSelection } from "../hooks/useChartSelection";
 
 // Utils
-import { BASIC_LAND_NAMES, configureBasicLandEndpoint } from '@/utils/utils';
+import { BASIC_LAND_NAMES, configureBasicLandEndpoint } from "@/utils/utils";
 
 export default function SelectedCategoryModal() {
   const { selectedCategory, setSelectedCategory, viewableEntries } =
@@ -24,59 +24,95 @@ export default function SelectedCategoryModal() {
     );
   });
 
+  const CARD_TEXT = filteredEntries.length === 1 ? "Card" : "Cards";
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
-        <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-white capitalize">
-              {CMC_VIEW
-                ? `Converted Mana Cost ${selectedCategory}`
-                : `${selectedCategory} Cards`}
+    <div className="modal modal-open modal-bottom sm:modal-middle backdrop-blur-sm">
+      <div className="modal-box max-w-3xl max-h-[85vh] p-0 bg-base-100 border border-base-content/10 shadow-2xl overflow-hidden flex flex-col">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-6 bg-base-200/50 border-b border-base-content/5">
+          <div className="space-y-1">
+            <h2 className="text-xl font-black italic tracking-tight text-base-content flex items-center gap-2">
+              <span className="text-primary truncate uppercase">
+                {CMC_VIEW ? `CMC ${selectedCategory}` : selectedCategory}
+              </span>
+              <span className="opacity-20 text-sm font-normal">/</span>
+              <span className="text-sm opacity-50 font-bold uppercase tracking-widest">
+                Analytics Detail
+              </span>
             </h2>
-            <p className="text-slate-400 text-sm">
-              {filteredEntries.length} cards
-            </p>
+            <div className="badge badge-sm badge-outline opacity-40 font-mono">
+              {filteredEntries.length} {CARD_TEXT} Found
+            </div>
           </div>
+
           <button
             onClick={() => setSelectedCategory(null)}
-            className="p-2 hover:bg-slate-800 rounded-full text-slate-400"
+            className="btn btn-ghost btn-sm btn-circle hover:bg-error/10 hover:text-error transition-all"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
-        <div className="overflow-y-auto p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {filteredEntries.map((entry) => {
-            const isBasicLand = BASIC_LAND_NAMES.includes(
-              entry.card.name.toLowerCase(),
-            );
-            return (
-              <div
-                key={entry.card.id}
-                className="flex flex-col items-center gap-3 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50"
-              >
-                <img
-                  src={
-                    isBasicLand
-                      ? configureBasicLandEndpoint(entry.card.name)
-                      : entry.card.image_uris?.large
-                  }
-                  alt={entry.card.name}
-                  className="w-3/4 object-contain"
-                />
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-medium text-slate-100">
-                    {entry.card.name}
-                  </span>
-                  <span className="text-xs text-slate-500">
-                    {entry.card.type_line.split('—')[0]}
-                  </span>
+
+        {/* Modal Content - Scrollable Grid */}
+        <div className="overflow-y-auto p-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredEntries.map((entry) => {
+              const isBasicLand = BASIC_LAND_NAMES.includes(
+                entry.card.name.toLowerCase(),
+              );
+
+              const imageSrc = isBasicLand
+                ? configureBasicLandEndpoint(entry.card.name)
+                : entry.card.image_uris?.large;
+
+              return (
+                <div
+                  key={entry.card.id}
+                  className="group flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-200"
+                >
+                  <div className="relative aspect-[63/88] w-full rounded-[4.75%/3.5%] overflow-hidden shadow-lg group-hover:shadow-primary/20 group-hover:ring-2 group-hover:ring-primary/50 transition-all">
+                    <img
+                      src={imageSrc}
+                      alt={entry.card.name}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-101"
+                      loading="lazy"
+                    />
+                  </div>
+
+                  <div className="flex flex-col px-1">
+                    <span className="text-xs font-bold truncate text-base-content group-hover:text-primary transition-colors">
+                      {entry.card.name}
+                    </span>
+                    <span className="text-[10px] uppercase font-black tracking-widest opacity-30">
+                      {entry.card.type_line.split("—")[0]}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Modal Action Footer */}
+        <div className="modal-action p-4 bg-base-200/30 border-t border-base-content/5 mt-0">
+          <button
+            className="btn btn-sm btn-ghost opacity-50 hover:opacity-100"
+            onClick={() => setSelectedCategory(null)}
+          >
+            Close Inspector
+          </button>
         </div>
       </div>
+
+      {/* Click outside to close backdrop */}
+      <form
+        method="dialog"
+        className="modal-backdrop bg-black/60"
+        onClick={() => setSelectedCategory(null)}
+      >
+        <button>close</button>
+      </form>
     </div>
   );
 }
