@@ -86,12 +86,14 @@ export default function Header() {
           <option value="nord">Nord</option>
           <option value="cupcake">Cupcake</option>
           <option value="bumblebee">Bumblebee</option>
+          <option value="pastel">Pastel</option>
           <option value="valentine">Valentine</option>
           <option value="halloween">Halloween</option>
           <option value="garden">Garden</option>
           <option value="forest">Forest</option>
           <option value="dracula">Dracula</option>
           <option value="business">Business</option>
+          <option value="night">Night</option>
         </select>
 
         {/* Hamburger Toggle */}

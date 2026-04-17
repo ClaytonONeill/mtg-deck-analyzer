@@ -27,9 +27,9 @@ export default function DeckCard({
   const hasPartner = Boolean(deck.partner && partnerImage);
 
   return (
-    <div className="card card-compact bg-base-200 border border-base-300 shadow-sm transition-colors">
+    <div className="card card-compact bg-base-200 border border-base-300 shadow-sm transition-colors rounded-t-3xl">
       {/* Image header  */}
-      <figure className="relative h-52 w-full overflow-hidden shrink-0 rounded-none m-0">
+      <figure className="relative h-52 w-full overflow-hidden shrink-0 m-0">
         {hasPartner ? (
           <div className="flex w-full h-full">
             {/* Commander */}
