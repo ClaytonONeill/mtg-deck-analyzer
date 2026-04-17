@@ -30,7 +30,7 @@ export default function Header() {
   return (
     <header className="relative border-b bg-base-100 border-base-300 px-6 py-4 flex items-center justify-between z-50">
       <h1
-        className="text-xl font-bold tracking-tight text-base-content hover:cursor-pointer"
+        className="text-lg md:text-xl font-bold tracking-tight text-base-content hover:cursor-pointer"
         onClick={() => navTo("/")}
       >
         MTG Deck Analyzer
@@ -83,6 +83,7 @@ export default function Header() {
           <option value="emerald">Emerald</option>
           <option value="fantasy">Fantasy</option>
           <option value="retro">Retro</option>
+          <option value="nord">Nord</option>
           <option value="cupcake">Cupcake</option>
           <option value="bumblebee">Bumblebee</option>
           <option value="valentine">Valentine</option>

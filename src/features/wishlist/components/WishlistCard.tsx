@@ -45,14 +45,14 @@ export default function WishlistCard({
   );
 
   return (
-    <div className="card lg:card-side bg-base-100 border border-base-300 shadow-xl overflow-hidden w-full">
+    <div className="card sm:card-side bg-base-100 border border-base-300 shadow-xl overflow-hidden w-full">
       {/* Card Image Section */}
-      <figure className="shrink-0 w-full sm:w-56 md:w-48 bg-base-300">
+      <figure className="shrink-0 w-full sm:w-48 md:w-56 bg-base-200/50 flex items-center justify-center p-6 sm:p-0">
         {entry.card.image_uris?.large ? (
           <img
             src={entry.card.image_uris.large}
             alt={entry.card.name}
-            className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
+            className="w-2/3 sm:w-full h-auto sm:h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300 rounded-xl sm:rounded-none shadow-lg sm:shadow-none"
             onClick={() => setExpanded(true)}
           />
         ) : (
