@@ -328,14 +328,35 @@ export default function DeckDetailPage() {
             </div>
           )}
         </div>
-        {/* Tabs */}
-        <div role="tablist" className="tabs tabs-bordered mb-8">
+        {/* Mobile: scrollable pill nav */}
+        <div className="flex md:hidden overflow-x-auto gap-2 mb-8 pb-2 scrollbar-none snap-x snap-mandatory">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`snap-start shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all border ${
+                activeTab === tab.key
+                  ? "bg-primary text-primary-content border-primary shadow-md shadow-primary/20"
+                  : "bg-base-200 border-base-300 text-base-content/50"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Desktop: standard bordered tabs */}
+        <div role="tablist" className="hidden md:flex tabs tabs-bordered mb-8">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               role="tab"
               onClick={() => setActiveTab(tab.key)}
-              className={`tab h-12 font-bold transition-all ${activeTab === tab.key ? "tab-active border-primary! text-primary" : "text-base-content/50"}`}
+              className={`tab h-12 font-bold transition-all ${
+                activeTab === tab.key
+                  ? "tab-active border-primary! text-primary"
+                  : "text-base-content/50"
+              }`}
             >
               {tab.label}
             </button>
