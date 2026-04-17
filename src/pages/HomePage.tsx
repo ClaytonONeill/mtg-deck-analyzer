@@ -31,20 +31,23 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <p className="text-slate-400 text-sm">Loading decks...</p>
+      <div className="min-h-screen bg-base-100 flex flex-col gap-4 items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+        <p className="text-base-content/70 text-sm font-semibold">
+          Loading decks...
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-base-100 text-base-content">
       <main className="max-w-5xl mx-auto px-6 py-10">
         {decks.length === 0 ? (
           <EmptyState onBuildDeck={() => navigate("/build")} />
         ) : (
           <>
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-6">
+            <h2 className="text-sm font-semibold text-base-content/60 uppercase tracking-widest mb-6">
               Your Decks
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

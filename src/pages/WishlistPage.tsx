@@ -145,9 +145,9 @@ export default function WishlistPage() {
   const [sortDir, setSortDir] = useState<SortDirection>("desc");
   const [filters, setFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
-
   const {
     entries,
     addCard,
@@ -157,67 +157,80 @@ export default function WishlistPage() {
     assignObjective,
     unassignObjective,
   } = useWishlist();
-
   const { objectives: allObjectives } = useObjectives();
 
   const existingCardIds = entries.map((e) => e.card.id);
   const filterCount = activeFilterCount(filters);
 
   useEffect(() => {
-    deckStore.getAll().then(setAllDecks);
+    deckStore.getAll().then((decks) => {
+      setAllDecks(decks);
+      setLoading(false);
+    });
   }, []);
 
   const filtered = useMemo(
     () => applyFilters(entries, filters),
     [entries, filters],
   );
-
   const sorted = useMemo(
     () => sortEntries(filtered, sort, sortDir),
     [filtered, sort, sortDir],
   );
 
-  const handleClearFilters = () => {
-    setFilters(EMPTY_FILTERS);
-    setShowFilters(false);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-base-200 flex flex-col gap-4 items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+        <p className="text-base-content/70 text-sm font-semibold">
+          Loading wishlist...
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="px-6 py-4 flex items-center justify-between">
-        <button
-          onClick={() => navigate("/")}
-          className="text-slate-400 hover:text-white text-[16.1px]"
-        >
-          ← Back
-        </button>
-        <h1 className="text-[20.7px] font-bold text-white">Wishlist</h1>
-        <span className="text-[16.1px] text-slate-500">
-          {entries.length} card{entries.length !== 1 ? "s" : ""}
-        </span>
+    <div className="min-h-screen bg-base-200 text-base-content pb-20">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-30 bg-base-100/80 backdrop-blur-md border-b border-base-300 px-4 py-3">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <button
+            onClick={() => navigate("/")}
+            className="btn btn-ghost btn-sm gap-2"
+          >
+            ← <span className="hidden sm:inline">Back</span>
+          </button>
+          <h1 className="text-lg font-black uppercase tracking-widest">
+            Wishlist
+          </h1>
+          <div className="badge badge-ghost font-mono">{entries.length}</div>
+        </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-6 py-8 flex flex-col gap-8">
-        <WishlistAddPanel
-          onAdd={addCard}
-          existingCardIds={existingCardIds}
-          allDecks={allDecks}
-        />
+      <main className="max-w-4xl mx-auto px-4 py-8 flex flex-col gap-10">
+        {/* Input Panel */}
+        <section>
+          <WishlistAddPanel
+            onAdd={addCard}
+            existingCardIds={existingCardIds}
+            allDecks={allDecks}
+          />
+        </section>
 
         {entries.length > 0 && (
-          <div className="flex flex-col gap-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
-              {/* Label */}
-              <span className="text-[13.8px] text-slate-500 uppercase tracking-widest">
-                Sort by
-              </span>
+          <div className="flex flex-col gap-6">
+            {/* Sorting & Stats Row */}
+            <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between bg-base-100 p-4 rounded-2xl shadow-sm border border-base-300">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">
+                  Sort By
+                </span>
 
-              {/* Mobile Dropdown */}
-              <div className="sm:hidden w-full">
+                {/* Mobile Sort Dropdown */}
                 <select
+                  className="select select-bordered select-sm md:hidden"
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortKey)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-[14px] text-white focus:outline-none focus:border-[#1971c2]"
                 >
                   {SORT_OPTIONS.map((opt) => (
                     <option key={opt.key} value={opt.key}>
@@ -225,39 +238,32 @@ export default function WishlistPage() {
                     </option>
                   ))}
                 </select>
+
+                {/* Desktop Sort Join */}
+                <div className="join hidden md:inline-flex">
+                  {SORT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setSort(opt.key)}
+                      className={`join-item btn btn-xs px-4 ${sort === opt.key ? "btn-primary" : "btn-ghost bg-base-200"}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() =>
+                    setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+                  }
+                  className="btn btn-sm btn-ghost border-base-300"
+                >
+                  {sortDir === "asc" ? "↑" : "↓"}
+                </button>
               </div>
 
-              {/* Desktop Pills */}
-              <div className="hidden sm:flex gap-1 bg-slate-800 p-1 rounded-lg">
-                {SORT_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.key}
-                    onClick={() => setSort(opt.key)}
-                    className="px-3 py-1.5 rounded-md text-[13.8px] font-semibold transition-colors"
-                    style={{
-                      backgroundColor:
-                        sort === opt.key ? "#1971c2" : "transparent",
-                      color: sort === opt.key ? "#fff" : "#64748b",
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Sort Direction */}
-              <button
-                onClick={() =>
-                  setSortDir((d) => (d === "asc" ? "desc" : "asc"))
-                }
-                className="flex items-center justify-center gap-1.5 text-[13px] sm:text-[13.8px] font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
-              >
-                {sortDir === "asc" ? "↑ Asc" : "↓ Desc"}
-              </button>
-
-              {/* Count */}
-              <span className="text-[13px] sm:text-[13.8px] text-slate-500 sm:ml-auto">
-                {sorted.length} of {entries.length} cards
+              <span className="text-xs font-bold opacity-40">
+                SHOWING {sorted.length} / {entries.length}
               </span>
             </div>
 
@@ -270,13 +276,13 @@ export default function WishlistPage() {
               objectives={allObjectives}
               decks={allDecks}
               draft={filters}
-              onChange={(f) => setFilters(f)}
-              onClear={handleClearFilters}
+              onChange={setFilters}
+              onClear={() => setFilters(EMPTY_FILTERS)}
               filterCount={filterCount}
             />
 
-            {/* Cards */}
-            <div className="flex flex-col gap-6 items-center w-full">
+            {/* Result Grid */}
+            <div className="grid grid-cols-1 gap-6">
               {sorted.map((entry) => (
                 <WishlistCard
                   key={entry.id}
@@ -293,7 +299,7 @@ export default function WishlistPage() {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

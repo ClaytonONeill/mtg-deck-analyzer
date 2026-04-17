@@ -1,22 +1,22 @@
-// Modules
 import {
   useState,
   useMemo,
   useEffect,
+  useRef,
   type Dispatch,
   type SetStateAction,
-} from 'react';
+} from "react";
 
 // Types
-import type { ScryfallCard, CardCategory, WishlistEntry } from '@/types';
+import type { ScryfallCard, CardCategory, WishlistEntry } from "@/types";
 
 // Hooks
-import { useObjectives } from '@/hooks/useObjectives';
+import { useObjectives } from "@/hooks/useObjectives";
 
 // Components
-import CardSearchPanel from '@/features/deckBuilder/components/CardSearchPanel';
-import ManaCost from '@/components/ManaSymbol/ManaCost';
-import ObjectivePill from '@/features/objectives/components/ObjectivePill';
+import CardSearchPanel from "@/features/deckBuilder/components/CardSearchPanel";
+import ManaCost from "@/components/ManaSymbol/ManaCost";
+import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 interface SwapSidebarProps {
   cardToSwap: ScryfallCard;
@@ -29,29 +29,28 @@ interface SwapSidebarProps {
   onSwapEntry: Dispatch<SetStateAction<ScryfallCard[]>>;
 }
 
-type SidebarTab = 'search' | 'wishlist';
-
 const CATEGORY_ORDER: CardCategory[] = [
-  'Creature',
-  'Instant',
-  'Sorcery',
-  'Enchantment',
-  'Artifact',
-  'Planeswalker',
-  'Land',
-  'Other',
+  "Creature",
+  "Instant",
+  "Sorcery",
+  "Enchantment",
+  "Artifact",
+  "Planeswalker",
+  "Land",
+  "Other",
 ];
 
+// ... Helper functions (inferCategory, isLegalForDeck, toggle) remain the same ...
 function inferCategory(typeLine: string): CardCategory {
   const t = typeLine.toLowerCase();
-  if (t.includes('creature')) return 'Creature';
-  if (t.includes('land')) return 'Land';
-  if (t.includes('instant')) return 'Instant';
-  if (t.includes('sorcery')) return 'Sorcery';
-  if (t.includes('enchantment')) return 'Enchantment';
-  if (t.includes('artifact')) return 'Artifact';
-  if (t.includes('planeswalker')) return 'Planeswalker';
-  return 'Other';
+  if (t.includes("creature")) return "Creature";
+  if (t.includes("land")) return "Land";
+  if (t.includes("instant")) return "Instant";
+  if (t.includes("sorcery")) return "Sorcery";
+  if (t.includes("enchantment")) return "Enchantment";
+  if (t.includes("artifact")) return "Artifact";
+  if (t.includes("planeswalker")) return "Planeswalker";
+  return "Other";
 }
 
 function isLegalForDeck(card: ScryfallCard, colorIdentity: string[]): boolean {
@@ -74,24 +73,26 @@ export default function SwapSidebar({
   onSwapEntry,
 }: SwapSidebarProps) {
   const [selected, setSelected] = useState<ScryfallCard | null>(null);
-  const [activeTab, setActiveTab] = useState<SidebarTab>('search');
+  const [activeTab, setActiveTab] = useState<"search" | "wishlist">("search");
   const [colorError, setColorError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [typeFilters, setTypeFilters] = useState<CardCategory[]>([]);
   const [objectiveFilters, setObjectiveFilters] = useState<string[]>([]);
   const [hideSwapped, setHideSwapped] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const { objectives } = useObjectives();
 
-  // Prevent page underneath scroll when sidebar is open
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, []);
 
+  // --- Logic ---
   const activeObjectiveIds = useMemo(() => {
     const ids = new Set<string>();
     deckWishlist.forEach((e) =>
@@ -107,18 +108,18 @@ export default function SwapSidebar({
 
   const filtered = useMemo(() => {
     return deckWishlist.filter((entry) => {
-      if (typeFilters.length > 0) {
-        if (!typeFilters.includes(inferCategory(entry.card.type_line)))
-          return false;
-      }
+      if (
+        typeFilters.length > 0 &&
+        !typeFilters.includes(inferCategory(entry.card.type_line))
+      )
+        return false;
       if (objectiveFilters.length > 0) {
         const entryObjectiveIds = (entry.objectives ?? []).map((o) => o.id);
         if (!objectiveFilters.some((id) => entryObjectiveIds.includes(id)))
           return false;
       }
-      if (hideSwapped && swappedEntries.some((c) => c.id === entry.card.id)) {
+      if (hideSwapped && swappedEntries.some((c) => c.id === entry.card.id))
         return false;
-      }
       return true;
     });
   }, [
@@ -129,16 +130,12 @@ export default function SwapSidebar({
     swappedEntries,
   ]);
 
-  const hasFilters =
-    typeFilters.length > 0 || objectiveFilters.length > 0 || hideSwapped;
   const filterCount =
     typeFilters.length + objectiveFilters.length + (hideSwapped ? 1 : 0);
 
   const handleSelect = (card: ScryfallCard) => {
     if (!isLegalForDeck(card, colorIdentity)) {
-      setColorError(
-        `${card.name} is outside this deck's color identity and cannot be added.`,
-      );
+      setColorError(`${card.name} is outside this deck's color identity.`);
       setSelected(null);
       return;
     }
@@ -150,291 +147,258 @@ export default function SwapSidebar({
     if (!selected) return;
     onSwapEntry((prev) => [...prev, selected]);
     onConfirm(selected);
-    setSelected(null);
-    setColorError(null);
+    onClose();
   };
 
-  const isWishlist = activeTab === 'wishlist';
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollTop = e.currentTarget.scrollTop;
+    setShowBackToTop(scrollTop > 300);
+  };
+
+  const scrollToTop = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-30 bg-black/40" onClick={onClose} />
+      <div
+        className="fixed inset-0 z-60 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+        onClick={onClose}
+      />
 
-      {/* Panel — narrow on search, wide on wishlist (desktop) */}
+      {/* Sidebar Panel */}
       <div
         className={`
-          fixed top-0 right-0 h-full z-40 bg-slate-900 border-l border-slate-700
-          flex flex-col shadow-2xl transition-[width] duration-300 ease-in-out
-          w-[87.5vw]
-          ${isWishlist ? 'md:w-[52rem]' : 'md:w-100'}
-        `}
+        fixed top-0 right-0 h-full z-70 bg-base-100 border-l border-base-300
+        flex flex-col shadow-2xl transition-all duration-300 ease-in-out
+        w-full sm:w-[85vw] ${activeTab === "wishlist" ? "lg:w-4xl" : "lg:w-lg"}
+      `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 shrink-0">
-          <div className="flex flex-col gap-0.5">
-            <p className="text-sm text-slate-500 uppercase tracking-widest">
-              Swapping out
-            </p>
-            <p className="text-white font-semibold text-sm">
+        <div className="flex items-center justify-between p-6 border-b border-base-300 bg-base-200/50">
+          <div>
+            <h2 className="text-[10px] font-black uppercase tracking-tighter opacity-40">
+              Swapping Out
+            </h2>
+            <p className="text-lg font-bold truncate max-w-60">
               {cardToSwap.name}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-500 hover:text-white transition-colors text-lg leading-none"
-          >
+          <button onClick={onClose} className="btn btn-ghost btn-sm btn-circle">
             ✕
           </button>
         </div>
 
-        {/* Tab switcher */}
-        <div className="flex gap-1 bg-slate-800 m-4 p-1 rounded-lg shrink-0">
-          {(['search', 'wishlist'] as SidebarTab[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => {
-                setActiveTab(tab);
-                setSelected(null);
-                setColorError(null);
-              }}
-              className="flex-1 py-1.5 rounded-md text-xs font-semibold transition-colors"
-              style={{
-                backgroundColor: activeTab === tab ? '#1971c2' : 'transparent',
-                color: activeTab === tab ? '#fff' : '#64748b',
-              }}
-            >
-              {tab === 'search'
-                ? 'Search'
-                : `Wishlist (${deckWishlist.length})`}
-            </button>
-          ))}
+        {/* Tab Switcher (DaisyUI Tabs) */}
+        <div className="tabs tabs-boxed bg-base-300 m-6 mb-2 gap-1 p-1">
+          <button
+            className={`tab flex-1 font-bold ${activeTab === "search" ? "tab-active bg-primary! text-primary-content!" : ""}`}
+            onClick={() => {
+              setActiveTab("search");
+              setSelected(null);
+            }}
+          >
+            Search
+          </button>
+          <button
+            className={`tab flex-1 font-bold ${activeTab === "wishlist" ? "tab-active bg-primary! text-primary-content!" : ""}`}
+            onClick={() => {
+              setActiveTab("wishlist");
+              setSelected(null);
+            }}
+          >
+            Wishlist ({deckWishlist.length})
+          </button>
         </div>
 
-        {/* Fixed top controls for wishlist */}
-        {activeTab === 'wishlist' && (
-          <div className="px-5 shrink-0">
-            <button
-              onClick={handleConfirm}
-              disabled={!selected}
-              className={`w-full font-semibold text-sm py-2.5 rounded-lg transition-colors mb-4 ${
-                selected
-                  ? 'bg-[#1971c2] hover:bg-blue-500 text-white hover:cursor-pointer'
-                  : 'bg-slate-800 text-slate-600 cursor-not-allowed'
-              }`}
-            >
-              {selected
-                ? `Confirm Swap — ${selected.name}`
-                : 'Select a card to swap'}
-            </button>
+        {/* Action Bar (Confirmation) */}
+        <div className="px-6 py-4 flex flex-col gap-3 border-b border-base-300/50">
+          <button
+            onClick={handleConfirm}
+            disabled={!selected}
+            className={`btn btn-block ${selected ? "btn-primary shadow-lg shadow-primary/20" : "btn-disabled"}`}
+          >
+            {selected
+              ? `Confirm Swap with ${selected.name}`
+              : "Select a replacement"}
+          </button>
+        </div>
 
-            {/* Filter controls */}
-            {deckWishlist.length > 0 && (
-              <div className="relative self-start mb-4">
-                <button
-                  onClick={() => setShowFilters((v) => !v)}
-                  className="flex items-center gap-1.5 text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors"
-                  style={{
-                    borderColor: filterCount > 0 ? '#1971c2' : '#334155',
-                    color: filterCount > 0 ? '#1971c2' : '#94a3b8',
-                    backgroundColor:
-                      filterCount > 0 ? '#1971c211' : 'transparent',
-                  }}
-                >
-                  Filter
-                  {filterCount > 0 && (
-                    <span
-                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                      style={{ backgroundColor: '#1971c2', color: '#fff' }}
-                    >
-                      {filterCount}
-                    </span>
-                  )}
-                </button>
-
-                {showFilters && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowFilters(false)}
-                    />
-                    <div className="absolute top-full left-0 mt-2 z-20 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-4 flex flex-col gap-4 w-64">
-                      <div className="flex flex-col gap-2">
-                        <p className="text-xs text-slate-500 uppercase tracking-widest">
-                          Type
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {CATEGORY_ORDER.map((cat) => (
-                            <button
-                              key={cat}
-                              onClick={() =>
-                                setTypeFilters((prev) => toggle(prev, cat))
-                              }
-                              className="text-xs px-2.5 py-1 rounded-full border transition-all hover:cursor-pointer"
-                              style={{
-                                borderColor: typeFilters.includes(cat)
-                                  ? '#1971c2'
-                                  : '#334155',
-                                backgroundColor: typeFilters.includes(cat)
-                                  ? '#1971c222'
-                                  : 'transparent',
-                                color: typeFilters.includes(cat)
-                                  ? '#1971c2'
-                                  : '#94a3b8',
-                              }}
-                            >
-                              {cat}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {visibleObjectives.length > 0 && (
-                        <div className="flex flex-col gap-2">
-                          <p className="text-xs text-slate-500 uppercase tracking-widest">
-                            Objective
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {visibleObjectives.map((o) => (
-                              <button
-                                key={o.id}
-                                onClick={() =>
-                                  setObjectiveFilters((prev) =>
-                                    toggle(prev, o.id),
-                                  )
-                                }
-                                className="transition-all rounded-full hover:cursor-pointer"
-                                style={{
-                                  outline: objectiveFilters.includes(o.id)
-                                    ? `2px solid ${o.color}`
-                                    : '2px solid transparent',
-                                  outlineOffset: '2px',
-                                }}
-                              >
-                                <ObjectivePill objective={o} size="sm" />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Hide swapped toggle */}
-                      <div className="flex flex-col gap-2">
-                        <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
-                          <div
-                            onClick={() => setHideSwapped((v) => !v)}
-                            className="w-9 h-5 rounded-full transition-colors relative cursor-pointer"
-                            style={{
-                              backgroundColor: hideSwapped
-                                ? '#1971c2'
-                                : '#334155',
-                            }}
-                          >
-                            <span
-                              className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200"
-                              style={{ left: hideSwapped ? '18px' : '2px' }}
-                            />
-                          </div>
-                          Hide swapped cards
-                        </label>
-                      </div>
-
-                      {hasFilters && (
-                        <button
-                          onClick={() => {
-                            setTypeFilters([]);
-                            setObjectiveFilters([]);
-                            setHideSwapped(false);
-                            setShowFilters(false);
-                          }}
-                          className="text-sm text-slate-500 hover:text-white transition-colors self-start hover:cursor-pointer"
-                        >
-                          Clear filters
-                        </button>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {hasFilters && (
-              <p className="text-xs text-slate-500 mb-4">
-                {filtered.length} of {deckWishlist.length} cards
-              </p>
-            )}
-          </div>
-        )}
-        {/* Search tab */}
-        {activeTab === 'search' && (
-          <div className="m-4">
-            <CardSearchPanel
-              label="Search for replacement"
-              placeholder="Search cards..."
-              onSelectCard={handleSelect}
-            />
-          </div>
-        )}
-
-        {/* Fixed top controls for search */}
-        {activeTab === 'search' && selected && (
-          <div className="px-5 shrink-0">
-            <div className="flex flex-col gap-3 mb-4">
-              <p className="text-xs text-slate-400 uppercase tracking-widest">
-                Selected Replacement
-              </p>
-              <div className="bg-slate-800 border border-[#1971c2] rounded-xl p-3 flex flex-col gap-2 text-center justify-center">
-                <p className="text-white font-semibold text-md">
-                  {selected.name}
-                </p>
-                <p className="text-slate-400 text-sm">{selected.type_line}</p>
-                {selected.image_uris?.normal && (
-                  <img
-                    src={selected.image_uris.normal}
-                    alt={selected.name}
-                    className="w-3/4 rounded-lg m-auto"
-                  />
-                )}
-              </div>
-              <button
-                onClick={handleConfirm}
-                className="w-full bg-[#1971c2] hover:bg-blue-500 text-white font-semibold text-sm p-1 rounded-lg transition-colors hover:cursor-pointer"
-              >
-                Confirm Swap
-              </button>
-              <button
-                onClick={() => setSelected(null)}
-                className="w-full text-slate-400 hover:text-white text-sm py-2 transition-colors hover:cursor-pointer"
-              >
-                Clear Selection
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Content */}
-        <div className="flex flex-col gap-4 px-5 pb-4 flex-1 overflow-y-auto min-h-0">
-          {/* Color identity error */}
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto px-6 pb-20 custom-scrollbar"
+          onScroll={handleScroll}
+        >
           {colorError && (
-            <div className="bg-red-950 border border-red-800 text-red-300 text-xs rounded-lg px-3 py-2.5 flex items-center justify-between gap-2 shrink-0">
+            <div className="alert alert-error text-xs font-bold mb-4 shadow-lg py-2">
               <span>{colorError}</span>
               <button
                 onClick={() => setColorError(null)}
-                className="text-red-400 hover:text-red-200 shrink-0"
+                className="btn btn-ghost btn-xs btn-circle"
               >
                 ✕
               </button>
             </div>
           )}
 
-          {/* Wishlist tab */}
-          {activeTab === 'wishlist' && (
-            <>
-              {/* Card grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pb-2">
+          {activeTab === "search" ? (
+            <div className="space-y-6 py-6">
+              <CardSearchPanel
+                label="Replacement Name"
+                placeholder="Search Scryfall..."
+                onSelectCard={handleSelect}
+              />
+
+              {selected && (
+                <div className="card bg-base-200 border border-primary/30 shadow-xl overflow-hidden animate-in slide-in-from-bottom-4">
+                  <figure className="px-10 pt-10">
+                    <img
+                      src={selected.image_uris?.normal}
+                      alt={selected.name}
+                      className="rounded-xl shadow-2xl"
+                    />
+                  </figure>
+                  <div className="card-body items-center text-center">
+                    <h2 className="card-title text-primary">{selected.name}</h2>
+                    <p className="text-xs opacity-60 font-bold">
+                      {selected.type_line}
+                    </p>
+                    <div className="card-actions mt-4">
+                      <button
+                        className="btn btn-ghost btn-sm rounded-full"
+                        onClick={() => setSelected(null)}
+                      >
+                        Clear Selection
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-6 py-6">
+              {/* Filter Header - Now inside scrollable area */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`btn btn-sm btn-outline gap-2 transition-all ${
+                      showFilters || filterCount > 0
+                        ? "border-primary text-primary bg-primary/5"
+                        : "border-base-300"
+                    }`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                    </svg>
+                    Filters
+                    {filterCount > 0 && (
+                      <span className="badge badge-primary badge-sm font-black">
+                        {filterCount}
+                      </span>
+                    )}
+                  </button>
+                  <span className="text-[10px] font-mono font-bold opacity-40">
+                    {filtered.length} Cards Found
+                  </span>
+                </div>
+
+                {/* Collapsible Filter Content */}
+                {showFilters && (
+                  <div className="p-4 bg-base-200 rounded-2xl border border-base-300 animate-in slide-in-from-top-2 duration-200 flex flex-col gap-4 space-y-4">
+                    {/* Type Filter */}
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest opacity-40">
+                        Card Type
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {CATEGORY_ORDER.map((cat) => (
+                          <button
+                            key={cat}
+                            onClick={() =>
+                              setTypeFilters((prev) => toggle(prev, cat))
+                            }
+                            className={`btn btn-xs rounded-full ${typeFilters.includes(cat) ? "btn-primary" : "btn-ghost bg-base-300"}`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Objective Filter */}
+                    {visibleObjectives.length > 0 && (
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-40">
+                          Objectives
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {visibleObjectives.map((o) => (
+                            <button
+                              key={o.id}
+                              onClick={() =>
+                                setObjectiveFilters((prev) =>
+                                  toggle(prev, o.id),
+                                )
+                              }
+                              className={`transition-all rounded-full p-0.5 ${objectiveFilters.includes(o.id) ? "ring-2 ring-primary ring-offset-2 ring-offset-base-200" : ""}`}
+                            >
+                              <ObjectivePill objective={o} size="sm" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="divider my-0 opacity-50"></div>
+
+                    <div className="flex items-center justify-between">
+                      <label className="label cursor-pointer justify-start gap-4 p-0">
+                        <input
+                          type="checkbox"
+                          className="toggle toggle-primary toggle-sm"
+                          checked={hideSwapped}
+                          onChange={() => setHideSwapped(!hideSwapped)}
+                        />
+                        <span className="label-text font-bold opacity-60 text-sm">
+                          Hide Swapped
+                        </span>
+                      </label>
+
+                      {filterCount > 0 && (
+                        <button
+                          className="text-[10px] text-error font-black uppercase hover:underline"
+                          onClick={() => {
+                            setTypeFilters([]);
+                            setObjectiveFilters([]);
+                            setHideSwapped(false);
+                          }}
+                        >
+                          Clear All
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-4">
                 {filtered.map((entry) => {
                   const legal = isLegalForDeck(entry.card, colorIdentity);
-                  const entryObjectives = entry.objectives ?? [];
                   const isSelected = selected?.id === entry.card.id;
                   const isSwapped = swappedEntries.some(
                     (c) => c.id === entry.card.id,
@@ -444,128 +408,122 @@ export default function SwapSidebar({
                   return (
                     <div
                       key={entry.id}
-                      className="flex flex-col items-center gap-2 rounded-xl border p-3 transition-all duration-150"
-                      style={{
-                        borderColor: isSelected
-                          ? '#1971c2'
-                          : !legal
-                            ? '#7f1d1d'
-                            : isInDeck
-                              ? '#854d0e' // amber tint for "already in deck"
-                              : '#334155',
-                        backgroundColor: isSelected
-                          ? '#1971c211'
-                          : isInDeck
-                            ? '#1c1008'
-                            : '#1e293b',
-                        opacity: isSwapped ? 0.4 : legal ? 1 : 0.5,
-                      }}
+                      onClick={() =>
+                        legal &&
+                        !isSwapped &&
+                        !isInDeck &&
+                        handleSelect(entry.card)
+                      }
+                      className={`
+                        relative group flex flex-col gap-3 p-3 rounded-2xl border transition-all cursor-pointer
+                        ${isSelected ? "bg-primary/5 border-primary shadow-inner ring-2 ring-primary" : "bg-base-200 border-base-300 hover:border-primary/50"}
+                        ${isSwapped || !legal ? "opacity-40 grayscale-[0.5]" : "opacity-100"}
+                        ${isInDeck ? "ring-1 ring-warning" : ""}
+                      `}
                     >
-                      {/* Image */}
-                      <div className="w-full flex justify-center">
-                        {entry.card.image_uris?.large ? (
-                          <img
-                            src={entry.card.image_uris.large}
-                            alt={entry.card.name}
-                            className="w-full max-w-[160px] rounded-lg cursor-zoom-in hover:brightness-110 transition"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setExpanded(
-                                expanded === entry.card.id
-                                  ? null
-                                  : entry.card.id,
-                              );
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full max-w-[160px] aspect-[5/7] rounded-lg bg-slate-700 flex items-center justify-center">
-                            <span className="text-slate-500 text-xs">
-                              No image
+                      <div className="relative aspect-5/7 overflow-hidden rounded-xl shadow-lg">
+                        <img
+                          src={entry.card.image_uris?.normal}
+                          alt={entry.card.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+
+                        {isInDeck && !isSwapped && (
+                          <div className="absolute inset-0 bg-warning/20 flex flex-col items-center justify-center gap-1">
+                            <span className="badge badge-warning font-black text-[9px]">
+                              IN DECK
+                            </span>
+                            <span className="text-[9px] font-bold text-warning-content/80 bg-black/50 rounded-full px-2 py-0.5">
+                              Already in your deck
+                            </span>
+                          </div>
+                        )}
+
+                        {isSwapped && (
+                          <div className="absolute inset-0 bg-error/20 flex flex-col items-center justify-center gap-1">
+                            <span className="badge badge-error font-black text-[9px]">
+                              SWAPPED
+                            </span>
+                            <span className="text-[9px] font-bold text-error-content/80 bg-black/50 rounded-full px-2 py-0.5">
+                              Already used in a swap
+                            </span>
+                          </div>
+                        )}
+
+                        {!legal && (
+                          <div className="absolute inset-0 bg-error/20 flex flex-col items-center justify-center gap-1">
+                            <span className="badge badge-error font-black text-[9px]">
+                              ILLEGAL
+                            </span>
+                            <span className="text-[9px] font-bold text-error-content/80 bg-black/50 rounded-full px-2 py-0.5">
+                              Outside color identity
                             </span>
                           </div>
                         )}
                       </div>
 
-                      {/* Name */}
-                      <p className="text-white text-sm font-semibold text-center leading-snug w-full">
-                        {entry.card.name}
-                      </p>
-
-                      {/* Type + mana */}
-                      <div className="flex flex-col items-center gap-1 w-full">
-                        <p className="text-slate-400 text-xs text-center">
-                          {entry.card.type_line}
-                        </p>
-                        {entry.card.cmc > 0 && (
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-start gap-2">
+                          <p className="text-xs font-bold leading-tight truncate">
+                            {entry.card.name}
+                          </p>
                           <ManaCost cost={entry.card.mana_cost} size={12} />
-                        )}
-                      </div>
-
-                      {/* Objectives */}
-                      {entryObjectives.length > 0 && (
-                        <div className="flex flex-wrap gap-1 justify-center w-full">
-                          {entryObjectives.map((o) => (
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {(entry.objectives ?? []).map((o) => (
                             <ObjectivePill key={o.id} objective={o} size="sm" />
                           ))}
                         </div>
-                      )}
-
-                      {/* Action */}
-                      <div className="w-full mt-auto pt-1">
-                        {!legal ? (
-                          <p className="text-red-400 text-xs text-center">
-                            Outside color identity
-                          </p>
-                        ) : isSwapped ? (
-                          <p className="text-slate-400 text-xs text-center">
-                            Card currently swapped
-                          </p>
-                        ) : isInDeck ? (
-                          <p className="text-amber-500 text-xs text-center">
-                            Already in this deck
-                          </p>
-                        ) : (
-                          <button
-                            onClick={() => legal && handleSelect(entry.card)}
-                            disabled={!legal}
-                            className="w-full text-xs font-semibold border px-3 py-1.5 rounded-lg transition-colors hover:cursor-pointer disabled:opacity-40"
-                            style={{
-                              borderColor: isSelected ? '#1971c2' : '#334155',
-                              color: isSelected ? '#1971c2' : '#94a3b8',
-                              backgroundColor: isSelected
-                                ? '#1971c222'
-                                : 'transparent',
-                            }}
-                          >
-                            {isSelected ? 'Selected ✓' : 'Select'}
-                          </button>
-                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </>
+            </div>
           )}
         </div>
+
+        {/* Back to Top Button */}
+        {showBackToTop && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-8 right-8 btn btn-circle btn-primary shadow-lg hover:shadow-xl transition-all duration-200 animate-in fade-in slide-in-from-bottom-4 z-50"
+            aria-label="Back to top"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 15l7-7 7 7"
+              />
+            </svg>
+          </button>
+        )}
       </div>
 
-      {/* Expanded overlay */}
+      {/* Expanded Overlay (Legacy Image Zoom) */}
       {expanded && (
         <div
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center"
+          className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in zoom-in-95"
           onClick={() => setExpanded(null)}
         >
           {(() => {
             const entry = deckWishlist.find((e) => e.card.id === expanded);
-            if (!entry?.card.image_uris?.large) return null;
             return (
-              <img
-                src={entry.card.image_uris.large}
-                alt={entry.card.name}
-                className="max-h-[90vh] rounded-2xl shadow-2xl border border-slate-700"
-                onClick={(e) => e.stopPropagation()}
-              />
+              entry?.card.image_uris?.large && (
+                <img
+                  src={entry.card.image_uris.large}
+                  alt="Zoomed card"
+                  className="max-h-full rounded-3xl shadow-2xl ring-1 ring-white/10"
+                />
+              )
             );
           })()}
         </div>
