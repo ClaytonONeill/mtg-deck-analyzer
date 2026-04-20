@@ -6,27 +6,7 @@
 
 Loading needs to be more robust than just a simple text line, skeleton is your friend here.
 
-## BUG: Stale chart bar modal items on click in version compare mode
-
-When clicking on a chart bar in version compare, the contents of the modal that appears is stale to the first chart you interact with. This means cards that were added in the new version do not display and it can be confusing.
-
-## Save Version Updates Instead of Creating Entire New Version
-
-When you swap cards and create a new version of a deck, if you want to modify that version again you cannot save changes directly you would need to create ANOTHER version. This seems clunky
-and I think that users would want to be able to maintain multiple versions but also be able to optimize and further change a current version they are working on without having to continually make
-new versions.
-
 ## Auto Save Deck Build on Card Add
-
-## Themes
-
-A user should have the ability to choose between a selection of themes to alter the appearance of the application. This selector should live in the header. Some possible selections could be:
-
-- Default Light
-- Default Dark
-- Identity Combos (WUBRG or some combination of these?)
-- Vampire
-- Forest
 
 ## Card/Token Suggestion for Decks
 
@@ -43,3 +23,30 @@ It may be helpful to compare your decks against one another instead of just diff
 ## Sub-Sorting
 
 Users should be able to sort by multiple properties, such as `Type` and `Color` and get an organized view.
+
+## View Commander Cards in Gallery View
+
+Right now you can only see the cards within the deck but cannot see your own commander card.
+
+## Confirm Delete Modal
+
+It is currently way too easy to delete your deck on accident, a confirm delete modal needs to be instituted for decks and deck versions.
+
+## BUG: Clicking "New Deck" from Edit Deck View is Broken
+
+The current behavior does not clear out the existing deck items when hitting new deck, it just renders the import button - this needs to be corrected or just
+remove the "New Deck" option from this view.
+
+## Objectives Menu Should be a Standardized Shared Component
+
+There currently exist two or three instances of this with differing functionality, this is bad UX.
+
+## Deck Objective Overhaul
+
+In the simulator (which is another bug project), you can hide objectives on click but there is no way to turn them back on without resetting the whole page.
+You should be able to reset the list itself. It would also be a better UX if the relevant objectives just appeared as they were encountered instead of a list of
+all possible objectives - you can see how with multiple decks this would be a pain even with a better toggle system.
+
+## BUG: Duplicate Cards can be Added to the Deck
+
+In commander format, you cannot have two of the same (non-basic land) card - there is currently no check in place to prevent that from happening.

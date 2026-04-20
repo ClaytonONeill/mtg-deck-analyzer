@@ -153,7 +153,7 @@ export default function CardSearchPanel({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={`input input-bordered w-full transition-all duration-200 ${
-            disabled ? "input-disabled" : "focus:input-primary bg-base-200/50"
+            disabled ? "input-disabled" : "focus:input-primary bg-base-200"
           }`}
         />
         {loading && (
@@ -199,7 +199,7 @@ export default function CardSearchPanel({
                 </div>
 
                 {/* Row 2: Type Line */}
-                <div className="text-[10px] opacity-50 uppercase truncate w-full">
+                <div className="text-xs opacity-80 uppercase truncate w-full">
                   {card.type_line}
                 </div>
 
@@ -214,11 +214,6 @@ export default function CardSearchPanel({
                     <div className="badge badge-neutral badge-xs shrink-0">
                       {card.power}/{card.toughness}
                     </div>
-                  )}
-                  {card.oracle_text && (
-                    <span className="text-[11px] italic opacity-40 truncate flex-1">
-                      {card.oracle_text.split("\n")[0]}
-                    </span>
                   )}
                 </div>
               </button>

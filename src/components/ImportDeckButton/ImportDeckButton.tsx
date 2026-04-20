@@ -1,13 +1,13 @@
 // Modules
-import { useRef, useState } from 'react';
+import { useRef, useState } from "react";
 
 // Store
-import { importDeckFromFile, deckStore } from '@/store/deckStore';
+import { importDeckFromFile, deckStore } from "@/store/deckStore";
 
 // Types
-import type { Deck } from '@/types';
+import type { Deck } from "@/types";
 
-type ConflictChoice = 'keep' | 'overwrite';
+type ConflictChoice = "keep" | "overwrite";
 
 interface ImportDeckButtonProps {
   onImported: (deck: Deck) => void;
@@ -42,10 +42,10 @@ export default function ImportDeckButton({
         onImported(deck);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Import failed.');
+      setError(err instanceof Error ? err.message : "Import failed.");
       setImporting(false);
     } finally {
-      if (inputRef.current) inputRef.current.value = '';
+      if (inputRef.current) inputRef.current.value = "";
     }
   };
 
@@ -54,7 +54,7 @@ export default function ImportDeckButton({
     setImporting(true);
 
     try {
-      if (choice === 'overwrite') {
+      if (choice === "overwrite") {
         await deckStore.save(incomingDeck);
         onImported(incomingDeck);
       } else {
@@ -67,7 +67,7 @@ export default function ImportDeckButton({
         onImported(deck);
       }
     } catch {
-      setError('Failed to save imported deck.');
+      setError("Failed to save imported deck.");
       setImporting(false);
     } finally {
       setConflictDeck(null);
@@ -88,15 +88,15 @@ export default function ImportDeckButton({
       <button
         onClick={() => !importing && inputRef.current?.click()}
         disabled={importing}
-        className="text-sm font-semibold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        className="btn btn-sm bg-base-300 px-4 py-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {importing ? (
           <>
-            <span className="w-3.5 h-3.5 border-2 border-slate-500 border-t-white rounded-full animate-spin shrink-0" />
+            <span className="w-3.5 h-3.5 border-2 border-base-500 border-t-white rounded-full animate-spin shrink-0" />
             Importing...
           </>
         ) : (
-          'Import Deck'
+          "Import Deck"
         )}
       </button>
 
@@ -110,16 +110,16 @@ export default function ImportDeckButton({
               Deck Already Exists
             </h2>
             <p className="text-slate-400 text-sm mb-6">
-              A deck named{' '}
+              A deck named{" "}
               <span className="text-white font-semibold">
                 "{conflictDeck.name}"
-              </span>{' '}
+              </span>{" "}
               already exists in your library. What would you like to do?
             </p>
 
             <div className="flex flex-col gap-3">
               <button
-                onClick={() => resolveConflict('overwrite')}
+                onClick={() => resolveConflict("overwrite")}
                 disabled={importing}
                 className="w-full bg-[#1971c2] hover:bg-blue-500 disabled:opacity-50 text-white font-semibold py-3 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
               >
@@ -129,15 +129,15 @@ export default function ImportDeckButton({
                     Saving...
                   </>
                 ) : (
-                  'Overwrite existing deck'
+                  "Overwrite existing deck"
                 )}
               </button>
               <button
-                onClick={() => resolveConflict('keep')}
+                onClick={() => resolveConflict("keep")}
                 disabled={importing}
                 className="w-full bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white font-semibold py-3 rounded-lg transition-colors text-sm"
               >
-                Keep both{' '}
+                Keep both{" "}
                 <span className="text-slate-400 font-normal">
                   (imported copy renamed)
                 </span>

@@ -76,7 +76,7 @@ export default function Header() {
             Sign Out
           </button>
         </nav>
-
+        <ThemeDropdown theme={theme} onThemeChange={setTheme} />
         {/* Hamburger Toggle */}
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -85,7 +85,6 @@ export default function Header() {
         >
           {isOpen ? <X /> : <Menu />}
         </button>
-        <ThemeDropdown theme={theme} onThemeChange={setTheme} />
       </div>
 
       {/* Mobile Dropdown Menu */}

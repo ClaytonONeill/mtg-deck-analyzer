@@ -1,5 +1,5 @@
 // Modules
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 // Store
 import {
@@ -11,21 +11,22 @@ import {
   setCommander as storeSetCommander,
   setPartner as storeSetPartner,
   removePartner as storeRemovePartner,
-} from '@/store/deckStore';
+} from "@/store/deckStore";
 
 // Utils
 import {
   getPartnerInfo,
   isValidPartner,
-} from '@/features/deckBuilder/utils/partnerUtils';
+} from "@/features/deckBuilder/utils/partnerUtils";
 
 // Types
-import type { Deck, ScryfallCard } from '@/types';
+import type { Deck, ScryfallCard } from "@/types";
 
 export function useDeckBuilder(deckId?: string) {
-  const [deck, setDeck] = useState<Deck>(createNewDeck(''));
+  const [deck, setDeck] = useState<Deck>(createNewDeck(""));
   const [loading, setLoading] = useState(!!deckId);
   const [colorWarning, setColorWarning] = useState<string | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [partnerWarning, setPartnerWarning] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export function useDeckBuilder(deckId?: string) {
     setDeck((d) => storeSetCommander(d, card));
     setColorWarning(null);
     setPartnerWarning(null);
+    setDuplicateWarning(null);
   }, []);
 
   const setPartner = useCallback((card: ScryfallCard) => {
@@ -79,7 +81,16 @@ export function useDeckBuilder(deckId?: string) {
         );
         return d;
       }
+      if (
+        d.entries.filter(
+          ({ card: existingCard }) => existingCard.id === card.id,
+        ).length
+      ) {
+        setDuplicateWarning(`${card.name} is already in your deck.`);
+        return d;
+      }
       setColorWarning(null);
+      setDuplicateWarning(null);
       return addCardToDeck(d, card);
     });
   }, []);
@@ -94,18 +105,22 @@ export function useDeckBuilder(deckId?: string) {
     return true;
   }, [deck]);
 
-  const clearWarning = useCallback(() => setColorWarning(null), []);
+  const clearColorWarning = useCallback(() => setColorWarning(null), []);
   const clearPartnerWarning = useCallback(() => setPartnerWarning(null), []);
+  const clearDuplicateWarning = useCallback(
+    () => setDuplicateWarning(null),
+    [],
+  );
 
   const commanderPartnerInfo = deck.commander
     ? getPartnerInfo(deck.commander)
     : null;
 
   const commanderHasPartner =
-    commanderPartnerInfo?.type !== 'none' && commanderPartnerInfo !== null;
+    commanderPartnerInfo?.type !== "none" && commanderPartnerInfo !== null;
 
   const requiredPartnerName =
-    commanderPartnerInfo?.type === 'specific'
+    commanderPartnerInfo?.type === "specific"
       ? commanderPartnerInfo.requiredPartnerName
       : null;
 
@@ -117,6 +132,7 @@ export function useDeckBuilder(deckId?: string) {
     partnerWarning,
     commanderHasPartner,
     requiredPartnerName,
+    duplicateWarning,
     setName,
     setCommander,
     setPartner,
@@ -124,7 +140,8 @@ export function useDeckBuilder(deckId?: string) {
     addCard,
     removeCard,
     saveDeck,
-    clearWarning,
+    clearColorWarning,
     clearPartnerWarning,
+    clearDuplicateWarning,
   };
 }

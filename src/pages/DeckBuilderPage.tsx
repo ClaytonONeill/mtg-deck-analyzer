@@ -17,6 +17,9 @@ import ImportDeckButton from "@/components/ImportDeckButton/ImportDeckButton";
 // Types
 import type { Deck } from "@/types";
 
+// Icons
+import { TriangleAlert } from "lucide-react";
+
 export default function DeckBuilderPage() {
   const { deckId } = useParams();
   const navigate = useNavigate();
@@ -29,14 +32,16 @@ export default function DeckBuilderPage() {
     partnerWarning,
     commanderHasPartner,
     requiredPartnerName,
+    duplicateWarning,
     setName,
     setCommander,
     setPartner,
     removePartner,
     addCard,
     saveDeck,
-    clearWarning,
+    clearColorWarning,
     clearPartnerWarning,
+    clearDuplicateWarning,
   } = useDeckBuilder(deckId);
 
   const cardCount = getDeckCardCount(deck);
@@ -60,30 +65,8 @@ export default function DeckBuilderPage() {
   return (
     <div className="min-h-screen bg-base-300 text-base-content">
       {/* Navbar */}
-      <header className="navbar bg-base-100 px-6 border-b border-base-content/10 sticky top-0 z-50 shadow-sm">
-        <div className="flex-1">
-          <button
-            onClick={() => navigate("/")}
-            className="btn btn-ghost btn-sm gap-2 normal-case"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-            Back to Decks
-          </button>
-        </div>
-        <div className="flex-none gap-3">
+      <header className="navbar bg-base-100 px-6 border-b border-base-content/10 sticky z-5 top-0 shadow-sm">
+        <div className="flex h-min gap-3 justify-end w-full">
           {!deckId && (
             <ImportDeckButton
               onImported={(deck: Deck) => navigate(`/deck/${deck.id}`)}
@@ -92,7 +75,7 @@ export default function DeckBuilderPage() {
           <button
             onClick={handleSave}
             disabled={!deck.name.trim()}
-            className="btn btn-success btn-sm px-6"
+            className="btn btn-success btn-sm px-4"
           >
             Save Deck
           </button>
@@ -168,20 +151,8 @@ export default function DeckBuilderPage() {
 
                 {partnerWarning && (
                   <div className="alert alert-error shadow-lg py-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="stroke-current shrink-0 h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <span className="text-xs">{partnerWarning}</span>
+                    <TriangleAlert />
+                    <span className="text-sm">{partnerWarning}</span>
                     <button
                       onClick={clearPartnerWarning}
                       className="btn btn-ghost btn-xs"
@@ -234,22 +205,22 @@ export default function DeckBuilderPage() {
 
               {colorWarning && (
                 <div className="alert alert-warning shadow-lg py-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="stroke-current shrink-0 h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  <span className="text-xs">{colorWarning}</span>
+                  <TriangleAlert />
+                  <span className="text-sm">{colorWarning}</span>
                   <button
-                    onClick={clearWarning}
+                    onClick={clearColorWarning}
+                    className="btn btn-ghost btn-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+              {duplicateWarning && (
+                <div className="alert alert-info shadow-lg py-2">
+                  <TriangleAlert />
+                  <span className="text-sm">{duplicateWarning}</span>
+                  <button
+                    onClick={clearDuplicateWarning}
                     className="btn btn-ghost btn-xs"
                   >
                     ✕
@@ -291,7 +262,7 @@ export default function DeckBuilderPage() {
 
           <div className="card bg-base-100 border border-base-content/10 overflow-hidden">
             <div className="p-4 bg-base-200/50 border-b border-base-content/5 flex justify-between items-center">
-              <h2 className="text-[10px] font-black uppercase tracking-widest opacity-60">
+              <h2 className="text-sm font-black uppercase tracking-widest opacity-60">
                 Current Decklist
               </h2>
             </div>
@@ -300,19 +271,15 @@ export default function DeckBuilderPage() {
               {deck.commander && (
                 <div className="flex flex-col gap-1 mb-4">
                   <div className="badge badge-primary badge-lg w-full justify-start gap-2 h-auto py-2 rounded-md">
-                    <span className="text-[9px] font-black opacity-70">
-                      CMD
-                    </span>
-                    <span className="text-xs truncate font-bold">
+                    <span className="text-xs font-black opacity-70">CMD</span>
+                    <span className="text-sm truncate font-bold">
                       {deck.commander.name}
                     </span>
                   </div>
                   {deck.partner && (
                     <div className="badge badge-primary badge-lg w-full justify-start gap-2 h-auto py-2 rounded-md">
-                      <span className="text-[9px] font-black opacity-70">
-                        CMD
-                      </span>
-                      <span className="text-xs truncate font-bold">
+                      <span className="text-xs font-black opacity-70">CMD</span>
+                      <span className="text-sm truncate font-bold">
                         {deck.partner.name}
                       </span>
                     </div>
