@@ -6,6 +6,12 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuthContext";
 import { useTheme } from "@/hooks/useTheme";
 
+// Components
+import ThemeDropdown from "@/components/ThemeDropDown/ThemeDropdown";
+
+// Icons
+import { Menu, X } from "lucide-react";
+
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
@@ -30,12 +36,11 @@ export default function Header() {
   return (
     <header className="relative border-b bg-base-100 border-base-300 px-6 py-4 flex items-center justify-between z-50">
       <h1
-        className="text-lg md:text-xl font-bold tracking-tight text-base-content hover:cursor-pointer"
+        className="text-xl md:text-2xl font-black tracking-tighter text-primary italic hover:cursor-pointer"
         onClick={() => navTo("/")}
       >
-        MTG Deck Analyzer
+        MTG <span className="text-base-content">DECK ANALYZER</span>
       </h1>
-
       <div className="flex items-center gap-3">
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-3">
@@ -72,59 +77,15 @@ export default function Header() {
           </button>
         </nav>
 
-        {/* Theme Selector */}
-        <select
-          value={theme}
-          onChange={(e) => setTheme(e.target.value)}
-          className="select select-bordered select-sm w-36"
-        >
-          <option value="dark">Dark</option>
-          <option value="light">Light</option>
-          <option value="emerald">Emerald</option>
-          <option value="fantasy">Fantasy</option>
-          <option value="retro">Retro</option>
-          <option value="nord">Nord</option>
-          <option value="cupcake">Cupcake</option>
-          <option value="bumblebee">Bumblebee</option>
-          <option value="pastel">Pastel</option>
-          <option value="valentine">Valentine</option>
-          <option value="halloween">Halloween</option>
-          <option value="garden">Garden</option>
-          <option value="forest">Forest</option>
-          <option value="dracula">Dracula</option>
-          <option value="business">Business</option>
-          <option value="night">Night</option>
-        </select>
-
         {/* Hamburger Toggle */}
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="btn btn-sm btn-ghost btn-square md:hidden text-base-content/70"
           aria-label="Toggle Menu"
         >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            {isOpen ? (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            ) : (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16m-7 6h7"
-              />
-            )}
-          </svg>
+          {isOpen ? <X /> : <Menu />}
         </button>
+        <ThemeDropdown theme={theme} onThemeChange={setTheme} />
       </div>
 
       {/* Mobile Dropdown Menu */}

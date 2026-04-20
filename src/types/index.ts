@@ -82,3 +82,21 @@ export interface PendingSwap {
   removeCardId: string;
   addCard: ScryfallCard;
 }
+
+export type Theme =
+  | "dark"
+  | "light"
+  | "emerald"
+  | "fantasy"
+  | "retro"
+  | "nord"
+  | "cupcake"
+  | "bumblebee"
+  | "pastel"
+  | "valentine"
+  | "halloween"
+  | "garden"
+  | "forest"
+  | "dracula"
+  | "business"
+  | "night";

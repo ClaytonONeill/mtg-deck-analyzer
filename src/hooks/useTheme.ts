@@ -1,8 +1,12 @@
+// Modules
 import { createContext, useContext } from "react";
 
+// Types
+import type { Theme } from "@/types";
+
 interface ThemeContextType {
-  theme: string;
-  setTheme: (theme: string) => void;
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
 }
 
 export const ThemeContext = createContext<ThemeContextType | undefined>(
