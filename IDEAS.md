@@ -50,3 +50,7 @@ all possible objectives - you can see how with multiple decks this would be a pa
 ## BUG: Duplicate Cards can be Added to the Deck
 
 In commander format, you cannot have two of the same (non-basic land) card - there is currently no check in place to prevent that from happening.
+
+## BUG: Bleed Over Page on Card Search Results
+
+When the card search results list is shown, it bleeds outside of the page container and has a buggy rearrangement of content. This needs to be corrected.

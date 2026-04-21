@@ -1,24 +1,24 @@
 // Modules
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from 'react-router-dom';
 
 // Hooks
-import { useDeckBuilder } from "@/features/deckBuilder/hooks/useDeckBuilder";
+import { useDeckBuilder } from '@/features/deckBuilder/hooks/useDeckBuilder';
 
 // Store
-import { getDeckCardCount } from "@/store/deckStore";
+import { getDeckCardCount } from '@/store/deckStore';
 
 // Components
-import CardSearchPanel from "@/features/deckBuilder/components/CardSearchPanel";
-import BasicLandsPanel from "@/features/deckBuilder/components/BasicLandsPanel";
-import DeckEntryList from "@/features/deckBuilder/components/DeckEntryList";
-import ColorPip from "@/components/ManaSymbol/ColorPip";
-import ImportDeckButton from "@/components/ImportDeckButton/ImportDeckButton";
+import CardSearchPanel from '@/features/deckBuilder/components/CardSearchPanel';
+import BasicLandsPanel from '@/features/deckBuilder/components/BasicLandsPanel';
+import DeckEntryList from '@/features/deckBuilder/components/DeckEntryList';
+import ColorPip from '@/components/ManaSymbol/ColorPip';
+import ImportDeckButton from '@/components/ImportDeckButton/ImportDeckButton';
 
 // Types
-import type { Deck } from "@/types";
+import type { Deck } from '@/types';
 
 // Icons
-import { TriangleAlert } from "lucide-react";
+import { TriangleAlert, X } from 'lucide-react';
 
 export default function DeckBuilderPage() {
   const { deckId } = useParams();
@@ -48,7 +48,7 @@ export default function DeckBuilderPage() {
   const MAX_CARD_COUNT_REACHED = cardCount >= 100;
 
   const handleSave = async () => {
-    if (await saveDeck()) navigate("/");
+    if (await saveDeck()) navigate('/');
   };
 
   if (loading) {
@@ -139,12 +139,12 @@ export default function DeckBuilderPage() {
                   label={
                     requiredPartnerName
                       ? `Required Partner: ${requiredPartnerName}`
-                      : "Partner Commander"
+                      : 'Partner Commander'
                   }
                   placeholder={
                     requiredPartnerName
                       ? `Search ${requiredPartnerName}...`
-                      : "Search for a partner..."
+                      : 'Search for a partner...'
                   }
                   onSelectCard={setPartner}
                 />
@@ -211,7 +211,7 @@ export default function DeckBuilderPage() {
                     onClick={clearColorWarning}
                     className="btn btn-ghost btn-xs"
                   >
-                    ✕
+                    <X size={15} />
                   </button>
                 </div>
               )}
@@ -223,7 +223,7 @@ export default function DeckBuilderPage() {
                     onClick={clearDuplicateWarning}
                     className="btn btn-ghost btn-xs"
                   >
-                    ✕
+                    <X size={15} />
                   </button>
                 </div>
               )}
@@ -245,14 +245,14 @@ export default function DeckBuilderPage() {
                 Deck Capacity
               </div>
               <div
-                className={`stat-value text-3xl ${cardCount === 100 ? "text-primary" : ""}`}
+                className={`stat-value text-3xl ${cardCount === 100 ? 'text-primary' : ''}`}
               >
                 {cardCount}
                 <span className="text-base-content/20 mx-1">/</span>100
               </div>
               <div className="stat-desc mt-2">
                 <progress
-                  className={`progress w-full ${cardCount === 100 ? "progress-primary" : "progress-secondary"}`}
+                  className={`progress w-full ${cardCount === 100 ? 'progress-primary' : 'progress-secondary'}`}
                   value={cardCount}
                   max="100"
                 ></progress>

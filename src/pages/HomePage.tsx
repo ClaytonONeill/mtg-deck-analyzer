@@ -1,21 +1,23 @@
 // Modules
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Store
-import { deckStore } from "@/store/deckStore";
+import { deckStore } from '@/store/deckStore';
 
 // Types
-import type { Deck } from "@/types";
+import type { Deck } from '@/types';
 
 // Components
-import DeckCard from "@/features/deckList/components/DeckCard";
-import EmptyState from "@/features/deckList/components/EmptyState";
+import DeckCard from '@/features/deckList/components/DeckCard';
+import EmptyState from '@/features/deckList/components/EmptyState';
+import ConfirmDelete from '@/components/ConfirmDelete/ConfirmDelete';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const [decks, setDecks] = useState<Deck[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingDelete, setPendingDelete] = useState<Deck | null>(null);
 
   useEffect(() => {
     deckStore.getAll().then((data) => {
@@ -24,9 +26,11 @@ export default function HomePage() {
     });
   }, []);
 
-  const handleDelete = (id: string) => {
-    setDecks((prevDecks) => prevDecks.filter((deck) => deck.id !== id));
-    deckStore.delete(id);
+  const handleDeleteConfirm = () => {
+    if (!pendingDelete) return;
+    setDecks((prev) => prev.filter((d) => d.id !== pendingDelete.id));
+    deckStore.delete(pendingDelete.id);
+    setPendingDelete(null);
   };
 
   if (loading) {
@@ -44,7 +48,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-base-100 text-base-content">
       <main className="max-w-5xl mx-auto px-6 py-10">
         {decks.length === 0 ? (
-          <EmptyState onBuildDeck={() => navigate("/build")} />
+          <EmptyState onBuildDeck={() => navigate('/build')} />
         ) : (
           <>
             <h2 className="text-sm font-semibold text-base-content/60 uppercase tracking-widest mb-6">
@@ -57,12 +61,17 @@ export default function HomePage() {
                   deck={deck}
                   onOpen={() => navigate(`/deck/${deck.id}`)}
                   onEdit={() => navigate(`/build/${deck.id}`)}
-                  onDelete={() => handleDelete(deck.id)}
+                  onDelete={setPendingDelete}
                 />
               ))}
             </div>
           </>
         )}
+        <ConfirmDelete
+          open={!!pendingDelete}
+          onClose={() => setPendingDelete(null)}
+          onConfirm={handleDeleteConfirm}
+        />
       </main>
     </div>
   );

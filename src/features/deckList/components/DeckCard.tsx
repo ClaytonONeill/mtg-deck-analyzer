@@ -1,17 +1,20 @@
 // Store
-import { getDeckCardCount, exportDeck } from "@/store/deckStore";
+import { getDeckCardCount, exportDeck } from '@/store/deckStore';
 
 // Components
-import ColorPip from "@/components/ManaSymbol/ColorPip";
+import ColorPip from '@/components/ManaSymbol/ColorPip';
 
 // Types
-import type { Deck } from "@/types";
+import type { Deck } from '@/types';
+
+// Icons
+import { X } from 'lucide-react';
 
 interface DeckCardProps {
   deck: Deck;
   onOpen: () => void;
   onEdit: () => void;
-  onDelete: () => void;
+  onDelete: (deck: Deck) => void;
 }
 
 export default function DeckCard({
@@ -120,11 +123,11 @@ export default function DeckCard({
             Export
           </button>
           <button
-            onClick={onDelete}
+            onClick={() => onDelete(deck)}
             className="btn btn-sm btn-outline btn-error px-3"
             aria-label="Delete Deck"
           >
-            ✕
+            <X size={15} />
           </button>
         </div>
       </div>

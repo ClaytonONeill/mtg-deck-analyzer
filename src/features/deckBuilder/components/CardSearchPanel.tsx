@@ -1,15 +1,14 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 // Hooks
-import { useCardSearch } from "@/features/deckBuilder/hooks/useCardSearch";
+import { useCardSearch } from '@/features/deckBuilder/hooks/useCardSearch';
 
 // Components
-import CardImageTooltip from "@/components/CardImageTooltip/CardImageTooltip";
-import ManaCost from "@/components/ManaSymbol/ManaCost";
-import ColorPip from "@/components/ManaSymbol/ColorPip";
+import ManaCost from '@/components/ManaSymbol/ManaCost';
+import ColorPip from '@/components/ManaSymbol/ColorPip';
 
 // Types
-import type { ScryfallCard } from "@/types";
+import type { ScryfallCard } from '@/types';
 
 interface CardSearchPanelProps {
   commanderOnly?: boolean;
@@ -23,12 +22,11 @@ export default function CardSearchPanel({
   commanderOnly = false,
   onSelectCard,
   label,
-  placeholder = "Search cards...",
+  placeholder = 'Search cards...',
   disabled,
 }: CardSearchPanelProps) {
-  const [query, setQuery] = useState("");
-  const [hoveredCard, setHoveredCard] = useState<ScryfallCard | null>(null);
-  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const [query, setQuery] = useState('');
+
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -39,8 +37,6 @@ export default function CardSearchPanel({
 
   const closeDropdown = useCallback(() => {
     clear();
-    setHoveredCard(null);
-    setAnchorRect(null);
     setActiveIndex(-1);
   }, [clear]);
 
@@ -54,27 +50,27 @@ export default function CardSearchPanel({
         closeDropdown();
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [closeDropdown]);
 
   // Escape Key
   useEffect(() => {
     function handleEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         closeDropdown();
         inputRef.current?.focus();
       }
     }
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
   }, [closeDropdown]);
 
   // Auto-scroll
   useEffect(() => {
     if (activeIndex < 0 || !listRef.current) return;
     const item = listRef.current.children[activeIndex] as HTMLElement;
-    item?.scrollIntoView({ block: "nearest" });
+    item?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex]);
 
   const handleChange = (val: string) => {
@@ -86,11 +82,9 @@ export default function CardSearchPanel({
   const handleSelect = useCallback(
     (card: ScryfallCard) => {
       onSelectCard(card);
-      setQuery("");
+      setQuery('');
       setActiveIndex(-1);
       clear();
-      setHoveredCard(null);
-      setAnchorRect(null);
       inputRef.current?.focus();
     },
     [onSelectCard, clear],
@@ -98,7 +92,7 @@ export default function CardSearchPanel({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     switch (e.key) {
-      case "Enter":
+      case 'Enter':
         if (activeIndex >= 0 && results[activeIndex]) {
           e.preventDefault();
           handleSelect(results[activeIndex]);
@@ -106,40 +100,27 @@ export default function CardSearchPanel({
           searchNow(query, commanderOnly);
         }
         break;
-      case "ArrowDown":
+      case 'ArrowDown':
         e.preventDefault();
         setActiveIndex((i) => Math.min(i + 1, results.length - 1));
         break;
-      case "ArrowUp":
+      case 'ArrowUp':
         e.preventDefault();
         setActiveIndex((i) => Math.max(i - 1, 0));
         break;
-      case "Escape":
+      case 'Escape':
         closeDropdown();
         break;
     }
-  };
-
-  const handleMouseEnter = (
-    card: ScryfallCard,
-    e: React.MouseEvent<HTMLButtonElement>,
-  ) => {
-    setHoveredCard(card);
-    setAnchorRect(e.currentTarget.getBoundingClientRect());
-  };
-
-  const handleMouseLeave = () => {
-    setHoveredCard(null);
-    setAnchorRect(null);
   };
 
   return (
     <div ref={containerRef} className="form-control w-full relative">
       <label className="label py-1">
         <span
-          className={`label-text font-bold tracking-wide ${disabled ? "text-neutral-content/40" : "opacity-70"}`}
+          className={`label-text font-bold tracking-wide ${disabled ? 'text-neutral-content/40' : 'opacity-70'}`}
         >
-          {disabled ? "MAX CARD LIMIT REACHED" : label.toUpperCase()}
+          {disabled ? 'MAX CARD LIMIT REACHED' : label.toUpperCase()}
         </span>
       </label>
 
@@ -153,7 +134,7 @@ export default function CardSearchPanel({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={`input input-bordered w-full transition-all duration-200 ${
-            disabled ? "input-disabled" : "focus:input-primary bg-base-200"
+            disabled ? 'input-disabled' : 'focus:input-primary bg-base-200'
           }`}
         />
         {loading && (
@@ -170,20 +151,15 @@ export default function CardSearchPanel({
       {results.length > 0 && (
         <ul
           ref={listRef}
-          className="absolute left-0 right-0 z-100 mt-1 flex flex-col flex-nowrap max-h-100 overflow-y-auto overflow-x-hidden menu bg-base-100 rounded-box border border-base-300 shadow-2xl p-2 w-[95%] md:w-3xl"
+          className="absolute left-0 right-0 z-100 mt-1 flex flex-col flex-nowrap max-h-100 overflow-y-auto overflow-x-hidden menu bg-base-100 rounded-box border border-base-300 shadow-2xl p-2 w-full"
         >
           {results.map((card, index) => (
             <li key={card.id} className="w-full block">
               <button
                 type="button"
                 onClick={() => handleSelect(card)}
-                onMouseEnter={(e) => {
-                  setActiveIndex(index);
-                  handleMouseEnter(card, e);
-                }}
-                onMouseLeave={handleMouseLeave}
                 className={`flex flex-col items-start w-full p-3 rounded-md mb-1 ${
-                  activeIndex === index ? "active" : ""
+                  activeIndex === index ? 'active' : ''
                 }`}
               >
                 {/* Row 1: Name and Pips */}
@@ -221,8 +197,6 @@ export default function CardSearchPanel({
           ))}
         </ul>
       )}
-
-      <CardImageTooltip card={hoveredCard} anchorRect={anchorRect} />
     </div>
   );
 }

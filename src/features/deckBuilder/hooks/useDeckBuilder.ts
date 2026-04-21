@@ -1,5 +1,5 @@
 // Modules
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
 
 // Store
 import {
@@ -7,23 +7,24 @@ import {
   addCardToDeck,
   removeCardFromDeck,
   isCardLegalForDeck,
+  duplicateCardInDeck,
   deckStore,
   setCommander as storeSetCommander,
   setPartner as storeSetPartner,
   removePartner as storeRemovePartner,
-} from "@/store/deckStore";
+} from '@/store/deckStore';
 
 // Utils
 import {
   getPartnerInfo,
   isValidPartner,
-} from "@/features/deckBuilder/utils/partnerUtils";
+} from '@/features/deckBuilder/utils/partnerUtils';
 
 // Types
-import type { Deck, ScryfallCard } from "@/types";
+import type { Deck, ScryfallCard } from '@/types';
 
 export function useDeckBuilder(deckId?: string) {
-  const [deck, setDeck] = useState<Deck>(createNewDeck(""));
+  const [deck, setDeck] = useState<Deck>(createNewDeck(''));
   const [loading, setLoading] = useState(!!deckId);
   const [colorWarning, setColorWarning] = useState<string | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
@@ -75,17 +76,13 @@ export function useDeckBuilder(deckId?: string) {
 
   const addCard = useCallback((card: ScryfallCard) => {
     setDeck((d) => {
-      if (!isCardLegalForDeck(d, card)) {
+      if (!isCardLegalForDeck(d.colorIdentity, card)) {
         setColorWarning(
           `${card.name} is outside your commander's color identity and cannot be added.`,
         );
         return d;
       }
-      if (
-        d.entries.filter(
-          ({ card: existingCard }) => existingCard.id === card.id,
-        ).length
-      ) {
+      if (duplicateCardInDeck(d, card)) {
         setDuplicateWarning(`${card.name} is already in your deck.`);
         return d;
       }
@@ -117,10 +114,10 @@ export function useDeckBuilder(deckId?: string) {
     : null;
 
   const commanderHasPartner =
-    commanderPartnerInfo?.type !== "none" && commanderPartnerInfo !== null;
+    commanderPartnerInfo?.type !== 'none' && commanderPartnerInfo !== null;
 
   const requiredPartnerName =
-    commanderPartnerInfo?.type === "specific"
+    commanderPartnerInfo?.type === 'specific'
       ? commanderPartnerInfo.requiredPartnerName
       : null;
 
