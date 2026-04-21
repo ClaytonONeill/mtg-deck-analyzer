@@ -1,14 +1,15 @@
 // Modules
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from 'react';
 
 // Types
-import type { Deck, DeckEntry, Objective } from "@/types";
+import type { Deck, DeckEntry, Objective } from '@/types';
 
 // Components
-import ObjectivePill from "@/features/objectives/components/ObjectivePill";
+import ObjectivePill from '@/features/objectives/components/ObjectivePill';
 
 // Utils
-import { BASIC_LAND_NAMES, configureBasicLandEndpoint } from "@/utils/utils";
+import { BASIC_LAND_NAMES, configureBasicLandEndpoint } from '@/utils/utils';
+import { X } from 'lucide-react';
 
 interface HandSimulatorProps {
   deck: Deck;
@@ -32,6 +33,7 @@ interface SimState {
   awaitingDiscard: boolean;
   selectedCard: SimCard | null;
   objCounts: Record<string, number>;
+  lastAutoDiscard: SimCard | null;
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -85,6 +87,7 @@ function initState(entries: DeckEntry[]): SimState {
     awaitingDiscard: false,
     selectedCard: null,
     objCounts: countObjectives(hand, {}),
+    lastAutoDiscard: null,
   };
 }
 
@@ -93,7 +96,7 @@ export default function HandSimulator({
   objectives,
 }: HandSimulatorProps) {
   const [sim, setSim] = useState<SimState>(() => initState(deck.entries));
-  const [autoDiscard, setAutoDiscard] = useState(true);
+  const [autoDiscard, setAutoDiscard] = useState(false);
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
 
   const [hiddenObjectives, setHiddenObjectives] = useState<Set<string>>(
@@ -121,21 +124,25 @@ export default function HandSimulator({
     setSim((s) => {
       if (s.drawPile.length === 0 || s.awaitingDiscard) return s;
       const [drawnCard, ...remainingDeck] = s.drawPile;
+
       if (autoDiscard && s.hand.length >= 7) {
-        const lastCardInHand = s.hand[s.hand.length - 1];
-        const newHand = [...s.hand.slice(0, -1), drawnCard];
+        const firstCardInHand = s.hand[0];
+        const newHand = [...s.hand.slice(1), drawnCard];
+
         return {
           ...s,
           drawPile: remainingDeck,
           hand: newHand,
-          discard: [...s.discard, lastCardInHand],
+          discard: [...s.discard, firstCardInHand],
           turn: s.turn + 1,
           awaitingDiscard: false,
           selectedCard:
-            s.selectedCard?.id === lastCardInHand.id ? null : s.selectedCard,
+            s.selectedCard?.id === firstCardInHand.id ? null : s.selectedCard,
           objCounts: countObjectives([drawnCard], s.objCounts),
+          lastAutoDiscard: firstCardInHand,
         };
       }
+
       const newHand = [...s.hand, drawnCard];
       return {
         ...s,
@@ -144,6 +151,7 @@ export default function HandSimulator({
         turn: s.turn + 1,
         awaitingDiscard: newHand.length > 7,
         objCounts: countObjectives([drawnCard], s.objCounts),
+        lastAutoDiscard: null,
       };
     });
   }, [autoDiscard]);
@@ -161,6 +169,7 @@ export default function HandSimulator({
         turn: s.turn + 1,
         selectedCard: null,
         objCounts: countObjectives(newHand, s.objCounts),
+        lastAutoDiscard: null,
       };
     });
   }, []);
@@ -175,6 +184,7 @@ export default function HandSimulator({
         discard: [...s.discard, card],
         awaitingDiscard: false,
         selectedCard: s.selectedCard?.id === cardId ? null : s.selectedCard,
+        lastAutoDiscard: null,
       };
     });
   }, []);
@@ -184,6 +194,10 @@ export default function HandSimulator({
       ...s,
       selectedCard: s.selectedCard?.id === card.id ? null : card,
     }));
+  }, []);
+
+  const dismissAutoDiscardAlert = useCallback(() => {
+    setSim((s) => ({ ...s, lastAutoDiscard: null }));
   }, []);
 
   const maxObjCount = useMemo(
@@ -203,26 +217,30 @@ export default function HandSimulator({
     if (isSelected) {
       return {
         transform: `translateY(-36px) scale(1.05)`,
-        transformOrigin: "bottom center",
+        transformOrigin: 'bottom center',
         zIndex: 50,
-        transition: "transform 0.2s ease",
+        transition: 'transform 0.2s ease',
       };
     }
     if (isHovered) {
       return {
         transform: `translateY(-24px) scale(1.03)`,
-        transformOrigin: "bottom center",
+        transformOrigin: 'bottom center',
         zIndex: 40,
-        transition: "transform 0.15s ease",
+        transition: 'transform 0.15s ease',
       };
     }
     return {
       transform: `translateY(0)`,
-      transformOrigin: "bottom center",
+      transformOrigin: 'bottom center',
       zIndex: index,
-      transition: "transform 0.2s ease",
+      transition: 'transform 0.2s ease',
     };
   };
+
+  const activeObjectives = objectives.filter(
+    (o) => (sim.objCounts[o.id] ?? 0) > 0,
+  );
 
   const ObjectivesPanel = (
     <div className="card bg-base-300 shadow-xl border border-base-100">
@@ -236,9 +254,6 @@ export default function HandSimulator({
               <div className="stat-desc text-sm text-info">Turn {sim.turn}</div>
             </div>
           </div>
-          <span className="badge badge-ghost badge-sm italic">
-            Click to hide
-          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -246,49 +261,54 @@ export default function HandSimulator({
             <div className="alert bg-base-200 col-span-full">
               <span className="text-xs italic">No objectives defined.</span>
             </div>
-          ) : Object.keys(sim.objCounts).length === 0 ? (
+          ) : activeObjectives.length === 0 ? (
             <div className="alert alert-info col-span-full py-2">
               <span className="text-xs">
-                Draw cards to begin tracking deck objectives.
+                Draw cards to begin tracking deck objectives. (Only drawn
+                objectives are shown)
               </span>
             </div>
           ) : (
-            objectives
-              .filter((o) => !hiddenObjectives.has(o.id))
-              .map((o) => {
-                const count = sim.objCounts[o.id] ?? 0;
-                const pct = Math.round((count / maxObjCount) * 100);
-                return (
-                  <div
-                    key={o.id}
-                    onClick={() => toggleObjective(o.id)}
-                    className="flex flex-col gap-2 cursor-pointer group hover:bg-base-100 p-2 rounded-lg transition-colors"
-                  >
-                    <div className="flex justify-between items-end px-1">
-                      <span
-                        className="text-xs font-bold truncate pr-2"
-                        style={{ color: o.color }}
-                      >
-                        {o.label}
-                      </span>
-                      <span className="badge badge-outline font-mono text-[10px]">
-                        {count}
-                      </span>
-                    </div>
-                    <progress
-                      className="progress w-full transition-all duration-500"
-                      value={pct}
-                      max="100"
-                      style={
-                        {
-                          "--progress-color": o.color,
-                          backgroundColor: "oklch(var(--b1))",
-                        } as React.CSSProperties
-                      }
-                    ></progress>
+            activeObjectives.map((o) => {
+              const count = sim.objCounts[o.id] ?? 0;
+              const pct = Math.round((count / maxObjCount) * 100);
+              const isHidden = hiddenObjectives.has(o.id);
+
+              return (
+                <div
+                  key={o.id}
+                  onClick={() => toggleObjective(o.id)}
+                  className={`flex flex-col gap-2 cursor-pointer group hover:bg-base-200 p-2 rounded-lg transition-all duration-300 ${
+                    isHidden ? 'opacity-40 grayscale' : ''
+                  }`}
+                >
+                  <div className="flex justify-between items-end px-1">
+                    <span
+                      className={`text-xs font-bold truncate pr-2 ${
+                        isHidden ? 'line-through' : ''
+                      }`}
+                      style={{ color: isHidden ? undefined : o.color }}
+                    >
+                      {o.label}
+                    </span>
+                    <span className="badge badge-outline font-mono text-[10px]">
+                      {count}
+                    </span>
                   </div>
-                );
-              })
+                  <progress
+                    className="progress w-full transition-all duration-500"
+                    value={pct}
+                    max="100"
+                    style={
+                      {
+                        '--progress-color': isHidden ? 'currentColor' : o.color,
+                        backgroundColor: 'oklch(var(--b1))',
+                      } as React.CSSProperties
+                    }
+                  ></progress>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
@@ -297,6 +317,15 @@ export default function HandSimulator({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Keyframe animation for the flying card effect */}
+      <style>{`
+        @keyframes cardFlyOff {
+          0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+          15% { transform: translate(20px, -30px) scale(1.1) rotate(5deg); opacity: 1; }
+          100% { transform: translate(-100vw, -100vh) scale(0.4) rotate(-45deg); opacity: 0; }
+        }
+      `}</style>
+
       {/* Top bar */}
       <div className="flex items-center justify-between bg-base-200 p-4 rounded-2xl shadow-inner">
         <div className="stats bg-transparent">
@@ -364,19 +393,71 @@ export default function HandSimulator({
         </div>
 
         {/* Hand Area */}
-        <div className="flex flex-col gap-6">
-          {sim.awaitingDiscard && (
-            <div className="alert alert-warning shadow-lg text-xs py-2">
-              <span>
-                You drew a card — click a card in your hand to discard it.
-              </span>
-            </div>
-          )}
+        <div className="flex flex-col gap-4">
+          {/* Notifications / Alerts */}
+          <div className="min-h-[48px] flex flex-col justify-end">
+            {sim.awaitingDiscard && (
+              <div className="alert alert-warning shadow-lg text-xs py-2">
+                <span>
+                  You drew a card — click a card in your hand to discard it.
+                </span>
+              </div>
+            )}
 
-          <div className="min-h-[200px]">
+            {sim.lastAutoDiscard && !sim.awaitingDiscard && (
+              <div className="alert alert-info shadow-sm border border-info/30 text-xs py-2 flex justify-between animate-fade-in relative overflow-hidden">
+                <div className="flex items-center gap-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    className="stroke-current shrink-0 w-4 h-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    ></path>
+                  </svg>
+                  <span>
+                    Auto-swapped out <strong>{sim.lastAutoDiscard.name}</strong>
+                  </span>
+                </div>
+                <button
+                  onClick={dismissAutoDiscardAlert}
+                  className="btn btn-ghost btn-xs btn-circle z-10"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="min-h-[200px] relative">
+            {sim.lastAutoDiscard && !sim.awaitingDiscard && (
+              <div
+                key={`fly-${sim.turn}`}
+                className="absolute z-[100] pointer-events-none w-28 lg:w-36 xl:w-44 aspect-[5/7] bottom-10 left-[10%] min-[800px]:left-[20%]"
+                style={{ animation: 'cardFlyOff 0.8s ease-in forwards' }}
+              >
+                <img
+                  src={
+                    BASIC_LAND_NAMES.includes(
+                      sim.lastAutoDiscard.name.toLowerCase(),
+                    )
+                      ? configureBasicLandEndpoint(sim.lastAutoDiscard.name)
+                      : sim.lastAutoDiscard.image_uris?.normal
+                  }
+                  alt="Discarded"
+                  className="w-full h-full object-cover rounded-xl shadow-2xl border-2 border-error/50"
+                />
+              </div>
+            )}
+
             {sim.hand.length === 0 ? (
               <div className="h-full flex items-center justify-center opacity-40 italic text-sm">
-                {deckExhausted ? "Deck exhausted." : "No cards in hand."}
+                {deckExhausted ? 'Deck exhausted.' : 'No cards in hand.'}
               </div>
             ) : (
               <>
@@ -395,8 +476,8 @@ export default function HandSimulator({
                         }
                         className={`relative w-full aspect-[5/7] rounded-lg border-2 cursor-pointer transition-all ${
                           sim.selectedCard?.id === card.id
-                            ? "border-primary shadow-2xl scale-105 z-10"
-                            : "border-base-300"
+                            ? 'border-primary shadow-2xl scale-105 z-10'
+                            : 'border-base-300'
                         }`}
                       >
                         {card.image_uris?.normal ? (
@@ -444,8 +525,8 @@ export default function HandSimulator({
                             : selectCard(card)
                         }
                         className={`relative w-28 lg:w-36 xl:w-44 aspect-[5/7] rounded-xl border-2 cursor-pointer overflow-hidden flex-shrink-0 ${
-                          index > 0 ? "-ml-10 lg:-ml-14 xl:-ml-16" : ""
-                        } ${isSelected ? "border-primary shadow-2xl" : "border-base-300"}`}
+                          index > 0 ? '-ml-10 lg:-ml-14 xl:-ml-16' : ''
+                        } ${isSelected ? 'border-primary shadow-2xl' : 'border-base-300'}`}
                       >
                         <img
                           src={
