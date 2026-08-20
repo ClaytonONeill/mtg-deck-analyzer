@@ -3,13 +3,14 @@ import { useState, useEffect } from "react";
 
 //Types
 import type { ReactNode } from "react";
+import type { Theme } from "@/types";
 
 // Context
 import { ThemeContext } from "@/hooks/useTheme";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<string>(() => {
-    return localStorage.getItem("theme") || "dark";
+  const [theme, setTheme] = useState<Theme>(() => {
+    return (localStorage.getItem("theme") as Theme) || "dark";
   });
 
   useEffect(() => {

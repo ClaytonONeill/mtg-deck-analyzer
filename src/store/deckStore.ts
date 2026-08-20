@@ -97,7 +97,6 @@ export const deckStore = {
 
     if (!data) return undefined;
 
-    // Mapping the database row to your Deck interface
     return {
       id: data.id,
       name: data.name,
@@ -180,10 +179,20 @@ export function removeCardFromDeck(deck: Deck, cardId: string): Deck {
   return { ...deck, entries, updatedAt: new Date().toISOString() };
 }
 
-export function isCardLegalForDeck(deck: Deck, card: ScryfallCard): boolean {
-  if (!deck.commander) return true;
-  if (card.color_identity.length === 0) return true;
-  return card.color_identity.every((c) => deck.colorIdentity.includes(c));
+export function isCardLegalForDeck(
+  colorIdentity: string[],
+  card: ScryfallCard,
+): boolean {
+  return card.color_identity.every((c) => colorIdentity.includes(c));
+}
+
+export function duplicateCardInDeck(deck: Deck, card: ScryfallCard): boolean {
+  if (deck.commander?.id === card.id || deck.partner?.id === card.id)
+    return true;
+  return (
+    deck.entries.filter(({ card: existingCard }) => existingCard.id === card.id)
+      .length > 0
+  );
 }
 
 export function getDeckCardCount(deck: Deck): number {
