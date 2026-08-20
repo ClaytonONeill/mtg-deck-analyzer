@@ -41,6 +41,10 @@ remove the "New Deck" option from this view.
 
 There currently exist two or three instances of this with differing functionality, this is bad UX.
 
+## Deck-Level Strategy vs. Card-Level Roles Semantic Clarity
+
+The objectives system currently conflates two distinct concepts: **deck-level strategic objectives** (1-2 core win conditions or themes for a deck, e.g., "Combo Win", "Creature Beatdown") and **card-level roles/qualities** (mechanical tags like "Ramp", "Removal", "Card Draw"). This makes it hard to answer key questions like "Do all my cards support my deck's core strategy?" or "Are there mechanical gaps?" without clearer semantic boundaries. No backend changes needed — this is primarily a UI/data-modeling clarification to help reason about deck coherence.
+
 ## Deck Objective Overhaul
 
 In the simulator (which is another bug project), you can hide objectives on click but there is no way to turn them back on without resetting the whole page.

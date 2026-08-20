@@ -30,7 +30,8 @@ None of these require live database access. If a task turns out to need it, stop
 | [020](020-confirm-delete-version.md) | Extend the confirm-delete modal to deck-version deletion | bug | Medium | XS |
 | [021](021-enforce-duplicate-card-check-everywhere.md) | Enforce the duplicate-card check on import and version-swap | bug, partial-product-input | Medium | S |
 | [022](022-fix-card-search-results-overflow.md) | Fix card search results dropdown bleeding outside its container | bug | Medium | S |
+| [023](023-objectives-semantic-clarity.md) | Clarify deck-level strategy vs. card-level roles in objectives | design | Medium | M |
 
-All of 010–022 originate from `IDEAS.md` items that had no task file yet as of 2026-08-20 — each cites the specific IDEAS.md entry it covers and notes where reality already diverges from that entry's description (partially built, already fixed, etc.).
+All of 010–022 originate from `IDEAS.md` items that had no task file yet as of 2026-08-20 — each cites the specific IDEAS.md entry it covers and notes where reality already diverges from that entry's description (partially built, already fixed, etc.). 023 addresses a new semantic-clarity concern that emerged during design review.
 
 Estimate key: XS (<1hr), S (<half day), M (~1 day), L (multi-day / multi-session).
