@@ -1,15 +1,24 @@
 // Modules
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from "react";
 
 // Types
-import type { Deck, DeckEntry, Objective } from '@/types';
+import type { Deck, DeckEntry, Objective } from "@/types";
 
 // Components
-import ObjectivePill from '@/features/objectives/components/ObjectivePill';
+import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 // Utils
-import { BASIC_LAND_NAMES, configureBasicLandEndpoint } from '@/utils/utils';
-import { X } from 'lucide-react';
+import { BASIC_LAND_NAMES, configureBasicLandEndpoint } from "@/utils/utils";
+import {
+  computeAvailableMana,
+  isCreatureType,
+  isLand,
+  isPermanentType,
+  parseManaCost,
+  tryPayCost,
+  type ManaColor,
+} from "@/features/simulator/utils/manaUtils";
+import { X } from "lucide-react";
 
 interface HandSimulatorProps {
   deck: Deck;
@@ -21,20 +30,43 @@ interface SimCard {
   entryId: string;
   name: string;
   type_line: string;
+  mana_cost: string;
+  oracle_text: string;
   image_uris?: { normal?: string; large?: string };
   objectiveIds: string[];
+}
+
+interface PermanentInPlay {
+  card: SimCard;
+  tapped: boolean;
+  /** Turn number it entered play — used for creature summoning sickness. */
+  enteredTurn: number;
 }
 
 interface SimState {
   drawPile: SimCard[];
   hand: SimCard[];
   discard: SimCard[];
+  permanentsInPlay: PermanentInPlay[];
+  landPlayedThisTurn: boolean;
   turn: number;
   awaitingDiscard: boolean;
   selectedCard: SimCard | null;
   objCounts: Record<string, number>;
   lastAutoDiscard: SimCard | null;
+  castError: string | null;
 }
+
+const MANA_COLOR_ORDER: ManaColor[] = ["W", "U", "B", "R", "G", "C"];
+
+const MANA_PIP_COLORS: Record<ManaColor, string> = {
+  W: "#f8f6d8",
+  U: "#aad3f2",
+  B: "#bdb0c6",
+  R: "#f2a482",
+  G: "#a8d8ab",
+  C: "#c9c9c9",
+};
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -54,12 +86,28 @@ function buildCardPool(entries: DeckEntry[]): SimCard[] {
         entryId: entry.card.id,
         name: entry.card.name,
         type_line: entry.card.type_line,
+        mana_cost: entry.card.mana_cost ?? "",
+        oracle_text: entry.card.oracle_text ?? "",
         image_uris: entry.card.image_uris,
         objectiveIds: entry.objectiveIds ?? [],
       });
     }
   });
   return cards;
+}
+
+/** Untapped permanents that are actually allowed to tap for mana right now
+ * — excludes creatures still summoning-sick (entered this same turn).
+ * Non-creature permanents (lands, artifacts, enchantments) are never sick. */
+function getEligibleManaSources(
+  permanentsInPlay: PermanentInPlay[],
+  currentTurn: number,
+): PermanentInPlay[] {
+  return permanentsInPlay.filter(
+    (p) =>
+      !p.tapped &&
+      (!isCreatureType(p.card.type_line) || p.enteredTurn !== currentTurn),
+  );
 }
 
 function countObjectives(
@@ -83,11 +131,14 @@ function initState(entries: DeckEntry[]): SimState {
     drawPile,
     hand,
     discard: [],
+    permanentsInPlay: [],
+    landPlayedThisTurn: false,
     turn: 1,
     awaitingDiscard: false,
     selectedCard: null,
     objCounts: countObjectives(hand, {}),
     lastAutoDiscard: null,
+    castError: null,
   };
 }
 
@@ -124,8 +175,8 @@ export default function HandSimulator({
     setHiddenObjectives(new Set());
   }, []);
 
-  const drawCard = useCallback(() => {
-    setSim((s) => {
+  const drawOne = useCallback(
+    (s: SimState): SimState => {
       if (s.drawPile.length === 0 || s.awaitingDiscard) return s;
       const [drawnCard, ...remainingDeck] = s.drawPile;
 
@@ -138,7 +189,6 @@ export default function HandSimulator({
           drawPile: remainingDeck,
           hand: newHand,
           discard: [...s.discard, firstCardInHand],
-          turn: s.turn + 1,
           awaitingDiscard: false,
           selectedCard:
             s.selectedCard?.id === firstCardInHand.id ? null : s.selectedCard,
@@ -152,13 +202,40 @@ export default function HandSimulator({
         ...s,
         drawPile: remainingDeck,
         hand: newHand,
-        turn: s.turn + 1,
-        awaitingDiscard: newHand.length > 7,
         objCounts: countObjectives([drawnCard], s.objCounts),
         lastAutoDiscard: null,
       };
+    },
+    [autoDiscard],
+  );
+
+  const drawCard = useCallback(() => {
+    setSim((s) => drawOne(s));
+  }, [drawOne]);
+
+  const nextTurn = useCallback(() => {
+    setSim((s) => {
+      if (s.awaitingDiscard) return s;
+
+      // Hand-size cleanup happens at end of turn, not the instant you draw
+      // over 7 — you can still play/cast normally mid-turn with 8+ cards.
+      if (s.hand.length > 7) {
+        return { ...s, awaitingDiscard: true, selectedCard: null };
+      }
+
+      const drawn = drawOne(s);
+      return {
+        ...drawn,
+        turn: s.turn + 1,
+        permanentsInPlay: drawn.permanentsInPlay.map((p) => ({
+          ...p,
+          tapped: false,
+        })),
+        landPlayedThisTurn: false,
+        castError: null,
+      };
     });
-  }, [autoDiscard]);
+  }, [drawOne]);
 
   const discardHand = useCallback(() => {
     setSim((s) => {
@@ -170,7 +247,6 @@ export default function HandSimulator({
         drawPile: newDraw,
         hand: newHand,
         discard: [...s.discard, ...s.hand],
-        turn: s.turn + 1,
         selectedCard: null,
         objCounts: countObjectives(newHand, s.objCounts),
         lastAutoDiscard: null,
@@ -178,15 +254,83 @@ export default function HandSimulator({
     });
   }, []);
 
+  const playLand = useCallback((cardId: string) => {
+    setSim((s) => {
+      const card = s.hand.find((c) => c.id === cardId);
+      if (!card || !isLand(card.type_line) || s.landPlayedThisTurn) return s;
+      return {
+        ...s,
+        hand: s.hand.filter((c) => c.id !== cardId),
+        permanentsInPlay: [
+          ...s.permanentsInPlay,
+          { card, tapped: false, enteredTurn: s.turn },
+        ],
+        landPlayedThisTurn: true,
+        selectedCard: null,
+        castError: null,
+      };
+    });
+  }, []);
+
+  const castCard = useCallback((cardId: string) => {
+    setSim((s) => {
+      const card = s.hand.find((c) => c.id === cardId);
+      if (!card || isLand(card.type_line)) return s;
+
+      const cost = parseManaCost(card.mana_cost);
+      if (cost.hasX) {
+        return {
+          ...s,
+          castError: `${card.name} has an {X} cost — X spells aren't supported in the simulator yet.`,
+        };
+      }
+
+      const eligible = getEligibleManaSources(s.permanentsInPlay, s.turn).map(
+        (p) => p.card,
+      );
+      const { canPay, sourcesToTap } = tryPayCost(eligible, cost);
+      if (!canPay) {
+        return {
+          ...s,
+          castError: `Not enough mana available to cast ${card.name}.`,
+        };
+      }
+
+      const tapIds = new Set(sourcesToTap.map((c) => c.id));
+      const permanentsInPlay = s.permanentsInPlay.map((p) =>
+        tapIds.has(p.card.id) ? { ...p, tapped: true } : p,
+      );
+
+      const goesToBattlefield = isPermanentType(card.type_line);
+      return {
+        ...s,
+        hand: s.hand.filter((c) => c.id !== cardId),
+        permanentsInPlay: goesToBattlefield
+          ? [...permanentsInPlay, { card, tapped: false, enteredTurn: s.turn }]
+          : permanentsInPlay,
+        discard: goesToBattlefield ? s.discard : [...s.discard, card],
+        selectedCard: null,
+        castError: null,
+      };
+    });
+  }, []);
+
+  const dismissCastError = useCallback(() => {
+    setSim((s) => ({ ...s, castError: null }));
+  }, []);
+
   const discardCard = useCallback((cardId: string) => {
     setSim((s) => {
       const card = s.hand.find((c) => c.id === cardId);
       if (!card) return s;
+      const hand = s.hand.filter((c) => c.id !== cardId);
       return {
         ...s,
-        hand: s.hand.filter((c) => c.id !== cardId),
+        hand,
         discard: [...s.discard, card],
-        awaitingDiscard: false,
+        // Still over 7 after this discard (e.g. drew several extra cards
+        // mid-turn before ending the turn) — keep the discard prompt up.
+        awaitingDiscard: hand.length > 7,
         selectedCard: s.selectedCard?.id === cardId ? null : s.selectedCard,
         lastAutoDiscard: null,
       };
@@ -211,6 +355,29 @@ export default function HandSimulator({
 
   const deckExhausted = sim.drawPile.length === 0 && sim.hand.length === 0;
 
+  const eligibleManaSources = getEligibleManaSources(
+    sim.permanentsInPlay,
+    sim.turn,
+  ).map((p) => p.card);
+  const availableMana = useMemo(
+    () => computeAvailableMana(eligibleManaSources),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sim.permanentsInPlay, sim.turn],
+  );
+
+  const selectedIsLand = sim.selectedCard
+    ? isLand(sim.selectedCard.type_line)
+    : false;
+  const selectedInHand = sim.selectedCard
+    ? sim.hand.some((c) => c.id === sim.selectedCard!.id)
+    : false;
+  const selectedCastCheck = useMemo(() => {
+    if (!sim.selectedCard || selectedIsLand) return null;
+    const cost = parseManaCost(sim.selectedCard.mana_cost);
+    return { cost, ...tryPayCost(eligibleManaSources, cost) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sim.selectedCard, sim.permanentsInPlay, sim.turn]);
+
   const getCardStyle = (
     index: number,
     cardId: string,
@@ -221,24 +388,24 @@ export default function HandSimulator({
     if (isSelected) {
       return {
         transform: `translateY(-36px) scale(1.05)`,
-        transformOrigin: 'bottom center',
+        transformOrigin: "bottom center",
         zIndex: 50,
-        transition: 'transform 0.2s ease',
+        transition: "transform 0.2s ease",
       };
     }
     if (isHovered) {
       return {
         transform: `translateY(-24px) scale(1.03)`,
-        transformOrigin: 'bottom center',
+        transformOrigin: "bottom center",
         zIndex: 40,
-        transition: 'transform 0.15s ease',
+        transition: "transform 0.15s ease",
       };
     }
     return {
       transform: `translateY(0)`,
-      transformOrigin: 'bottom center',
+      transformOrigin: "bottom center",
       zIndex: index,
-      transition: 'transform 0.2s ease',
+      transition: "transform 0.2s ease",
     };
   };
 
@@ -291,13 +458,13 @@ export default function HandSimulator({
                   key={o.id}
                   onClick={() => toggleObjective(o.id)}
                   className={`flex flex-col gap-2 cursor-pointer group hover:bg-base-200 p-2 rounded-lg transition-all duration-300 ${
-                    isHidden ? 'opacity-40 grayscale' : ''
+                    isHidden ? "opacity-40 grayscale" : ""
                   }`}
                 >
                   <div className="flex justify-between items-end px-1">
                     <span
                       className={`text-xs font-bold truncate pr-2 ${
-                        isHidden ? 'line-through' : ''
+                        isHidden ? "line-through" : ""
                       }`}
                       style={{ color: isHidden ? undefined : o.color }}
                     >
@@ -313,8 +480,8 @@ export default function HandSimulator({
                     max="100"
                     style={
                       {
-                        '--progress-color': isHidden ? 'currentColor' : o.color,
-                        backgroundColor: 'oklch(var(--b1))',
+                        "--progress-color": isHidden ? "currentColor" : o.color,
+                        backgroundColor: "oklch(var(--b1))",
                       } as React.CSSProperties
                     }
                   ></progress>
@@ -359,13 +526,53 @@ export default function HandSimulator({
               </div>
             </div>
           )}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase font-bold opacity-50 tracking-widest">
+              Mana Available
+            </span>
+            {availableMana.total === 0 ? (
+              <span className="text-xs opacity-40 italic">
+                No mana sources up
+              </span>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                {MANA_COLOR_ORDER.filter(
+                  (c) => availableMana.byColor[c] > 0,
+                ).map((c) => (
+                  <span
+                    key={c}
+                    className="badge badge-sm font-mono font-bold"
+                    style={{
+                      backgroundColor: MANA_PIP_COLORS[c],
+                      color: "#1a1a1a",
+                    }}
+                  >
+                    {c}
+                    {availableMana.byColor[c]}
+                  </span>
+                ))}
+                <span className="text-[10px] opacity-50">
+                  ({availableMana.total} mana)
+                </span>
+              </div>
+            )}
+          </div>
         </div>
-        <button
-          onClick={reset}
-          className="btn btn-ghost btn-sm border-base-100"
-        >
-          ↺ Reset
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={nextTurn}
+            disabled={sim.awaitingDiscard}
+            className="btn btn-primary btn-sm"
+          >
+            Next Turn
+          </button>
+          <button
+            onClick={reset}
+            className="btn btn-ghost btn-sm border-base-100"
+          >
+            ↺ Reset
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] lg:grid-cols-[160px_1fr] gap-6 md:gap-8 items-start">
@@ -383,6 +590,35 @@ export default function HandSimulator({
               <div className="w-full h-full border-2 border-dashed border-base-300 rounded-lg flex items-center justify-center">
                 <span className="text-[10px] text-base-content/30 uppercase font-bold">
                   Empty
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="w-20 sm:w-24 md:w-full shrink-0 aspect-[5/7] relative">
+            {sim.discard.length > 0 ? (
+              <>
+                <img
+                  className="w-full h-full object-cover rounded-lg shadow-lg opacity-90 grayscale-[30%]"
+                  src={
+                    BASIC_LAND_NAMES.includes(
+                      sim.discard[sim.discard.length - 1].name.toLowerCase(),
+                    )
+                      ? configureBasicLandEndpoint(
+                          sim.discard[sim.discard.length - 1].name,
+                        )
+                      : sim.discard[sim.discard.length - 1].image_uris?.normal
+                  }
+                  alt="Graveyard"
+                />
+                <span className="badge badge-neutral badge-sm absolute -top-1.5 -right-1.5 font-mono">
+                  {sim.discard.length}
+                </span>
+              </>
+            ) : (
+              <div className="w-full h-full border-2 border-dashed border-base-300 rounded-lg flex items-center justify-center">
+                <span className="text-[10px] text-base-content/30 uppercase font-bold">
+                  GY
                 </span>
               </div>
             )}
@@ -425,7 +661,7 @@ export default function HandSimulator({
             {sim.awaitingDiscard && (
               <div className="alert alert-warning shadow-lg text-xs py-2">
                 <span>
-                  You drew a card — click a card in your hand to discard it.
+                  Hand size is over 7 — discard down to end your turn.
                 </span>
               </div>
             )}
@@ -458,6 +694,18 @@ export default function HandSimulator({
                 </button>
               </div>
             )}
+
+            {sim.castError && (
+              <div className="alert alert-error shadow-sm text-xs py-2 flex justify-between">
+                <span>{sim.castError}</span>
+                <button
+                  onClick={dismissCastError}
+                  className="btn btn-ghost btn-xs btn-circle z-10"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="min-h-[200px] relative">
@@ -465,7 +713,7 @@ export default function HandSimulator({
               <div
                 key={`fly-${sim.turn}`}
                 className="absolute z-[100] pointer-events-none w-28 lg:w-36 xl:w-44 aspect-[5/7] bottom-10 left-[10%] min-[800px]:left-[20%]"
-                style={{ animation: 'cardFlyOff 0.8s ease-in forwards' }}
+                style={{ animation: "cardFlyOff 0.8s ease-in forwards" }}
               >
                 <img
                   src={
@@ -483,7 +731,7 @@ export default function HandSimulator({
 
             {sim.hand.length === 0 ? (
               <div className="h-full flex items-center justify-center opacity-40 italic text-sm">
-                {deckExhausted ? 'Deck exhausted.' : 'No cards in hand.'}
+                {deckExhausted ? "Deck exhausted." : "No cards in hand."}
               </div>
             ) : (
               <>
@@ -502,8 +750,8 @@ export default function HandSimulator({
                         }
                         className={`relative w-full aspect-[5/7] rounded-lg border-2 cursor-pointer transition-all ${
                           sim.selectedCard?.id === card.id
-                            ? 'border-primary shadow-2xl scale-105 z-10'
-                            : 'border-base-300'
+                            ? "border-primary shadow-2xl scale-105 z-10"
+                            : "border-base-300"
                         }`}
                       >
                         {card.image_uris?.normal ? (
@@ -551,8 +799,8 @@ export default function HandSimulator({
                             : selectCard(card)
                         }
                         className={`relative w-28 lg:w-36 xl:w-44 aspect-[5/7] rounded-xl border-2 cursor-pointer overflow-hidden flex-shrink-0 ${
-                          index > 0 ? '-ml-10 lg:-ml-14 xl:-ml-16' : ''
-                        } ${isSelected ? 'border-primary shadow-2xl' : 'border-base-300'}`}
+                          index > 0 ? "-ml-10 lg:-ml-14 xl:-ml-16" : ""
+                        } ${isSelected ? "border-primary shadow-2xl" : "border-base-300"}`}
                       >
                         <img
                           src={
@@ -578,35 +826,137 @@ export default function HandSimulator({
         </div>
       </div>
 
+      {/* Battlefield */}
+      {sim.permanentsInPlay.length > 0 && (
+        <div className="p-4 bg-base-200 rounded-2xl border border-base-100 flex flex-col gap-4">
+          <span className="text-[10px] uppercase font-bold opacity-50 tracking-widest">
+            Battlefield
+          </span>
+          <div className="flex flex-wrap gap-3">
+            {[...sim.permanentsInPlay]
+              .sort((a, b) =>
+                isLand(a.card.type_line) === isLand(b.card.type_line)
+                  ? 0
+                  : isLand(a.card.type_line)
+                    ? -1
+                    : 1,
+              )
+              .map(({ card, tapped, enteredTurn }, i) => {
+                const isBasicLand = BASIC_LAND_NAMES.includes(
+                  card.name.toLowerCase(),
+                );
+                const sick =
+                  isCreatureType(card.type_line) && enteredTurn === sim.turn;
+                const isSelected = sim.selectedCard?.id === card.id;
+                return (
+                  <div
+                    key={`${card.id}-${i}`}
+                    onClick={() => selectCard(card)}
+                    className={`relative w-14 sm:w-16 aspect-[5/7] rounded-md overflow-hidden shadow-md cursor-pointer transition-colors hover:border-primary ${
+                      isSelected
+                        ? "border-2 border-primary shadow-lg"
+                        : isLand(card.type_line)
+                          ? "border border-base-300"
+                          : "border border-primary/40"
+                    } ${tapped ? "rotate-90 opacity-60" : ""}`}
+                    title={`${card.name}${tapped ? " (tapped)" : sick ? " (summoning sick)" : ""}`}
+                  >
+                    <img
+                      src={
+                        isBasicLand
+                          ? configureBasicLandEndpoint(card.name)
+                          : card.image_uris?.normal
+                      }
+                      alt={card.name}
+                      className="w-full h-full object-cover"
+                    />
+                    {sick && !tapped && (
+                      <span className="badge badge-neutral badge-xs absolute bottom-0.5 right-0.5 opacity-80">
+                        Zzz
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
       {/* Floating Selected Card Panel */}
       {sim.selectedCard && (
-        <div className="fixed inset-x-0 bottom-4 z-[100] flex justify-center pointer-events-none">
-          <div className="card w-80 bg-base-100 shadow-2xl border border-primary/20 pointer-events-auto">
-            <div className="card-body p-4">
-              <div className="flex justify-between items-start">
-                <div className="min-w-0">
-                  <h3 className="card-title text-sm truncate">
+        <div className="fixed inset-x-0 bottom-4 z-[100] flex justify-center pointer-events-none px-4">
+          <div className="card w-full max-w-xs bg-base-100 shadow-2xl border border-primary/20 pointer-events-auto">
+            <div className="card-body p-4 items-center">
+              <div className="w-48 sm:w-56 shrink-0 aspect-[5/7] rounded-lg overflow-hidden shadow-lg border border-base-300">
+                {sim.selectedCard.image_uris?.normal ? (
+                  <img
+                    src={
+                      BASIC_LAND_NAMES.includes(
+                        sim.selectedCard.name.toLowerCase(),
+                      )
+                        ? configureBasicLandEndpoint(sim.selectedCard.name)
+                        : sim.selectedCard.image_uris.normal
+                    }
+                    alt={sim.selectedCard.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-base-200 flex items-center justify-center p-2 text-center text-[10px]">
                     {sim.selectedCard.name}
-                  </h3>
-                  <p className="text-[10px] opacity-60">
-                    {sim.selectedCard.type_line}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSim((s) => ({ ...s, selectedCard: null }))}
-                  className="btn btn-ghost btn-xs btn-circle"
-                >
-                  ✕
-                </button>
+                  </div>
+                )}
               </div>
-              <div className="divider my-0"></div>
-              <div className="flex flex-wrap gap-1 mt-2">
-                {sim.selectedCard.objectiveIds.map((oid) => {
-                  const o = objectives.find((obj) => obj.id === oid);
-                  return (
-                    o && <ObjectivePill key={o.id} objective={o} size="sm" />
-                  );
-                })}
+
+              <div className="w-full flex flex-col">
+                <div className="flex justify-between items-start w-full mt-2">
+                  <div className="min-w-0">
+                    <h3 className="card-title text-sm truncate">
+                      {sim.selectedCard.name}
+                    </h3>
+                    <p className="text-[10px] opacity-60">
+                      {sim.selectedCard.type_line}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setSim((s) => ({ ...s, selectedCard: null }))}
+                    className="btn btn-ghost btn-xs btn-circle"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {selectedInHand &&
+                  (selectedIsLand ? (
+                    <button
+                      onClick={() => playLand(sim.selectedCard!.id)}
+                      disabled={sim.landPlayedThisTurn}
+                      className="btn btn-primary btn-sm w-full mt-2"
+                    >
+                      {sim.landPlayedThisTurn
+                        ? "Land already played this turn"
+                        : "Play Land"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => castCard(sim.selectedCard!.id)}
+                      disabled={!selectedCastCheck?.canPay}
+                      className="btn btn-primary btn-sm w-full mt-2"
+                    >
+                      Cast{" "}
+                      {sim.selectedCard.mana_cost &&
+                        `(${sim.selectedCard.mana_cost})`}
+                    </button>
+                  ))}
+
+                <div className="divider my-1"></div>
+                <div className="flex flex-wrap gap-1">
+                  {sim.selectedCard.objectiveIds.map((oid) => {
+                    const o = objectives.find((obj) => obj.id === oid);
+                    return (
+                      o && <ObjectivePill key={o.id} objective={o} size="sm" />
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
