@@ -120,6 +120,10 @@ export default function HandSimulator({
     setHiddenObjectives(new Set());
   }, [deck.entries]);
 
+  const showAllObjectives = useCallback(() => {
+    setHiddenObjectives(new Set());
+  }, []);
+
   const drawCard = useCallback(() => {
     setSim((s) => {
       if (s.drawPile.length === 0 || s.awaitingDiscard) return s;
@@ -249,11 +253,19 @@ export default function HandSimulator({
           <div className="stats bg-transparent p-0">
             <div className="stat pb-0 pt-0">
               <div className="stat-title text-xs uppercase tracking-widest">
-                Current Objectives
+                Card Roles Encountered
               </div>
               <div className="stat-desc text-sm text-info">Turn {sim.turn}</div>
             </div>
           </div>
+          {hiddenObjectives.size > 0 && (
+            <button
+              onClick={showAllObjectives}
+              className="btn btn-ghost btn-xs border-base-100"
+            >
+              Show all ({hiddenObjectives.size} hidden)
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -327,12 +339,26 @@ export default function HandSimulator({
       `}</style>
 
       {/* Top bar */}
-      <div className="flex items-center justify-between bg-base-200 p-4 rounded-2xl shadow-inner">
-        <div className="stats bg-transparent">
-          <div className="stat pt-0 pb-0">
-            <div className="stat-title text-[10px] uppercase">Game Turn</div>
-            <div className="stat-value text-2xl text-primary">{sim.turn}</div>
+      <div className="flex items-center justify-between bg-base-200 p-4 rounded-2xl shadow-inner gap-4">
+        <div className="flex items-center gap-6">
+          <div className="stats bg-transparent">
+            <div className="stat pt-0 pb-0">
+              <div className="stat-title text-[10px] uppercase">Game Turn</div>
+              <div className="stat-value text-2xl text-primary">{sim.turn}</div>
+            </div>
           </div>
+          {deck.objectives.length > 0 && (
+            <div className="hidden sm:flex flex-col gap-1">
+              <span className="text-[10px] uppercase font-bold opacity-50 tracking-widest">
+                Deck Strategy
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {deck.objectives.map((o) => (
+                  <ObjectivePill key={o.id} objective={o} size="sm" />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <button
           onClick={reset}

@@ -1,5 +1,5 @@
 // Types
-import type { Deck, DeckEntry, ScryfallCard } from '@/types';
+import type { Deck, DeckEntry, Objective, ScryfallCard } from '@/types';
 
 // Lib
 import { supabase } from '@/lib/supabase';
@@ -154,6 +154,26 @@ export function removePartner(deck: Deck): Deck {
     ...deck,
     partner: null,
     colorIdentity: deck.commander?.color_identity ?? [],
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function addStrategicObjective(deck: Deck, objective: Objective): Deck {
+  if (deck.objectives.some((o) => o.id === objective.id)) return deck;
+  return {
+    ...deck,
+    objectives: [...deck.objectives, objective],
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function removeStrategicObjective(
+  deck: Deck,
+  objectiveId: string,
+): Deck {
+  return {
+    ...deck,
+    objectives: deck.objectives.filter((o) => o.id !== objectiveId),
     updatedAt: new Date().toISOString(),
   };
 }

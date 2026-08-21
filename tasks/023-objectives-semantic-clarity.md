@@ -41,11 +41,11 @@ This means:
 
 ## Acceptance Criteria
 
-- [ ] **Get product-owner input on which model makes sense** — this is a design question, not an engineering one. Confirm which direction before any code lands.
-- [ ] **Document the chosen model** in this file's "Decision" section below, including rationale.
-- [ ] If Option A or C: **Data shape**: Confirm how deck-level objectives are stored/queried (new deck table column? separate metadata object?). No migration needed; just clarify the structure.
-- [ ] If Option A or C: **UI changes** — sketch out how the two levels show up in the deck builder, gallery, simulator, and deck comparison. This feeds into [`018`](018-shared-objectives-assignment-component.md)'s component consolidation.
-- [ ] **Coordinate with simulator work** — ensure the simulator's "show objectives encountered" feature is clear about whether it's showing strategy-level or mechanic-level tags.
+- [x] **Get product-owner input on which model makes sense** — this is a design question, not an engineering one. Confirm which direction before any code lands.
+- [x] **Document the chosen model** in this file's "Decision" section below, including rationale.
+- [x] If Option A or C: **Data shape**: Confirm how deck-level objectives are stored/queried (new deck table column? separate metadata object?). No migration needed; just clarify the structure.
+- [x] If Option A or C: **UI changes** — sketch out how the two levels show up in the deck builder, gallery, simulator, and deck comparison. This feeds into [`018`](018-shared-objectives-assignment-component.md)'s component consolidation.
+- [x] **Coordinate with simulator work** — ensure the simulator's "show objectives encountered" feature is clear about whether it's showing strategy-level or mechanic-level tags.
 
 ## Files / Areas Touched
 
@@ -64,11 +64,21 @@ No files changed until model is decided. Potential scope after decision:
 
 ## Decision
 
-(To be filled in after product-owner input.)
+**Chosen model:** Option A (two-tier: deck-level strategic objectives + card-level mechanical roles), with one amendment to the original proposal — the product owner wants strategic objectives to stay editable for the life of the deck, not locked in at creation. Confirmed this doesn't create a design conflict: it's just a normal editable field, same as a deck's name.
 
-**Chosen model:** 
+**Rationale:** Card-level mechanical-role tagging already exists and works (`DeckEntry.objectiveIds`); the missing half was a place to declare the deck's actual strategic goal(s) so they can eventually be checked against the mechanical roles in play. Reusing the existing `Objective` type/table for both levels (rather than a separate taxonomy) avoids the schema/table-proliferation Option C would need, while still giving Option A's separation of concerns — a strategic objective and a mechanical role are just `Objective`s used in two different slots (`Deck.objectives` vs. `DeckEntry.objectiveIds`), not two different data models.
 
-**Rationale:** 
+**Data shape:** No migration. `decks.objectives` (jsonb) already existed in the DB and in `Deck.objectives: Objective[]` — it was dead code (nothing read or wrote it). Repurposed it in place to mean "deck-level strategic objectives." Added `addStrategicObjective`/`removeStrategicObjective` pure helpers in `deckStore.ts` alongside the existing `setCommander`/`setPartner` pattern. Field is documented at the type ([`types/index.ts`](../src/types/index.ts)) to make the distinction from `objectiveIds` explicit for future readers.
 
-**Implementation approach:** 
+**Version snapshotting:** Per product-owner call, versions do **not** snapshot the strategic objective — they always reflect the deck's current value. So `DeckVersion` needed no changes, and there's nothing version-specific to show in `VersionCompare` (a deck has exactly one current strategic-objective set, shared across all its versions) — left untouched rather than adding a comparison that has nothing to compare.
+
+**Objective cap:** Soft-guided (1–2), not hard-enforced — an italic hint appears in the assignment dropdown once 2 are already set, but a 3rd can still be added.
+
+**UI changes implemented:**
+- `DeckDetailPage.tsx`: new "Strategy" row in the deck identity block — assigned objectives as removable pills, a `+` dropdown to assign more (same interaction pattern as the existing card-level assignment dropdown in `CardGallery.tsx`), optimistic update + rollback matching `useDeckVersions.appendToVersion`'s pattern.
+- `HandSimulator.tsx`: top bar now shows "Deck Strategy" pills (reads `deck.objectives` directly, no new prop needed) for context alongside the turn counter; the encountered-objectives panel below was retitled from "Current Objectives" to "Card Roles Encountered" so it's unambiguous that panel is mechanical-role tracking, not the deck's strategy.
+- Deck builder (creation flow) was deliberately **not** touched — since the objective is meant to be editable for the deck's whole life rather than fixed at creation, there's no need to duplicate the assignment UI into the creation wizard; `DeckDetailPage` already covers "set it right after creating the deck."
+- Gallery (`CardGallery.tsx`) was **not** changed — card-level tagging there was already correct (mechanical roles) and needed no reinterpretation.
+
+**Implementation approach:** Straight to code, no separate sketch-then-build step — the change was small enough (repurpose an existing dead field + one new UI affordance + one panel relabel) that a design doc would have cost more than it saved.
 
