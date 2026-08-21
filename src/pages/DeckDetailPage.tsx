@@ -507,6 +507,8 @@ export default function DeckDetailPage() {
           <CardGallery
             deckId={activeDeck.id}
             colorIdentity={activeDeck.colorIdentity}
+            commander={displayDeck.commander}
+            partner={displayDeck.partner}
             entries={displayDeck.entries.map((e) => ({
               ...e,
               objectiveIds: e.objectiveIds ?? [],

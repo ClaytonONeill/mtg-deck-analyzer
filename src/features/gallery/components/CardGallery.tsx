@@ -24,6 +24,8 @@ import FilterSection from "@/components/FilterSection/FilterSection";
 interface CardGalleryProps {
   deckId: string;
   colorIdentity: string[];
+  commander?: ScryfallCard | null;
+  partner?: ScryfallCard | null;
   entries: DeckEntry[];
   objectives: Objective[];
   pendingSwaps: PendingSwap[];
@@ -62,6 +64,8 @@ const CATEGORY_ORDER: CardCategory[] = [
 export default function CardGallery({
   deckId,
   colorIdentity,
+  commander,
+  partner,
   entries,
   objectives,
   pendingSwaps,
@@ -74,6 +78,7 @@ export default function CardGallery({
   const [sort, setSort] = useState<SortKey>("type");
   const [sortDir, setSortDir] = useState<SortDirection>("asc");
   const [expandedCard, setExpandedCard] = useState<ScryfallCard | null>(null);
+  const [showCommanders, setShowCommanders] = useState(false);
   const [swapping, setSwapping] = useState<ScryfallCard | null>(null);
   const [swappedEntries, setSwappedEntries] = useState<ScryfallCard[]>([]);
   const [showFilters, setShowFilters] = useState(false);
@@ -145,7 +150,7 @@ export default function CardGallery({
       {/* --- DASHBOARD STYLE CONTROLS --- */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-base-200/50 p-4 rounded-2xl border border-base-300 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <span className="text-[10px] font-black text-neutral-content/40 uppercase tracking-widest hidden sm:inline">
+          <span className="text-xs font-black text-primary uppercase tracking-widest hidden sm:inline">
             Sort by
           </span>
           <div className="join bg-base-100 border border-base-300 shadow-sm">
@@ -176,41 +181,44 @@ export default function CardGallery({
               {filteredAndSorted.length} / {entries.length}
             </span>
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`btn btn-sm px-6 rounded-full transition-all ${showFilters ? "btn-primary" : "btn-outline border-base-300"}`}
-          >
-            Filters{" "}
-            {filters.colors.length + filters.types.length > 0 ? "●" : ""}
-          </button>
+          {commander && (
+            <button
+              onClick={() => setShowCommanders(true)}
+              className="btn btn-sm px-6 rounded-full btn-outline border-base-300 shrink-0"
+            >
+              View Commander
+            </button>
+          )}
         </div>
       </div>
 
-      <FilterSection
-        isOpen={showFilters}
-        onToggle={setShowFilters}
-        colorIdentity={colorIdentity}
-        cardCategories={CATEGORY_ORDER}
-        objectives={objectives}
-        draft={{ ...filters, decks: [] }}
-        onChange={(f) =>
-          setFilters({
-            colors: f.colors,
-            types: f.types,
-            objectives: f.objectives,
-            cmc: f.cmc,
-          })
-        }
-        onClear={() =>
-          setFilters({
-            colors: [],
-            types: [],
-            objectives: [],
-            cmc: { min: null, max: null },
-          })
-        }
-        filterCount={0}
-      />
+      <div className="flex items-start gap-3">
+        <FilterSection
+          isOpen={showFilters}
+          onToggle={setShowFilters}
+          colorIdentity={colorIdentity}
+          cardCategories={CATEGORY_ORDER}
+          objectives={objectives}
+          draft={{ ...filters, decks: [] }}
+          onChange={(f) =>
+            setFilters({
+              colors: f.colors,
+              types: f.types,
+              objectives: f.objectives,
+              cmc: f.cmc,
+            })
+          }
+          onClear={() =>
+            setFilters({
+              colors: [],
+              types: [],
+              objectives: [],
+              cmc: { min: null, max: null },
+            })
+          }
+          filterCount={0}
+        />
+      </div>
 
       {/* --- GRID (1 col mobile, 4 col desktop) --- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -332,19 +340,41 @@ export default function CardGallery({
 
       {/* --- NATIVE MODAL --- */}
       <dialog
-        className={`modal modal-bottom sm:modal-middle ${expandedCard ? "modal-open" : ""}`}
-        onClick={() => setExpandedCard(null)}
+        className={`modal modal-bottom sm:modal-middle ${expandedCard || showCommanders ? "modal-open" : ""}`}
+        onClick={() => {
+          setExpandedCard(null);
+          setShowCommanders(false);
+        }}
       >
         <div
           className="modal-box p-0 bg-transparent shadow-none w-auto max-w-none"
           onClick={(e) => e.stopPropagation()}
         >
-          {expandedCard && (
-            <img
-              src={expandedCard.image_uris?.large}
-              alt={expandedCard.name}
-              className="max-h-[85vh] w-auto rounded-[3%] shadow-2xl ring-1 ring-white/20 animate-in zoom-in-95 duration-200"
-            />
+          {showCommanders ? (
+            <div className="flex flex-wrap justify-center gap-4">
+              {commander && (
+                <img
+                  src={commander.image_uris?.large}
+                  alt={commander.name}
+                  className="max-h-[85vh] w-auto rounded-[3%] shadow-2xl ring-1 ring-white/20 animate-in zoom-in-95 duration-200"
+                />
+              )}
+              {partner && (
+                <img
+                  src={partner.image_uris?.large}
+                  alt={partner.name}
+                  className="max-h-[85vh] w-auto rounded-[3%] shadow-2xl ring-1 ring-white/20 animate-in zoom-in-95 duration-200"
+                />
+              )}
+            </div>
+          ) : (
+            expandedCard && (
+              <img
+                src={expandedCard.image_uris?.large}
+                alt={expandedCard.name}
+                className="max-h-[85vh] w-auto rounded-[3%] shadow-2xl ring-1 ring-white/20 animate-in zoom-in-95 duration-200"
+              />
+            )
           )}
         </div>
         <form

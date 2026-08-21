@@ -2,7 +2,7 @@
 import { useState, useCallback, useMemo } from "react";
 
 // Types
-import type { Deck, DeckEntry, Objective } from "@/types";
+import type { Deck, DeckEntry, Objective, ScryfallCard } from "@/types";
 
 // Components
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
@@ -43,11 +43,20 @@ interface PermanentInPlay {
   enteredTurn: number;
 }
 
+interface CommandZoneCard {
+  card: SimCard;
+  cast: boolean;
+  /** Times cast from the command zone this game — each one adds {2} tax. */
+  castCount: number;
+}
+
 interface SimState {
   drawPile: SimCard[];
   hand: SimCard[];
   discard: SimCard[];
   permanentsInPlay: PermanentInPlay[];
+  commanderState: CommandZoneCard | null;
+  partnerState: CommandZoneCard | null;
   landPlayedThisTurn: boolean;
   turn: number;
   awaitingDiscard: boolean;
@@ -75,6 +84,19 @@ function shuffle<T>(arr: T[]): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+function scryfallToSimCard(card: ScryfallCard, id: string): SimCard {
+  return {
+    id,
+    entryId: card.id,
+    name: card.name,
+    type_line: card.type_line,
+    mana_cost: card.mana_cost ?? "",
+    oracle_text: card.oracle_text ?? "",
+    image_uris: card.image_uris,
+    objectiveIds: [],
+  };
 }
 
 function buildCardPool(entries: DeckEntry[]): SimCard[] {
@@ -123,7 +145,11 @@ function countObjectives(
   return updated;
 }
 
-function initState(entries: DeckEntry[]): SimState {
+function initState(
+  entries: DeckEntry[],
+  commander: ScryfallCard | null,
+  partner: ScryfallCard | null,
+): SimState {
   const pool = shuffle(buildCardPool(entries));
   const hand = pool.slice(0, 7);
   const drawPile = pool.slice(7);
@@ -132,6 +158,20 @@ function initState(entries: DeckEntry[]): SimState {
     hand,
     discard: [],
     permanentsInPlay: [],
+    commanderState: commander
+      ? {
+          card: scryfallToSimCard(commander, `commander-${commander.id}`),
+          cast: false,
+          castCount: 0,
+        }
+      : null,
+    partnerState: partner
+      ? {
+          card: scryfallToSimCard(partner, `partner-${partner.id}`),
+          cast: false,
+          castCount: 0,
+        }
+      : null,
     landPlayedThisTurn: false,
     turn: 1,
     awaitingDiscard: false,
@@ -146,7 +186,9 @@ export default function HandSimulator({
   deck,
   objectives,
 }: HandSimulatorProps) {
-  const [sim, setSim] = useState<SimState>(() => initState(deck.entries));
+  const [sim, setSim] = useState<SimState>(() =>
+    initState(deck.entries, deck.commander, deck.partner),
+  );
   const [autoDiscard, setAutoDiscard] = useState(false);
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
 
@@ -167,9 +209,9 @@ export default function HandSimulator({
   }, []);
 
   const reset = useCallback(() => {
-    setSim(initState(deck.entries));
+    setSim(initState(deck.entries, deck.commander, deck.partner));
     setHiddenObjectives(new Set());
-  }, [deck.entries]);
+  }, [deck.entries, deck.commander, deck.partner]);
 
   const showAllObjectives = useCallback(() => {
     setHiddenObjectives(new Set());
@@ -315,6 +357,57 @@ export default function HandSimulator({
     });
   }, []);
 
+  const castCommander = useCallback((which: "commander" | "partner") => {
+    setSim((s) => {
+      const zone = which === "commander" ? s.commanderState : s.partnerState;
+      if (!zone || zone.cast) return s;
+
+      const cost = parseManaCost(zone.card.mana_cost);
+      if (cost.hasX) {
+        return {
+          ...s,
+          castError: `${zone.card.name} has an {X} cost — X spells aren't supported in the simulator yet.`,
+        };
+      }
+      cost.generic += 2 * zone.castCount;
+
+      const eligible = getEligibleManaSources(s.permanentsInPlay, s.turn).map(
+        (p) => p.card,
+      );
+      const { canPay, sourcesToTap } = tryPayCost(eligible, cost);
+      if (!canPay) {
+        const taxNote =
+          zone.castCount > 0 ? ` (+${2 * zone.castCount} commander tax)` : "";
+        return {
+          ...s,
+          castError: `Not enough mana available to cast ${zone.card.name}${taxNote}.`,
+        };
+      }
+
+      const tapIds = new Set(sourcesToTap.map((c) => c.id));
+      const permanentsInPlay = s.permanentsInPlay.map((p) =>
+        tapIds.has(p.card.id) ? { ...p, tapped: true } : p,
+      );
+      const updatedZone: CommandZoneCard = {
+        ...zone,
+        cast: true,
+        castCount: zone.castCount + 1,
+      };
+
+      return {
+        ...s,
+        permanentsInPlay: [
+          ...permanentsInPlay,
+          { card: zone.card, tapped: false, enteredTurn: s.turn },
+        ],
+        commanderState: which === "commander" ? updatedZone : s.commanderState,
+        partnerState: which === "partner" ? updatedZone : s.partnerState,
+        selectedCard: null,
+        castError: null,
+      };
+    });
+  }, []);
+
   const dismissCastError = useCallback(() => {
     setSim((s) => ({ ...s, castError: null }));
   }, []);
@@ -377,6 +470,27 @@ export default function HandSimulator({
     return { cost, ...tryPayCost(eligibleManaSources, cost) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sim.selectedCard, sim.permanentsInPlay, sim.turn]);
+
+  const selectedCommandZone: CommandZoneCard | null = sim.selectedCard
+    ? (sim.commanderState?.card.id === sim.selectedCard.id
+        ? sim.commanderState
+        : sim.partnerState?.card.id === sim.selectedCard.id
+          ? sim.partnerState
+          : null)
+    : null;
+  const selectedCommandZoneKind: "commander" | "partner" | null =
+    selectedCommandZone && sim.commanderState?.card.id === sim.selectedCard?.id
+      ? "commander"
+      : selectedCommandZone
+        ? "partner"
+        : null;
+  const selectedCommanderCastCheck = useMemo(() => {
+    if (!selectedCommandZone || selectedCommandZone.cast) return null;
+    const cost = parseManaCost(selectedCommandZone.card.mana_cost);
+    cost.generic += 2 * selectedCommandZone.castCount;
+    return { cost, ...tryPayCost(eligibleManaSources, cost) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCommandZone, sim.permanentsInPlay, sim.turn]);
 
   const getCardStyle = (
     index: number,
@@ -623,6 +737,41 @@ export default function HandSimulator({
               </div>
             )}
           </div>
+
+          {[sim.commanderState, sim.partnerState]
+            .filter((z): z is CommandZoneCard => !!z)
+            .map((zone) => {
+              const isSelected = sim.selectedCard?.id === zone.card.id;
+              return (
+                <div
+                  key={zone.card.id}
+                  onClick={() => selectCard(zone.card)}
+                  title={`${zone.card.name}${zone.cast ? " (in play)" : ""}`}
+                  className={`w-20 sm:w-24 md:w-full shrink-0 aspect-[5/7] relative rounded-lg overflow-hidden shadow-lg cursor-pointer border transition-colors ${
+                    isSelected
+                      ? "border-2 border-primary"
+                      : "border-primary/50 hover:border-primary"
+                  }`}
+                >
+                  {zone.card.image_uris?.normal ? (
+                    <img
+                      className={`w-full h-full object-cover ${zone.cast ? "opacity-50 grayscale-[40%]" : ""}`}
+                      src={zone.card.image_uris.normal}
+                      alt={zone.card.name}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-base-200 flex items-center justify-center p-2 text-center text-[10px]">
+                      {zone.card.name}
+                    </div>
+                  )}
+                  {zone.cast && (
+                    <span className="badge badge-neutral badge-xs absolute bottom-1 right-1">
+                      In Play
+                    </span>
+                  )}
+                </div>
+              );
+            })}
 
           <div className="flex-1 flex flex-col gap-3 w-full">
             <div className="form-control">
@@ -947,6 +1096,29 @@ export default function HandSimulator({
                         `(${sim.selectedCard.mana_cost})`}
                     </button>
                   ))}
+
+                {selectedCommandZone &&
+                  !selectedCommandZone.cast &&
+                  selectedCommandZoneKind && (
+                    <button
+                      onClick={() => castCommander(selectedCommandZoneKind)}
+                      disabled={!selectedCommanderCastCheck?.canPay}
+                      className="btn btn-primary btn-sm w-full mt-2"
+                    >
+                      Cast Commander{" "}
+                      {selectedCommandZone.card.mana_cost &&
+                        `(${selectedCommandZone.card.mana_cost}${
+                          selectedCommandZone.castCount > 0
+                            ? ` +${2 * selectedCommandZone.castCount}`
+                            : ""
+                        })`}
+                    </button>
+                  )}
+                {selectedCommandZone?.cast && (
+                  <p className="text-[10px] opacity-50 mt-2 italic">
+                    Already cast this game — on the battlefield.
+                  </p>
+                )}
 
                 <div className="divider my-1"></div>
                 <div className="flex flex-wrap gap-1">
