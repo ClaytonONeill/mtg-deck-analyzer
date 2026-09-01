@@ -19,9 +19,13 @@ Also worth noting while scoping: "hidden" objectives aren't actually removed fro
 
 ## Acceptance Criteria
 
-- [ ] Add a control (e.g. a small "Show all objectives" button, visible only when `hiddenObjectives` is non-empty) that clears `hiddenObjectives` without calling `reset()`/reshuffling the hand.
-- [ ] `reset()`'s existing behavior (full reshuffle + implicitly clearing hidden state) is unchanged — this is additive, not a replacement.
-- [ ] Confirm/clarify the grayed-out-vs-removed visual treatment with the product owner if it's ambiguous whether that's intentional.
+- [x] Add a control (e.g. a small "Show all objectives" button, visible only when `hiddenObjectives` is non-empty) that clears `hiddenObjectives` without calling `reset()`/reshuffling the hand.
+- [x] `reset()`'s existing behavior (full reshuffle + implicitly clearing hidden state) is unchanged — this is additive, not a replacement.
+- [x] Confirm/clarify the grayed-out-vs-removed visual treatment with the product owner if it's ambiguous whether that's intentional. — Not actually ambiguous: individual objectives are already re-shown by clicking them again (`toggleObjective` is bidirectional), so grayed-out/mute was already the intended interaction. The new "Show all" button is the bulk version of that same behavior, not a new mode.
+
+## Resolution
+
+Added a "Show all (N hidden)" button next to the "Current Objectives" header in `HandSimulator.tsx`, visible only when `hiddenObjectives` is non-empty. It calls a new `showAllObjectives()` callback that clears the `hiddenObjectives` set directly, independent of `reset()`.
 
 ## Files / Areas Touched
 

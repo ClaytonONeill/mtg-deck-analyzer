@@ -9,26 +9,36 @@ Today's hand simulator is a **viewing tool**: draw a hand, inspect it, see objec
 
 ## Current State
 
-- `src/features/simulator/components/HandSimulator.tsx`: draws 7 random cards, shows objectives encountered
-- Can shuffle and redraw; no casting or game-state tracking
-- No phase/turn structure
-- Used for quick "does this hand look reasonable?" checks
-- Core limitation: can't tell if mana curves, synergies, or sequencing actually work in practice
+- `src/features/simulator/components/HandSimulator.tsx`: draws 7 random cards, shows card roles (mechanical objectives) and the deck's strategic objective(s) encountered
+- Can shuffle and redraw; Phase 1 land-play/mana/casting is now implemented (see Phase 1 status below)
+- Real turn structure exists (untap + draw via "Next Turn"), but no sub-phases (main/combat/end)
+- Used for "does this hand look reasonable, and can I actually cast my curve?" checks
+- Remaining limitation: no stats aggregation across multiple hands yet, and mana rocks/dorks aren't modeled — see Phase 1 status
 
 ## Phase 1: Minimal Playability (1–2 days)
+
+**Status: partially landed.** Land play, mana tracking, and casting are in; stats collection ("Run 50 Hands") is not built yet.
 
 **Goal:** Hand is castable; track land-play and basic sequencing.
 
 ### Changes
-- **Game state:** Add `board` object tracking `{tapped, untapped, hand, graveyard, Library}`; track current mana (colored + generic), turn counter
-- **Land play:** Click a land card to play it; tracks mana availability. Auto-tap lands if only one way to pay.
-- **Cast spell:** Click a non-land card to attempt cast. Validate mana cost; auto-tap if possible, else warn. Resolve to "on board" (for creatures) or "graveyard" (for most spells, until sorceries/instants have better handling).
-- **Turn cycle:** "Next Turn" button resets mana, draws a card. Shows a simple turn counter.
-- **Stats:** Over N hands (say, 50), track:
-  - Avg turn until first cast
-  - Avg lands per hand
-  - Avg mana available by turn 3, 5, 7
-  - Frequency of cards "castable in opening hand"
+- **Game state:** Add `board` object tracking `{tapped, untapped, hand, graveyard, Library}`; track current mana (colored + generic), turn counter — **done**, as a single `permanentsInPlay`/`discard` (doubling as graveyard) on `SimState` in `HandSimulator.tsx`.
+- **Land play:** Click a land card to play it; tracks mana availability. Auto-tap lands if only one way to pay. — **done**. One land per turn is enforced (`landPlayedThisTurn`).
+- **Cast spell:** Click a non-land card to attempt cast. Validate mana cost; auto-tap if possible, else warn. Resolve to "on board" (for creatures) or "graveyard" (for most spells, until sorceries/instants have better handling). — **done**, via `src/features/simulator/utils/manaUtils.ts`.
+- **Turn cycle:** "Next Turn" button resets mana, draws a card. Shows a simple turn counter. — **done**. The pre-existing "click the deck to draw" action still works too, but no longer advances the turn counter or untaps mana sources — it's now a separate "draw an extra card" action (e.g. for simulating draw spells), decoupled from turn-passing.
+- **Mana rocks/dorks:** Sol Ring, Arcane Signet, Llanowar Elves, etc. all produce mana once cast — **done**. Mana dorks correctly respect summoning sickness (can't tap the turn they're cast, per rule 302.6); mana rocks/artifacts don't, since sickness only applies to creatures. Multi-mana sources (Sol Ring's 2, Mana Vault's 3) are modeled properly, not approximated as 1.
+- **Command Zone:** Commander (and partner, if set) are visible and castable from a dedicated zone — **done**. Not part of the shuffled library/hand (matches real rules); includes a working commander-tax mechanic (+{2} generic per previous cast), though since nothing currently returns a permanent to the command zone (no death/bounce modeled), the tax can't actually trigger above {0} yet in practice — it's correct and ready for whenever removal exists, not dead weight kept "just in case." Same Gallery-tab visibility landed alongside this as [`tasks/016`](../../tasks/016-commander-in-gallery-view.md) (display-only pinned tiles, no swap/tagging).
+- **Stats:** Over N hands (say, 50), track avg turn until first cast, avg lands per hand, avg mana available by turn 3/5/7, frequency of "castable in opening hand" — **not built yet.** Next slice of Phase 1.
+
+### Known simplifications (mana engine)
+Worth knowing about before relying on this for real deck testing — these are deliberate MVP shortcuts, not bugs. Verified against real card texts in a standalone script (Sol Ring, Mana Vault, Arcane Signet, Command Tower, Llanowar Elves, Birds of Paradise, Chrome Mox, Temple Garden, Fellwar Stone) — not committed to the repo since there's no test runner yet ([`tasks/009`](../../tasks/009-testing-foundation-unit-and-acceptance.md) owns standing that up).
+- **Mana abilities are guessed from oracle text** (regex over `{T}: Add ...`), not a real rules parser. Conditional abilities ("if you control a Mountain...") get simplified to whatever colors they mention; sources with unrecognized text produce nothing.
+- **Sources with an extra activation cost beyond `{T}` are excluded entirely** (Chrome Mox's sacrifice, cards that also cost life), rather than mis-modeled as free taps.
+- **"Any color" abilities aren't scoped** — Command Tower (commander's color identity) and Fellwar Stone (colors opponents' lands could make) both simplify to "any of WUBRG," which is generous in a solo goldfishing context with no real opponents.
+- **{X} spells aren't castable** — clicking one shows an explicit error rather than silently treating X as 0.
+- **Hybrid/Phyrexian mana** (`{W/U}`, `{R/P}`) is simplified to its first listed color, not "either."
+- **No combat** — creatures just sit on the battlefield once cast; there's nothing to attack with yet (that's Phase 3). Summoning sickness IS modeled, but only insofar as it gates mana abilities, not attacking (moot until combat exists).
+- **First-turn draw isn't skipped** — every "Next Turn" draws a card, including turn 1, which slightly overcounts draws vs. real Commander turn order.
 
 ### Out of Scope
 - Phases (main, combat, etc.)

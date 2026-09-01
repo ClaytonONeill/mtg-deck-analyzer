@@ -4,7 +4,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Layers, BarChart2, ChevronLeft, Edit3 } from "lucide-react";
 
 // Stores
-import { deckStore, getDeckCardCount } from "@/store/deckStore";
+import {
+  deckStore,
+  getDeckCardCount,
+  addStrategicObjective,
+  removeStrategicObjective,
+} from "@/store/deckStore";
 
 // Hooks
 import { useObjectives } from "@/hooks/useObjectives";
@@ -33,9 +38,10 @@ import SaveVersionModal from "@/features/deckVersions/components/SaveVersionModa
 import WishlistDeckFilter from "@/features/wishlist/components/WishlistDeckFilter";
 import SelectedCategoryModal from "@/features/metrics/components/SelectedCategoryModal";
 import HandSimulator from "@/features/simulator/components/HandSimulator";
+import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 // Types
-import type { Deck, PendingSwap } from "@/types";
+import type { Deck, Objective, PendingSwap } from "@/types";
 
 type Tab = "metrics" | "gallery" | "wishlist" | "simulator";
 type MetricView = "types" | "cmc" | "compare";
@@ -180,6 +186,10 @@ export default function DeckDetailPage() {
     );
   }
 
+  const unassignedStrategicObjectives = objectives.filter(
+    (o) => !activeDeck.objectives.some((x) => x.id === o.id),
+  );
+
   const cardCount = getDeckCardCount(displayDeck);
   const typeData = getTypeBreakdown(displayDeck, includeLands);
   const cmcData = getCMCBreakdown(displayDeck, includeLands);
@@ -218,6 +228,18 @@ export default function DeckDetailPage() {
     } else {
       unassignObjectiveFromVersion(activeVersionId, cardId, objectiveId);
     }
+  };
+
+  const handleAssignStrategicObjective = (objective: Objective) => {
+    const updated = addStrategicObjective(activeDeck, objective);
+    setDeck(updated);
+    void deckStore.save(updated).catch(() => setDeck(activeDeck));
+  };
+
+  const handleUnassignStrategicObjective = (objectiveId: string) => {
+    const updated = removeStrategicObjective(activeDeck, objectiveId);
+    setDeck(updated);
+    void deckStore.save(updated).catch(() => setDeck(activeDeck));
   };
 
   const tabs: { key: Tab; label: string }[] = [
@@ -271,6 +293,60 @@ export default function DeckDetailPage() {
                   <span className="font-semibold opacity-50">Partner:</span>{" "}
                   {activeDeck.partner.name}
                 </p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-sm font-semibold opacity-50">
+                Strategy:
+              </span>
+              {activeDeck.objectives.map((o) => (
+                <ObjectivePill
+                  key={o.id}
+                  objective={o}
+                  onRemove={() => handleUnassignStrategicObjective(o.id)}
+                />
+              ))}
+              {unassignedStrategicObjectives.length > 0 && (
+                <div className="dropdown dropdown-bottom dropdown-start">
+                  <div
+                    tabIndex={0}
+                    role="button"
+                    className="btn btn-ghost btn-xs btn-circle bg-base-200 border-none opacity-60 hover:opacity-100 hover:bg-primary hover:text-primary-content"
+                  >
+                    +
+                  </div>
+                  <ul
+                    tabIndex={0}
+                    className="dropdown-content z-[20] menu p-2 shadow-2xl bg-base-200 rounded-box w-56 max-w-[calc(100vw-2rem)] border border-base-300 mt-2"
+                  >
+                    <li className="menu-title text-[10px] opacity-40 uppercase tracking-widest">
+                      Set Strategic Objective
+                    </li>
+                    {activeDeck.objectives.length >= 2 && (
+                      <li className="px-2 pb-1">
+                        <span className="text-[10px] italic opacity-50">
+                          Usually just 1-2 core objectives work best.
+                        </span>
+                      </li>
+                    )}
+                    {unassignedStrategicObjectives.map((o) => (
+                      <li key={o.id}>
+                        <button
+                          onClick={() => handleAssignStrategicObjective(o)}
+                          className="text-xs py-2"
+                        >
+                          {o.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {activeDeck.objectives.length === 0 && (
+                <span className="text-xs italic opacity-40">
+                  No strategic objective set
+                </span>
               )}
             </div>
           </div>
@@ -431,6 +507,8 @@ export default function DeckDetailPage() {
           <CardGallery
             deckId={activeDeck.id}
             colorIdentity={activeDeck.colorIdentity}
+            commander={displayDeck.commander}
+            partner={displayDeck.partner}
             entries={displayDeck.entries.map((e) => ({
               ...e,
               objectiveIds: e.objectiveIds ?? [],
