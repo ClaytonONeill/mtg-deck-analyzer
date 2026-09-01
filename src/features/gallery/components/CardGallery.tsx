@@ -150,7 +150,7 @@ export default function CardGallery({
       {/* --- DASHBOARD STYLE CONTROLS --- */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-base-200/50 p-4 rounded-2xl border border-base-300 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <span className="text-xs font-black text-primary uppercase tracking-widest hidden sm:inline">
+          <span className="text-xs font-black text-primary/usage uppercase tracking-widest hidden sm:inline">
             Sort by
           </span>
           <div className="join bg-base-100 border border-base-300 shadow-sm">
