@@ -225,13 +225,65 @@ export function getDeckCardCount(deck: Deck): number {
   );
 }
 
-export function exportDeck(deck: Deck): void {
+export type DeckExportFormat = 'json' | 'xlsx';
+
+export function defaultExportFilename(
+  deck: Deck,
+  format: DeckExportFormat,
+): string {
+  return `${deck.name.replace(/\s+/g, '_')}.${format}`;
+}
+
+export async function buildDeckExportBlob(
+  deck: Deck,
+  format: DeckExportFormat,
+): Promise<Blob> {
+  if (format === 'xlsx') return buildDeckXlsxBlob(deck);
+
   const json = JSON.stringify(deck, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
+  return new Blob([json], { type: 'application/json' });
+}
+
+async function buildDeckXlsxBlob(deck: Deck): Promise<Blob> {
+  // Loaded on demand — xlsx is a large dependency only needed by this format.
+  const XLSX = await import('xlsx');
+
+  const rows: Record<string, string | number>[] = [];
+
+  const addRow = (category: string, quantity: number, card: ScryfallCard) => {
+    rows.push({
+      Quantity: quantity,
+      Name: card.name,
+      Category: category,
+      'Type Line': card.type_line,
+      'Mana Cost': card.mana_cost,
+      CMC: card.cmc,
+      'Color Identity': card.color_identity.join(''),
+    });
+  };
+
+  if (deck.commander) addRow('Commander', 1, deck.commander);
+  if (deck.partner) addRow('Commander', 1, deck.partner);
+  deck.entries.forEach((entry) => addRow(entry.category, entry.quantity, entry.card));
+
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Deck');
+  const buffer = XLSX.write(workbook, {
+    type: 'array',
+    bookType: 'xlsx',
+  }) as ArrayBuffer;
+
+  return new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+}
+
+export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = `${deck.name.replace(/\s+/g, '_')}.json`;
+  anchor.download = filename;
   anchor.click();
   URL.revokeObjectURL(url);
 }
