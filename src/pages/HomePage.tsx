@@ -12,12 +12,14 @@ import type { Deck } from '@/types';
 import DeckCard from '@/features/deckList/components/DeckCard';
 import EmptyState from '@/features/deckList/components/EmptyState';
 import ConfirmDelete from '@/components/ConfirmDelete/ConfirmDelete';
+import ExportDeckModal from '@/features/deckList/components/ExportDeckModal';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const [decks, setDecks] = useState<Deck[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState<Deck | null>(null);
+  const [pendingExport, setPendingExport] = useState<Deck | null>(null);
 
   useEffect(() => {
     deckStore.getAll().then((data) => {
@@ -62,6 +64,7 @@ export default function HomePage() {
                   onOpen={() => navigate(`/deck/${deck.id}`)}
                   onEdit={() => navigate(`/build/${deck.id}`)}
                   onDelete={setPendingDelete}
+                  onExport={setPendingExport}
                 />
               ))}
             </div>
@@ -71,6 +74,11 @@ export default function HomePage() {
           open={!!pendingDelete}
           onClose={() => setPendingDelete(null)}
           onConfirm={handleDeleteConfirm}
+        />
+        <ExportDeckModal
+          key={pendingExport?.id ?? 'export-modal'}
+          deck={pendingExport}
+          onClose={() => setPendingExport(null)}
         />
       </main>
     </div>

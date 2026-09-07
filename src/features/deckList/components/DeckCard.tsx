@@ -1,5 +1,5 @@
 // Store
-import { getDeckCardCount, exportDeck } from '@/store/deckStore';
+import { getDeckCardCount } from '@/store/deckStore';
 
 // Components
 import ColorPip from '@/components/ManaSymbol/ColorPip';
@@ -15,6 +15,7 @@ interface DeckCardProps {
   onOpen: () => void;
   onEdit: () => void;
   onDelete: (deck: Deck) => void;
+  onExport: (deck: Deck) => void;
 }
 
 export default function DeckCard({
@@ -22,6 +23,7 @@ export default function DeckCard({
   onOpen,
   onEdit,
   onDelete,
+  onExport,
 }: DeckCardProps) {
   const cardCount = getDeckCardCount(deck);
 
@@ -117,7 +119,7 @@ export default function DeckCard({
             Edit
           </button>
           <button
-            onClick={() => exportDeck(deck)}
+            onClick={() => onExport(deck)}
             className="btn btn-sm btn-neutral flex-1 hover:border-primary/50"
           >
             Export
