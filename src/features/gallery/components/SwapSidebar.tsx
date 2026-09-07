@@ -5,18 +5,24 @@ import {
   useRef,
   type Dispatch,
   type SetStateAction,
-} from "react";
+} from 'react';
 
 // Types
-import type { ScryfallCard, CardCategory, WishlistEntry } from "@/types";
+import type { ScryfallCard, CardCategory, WishlistEntry } from '@/types';
 
 // Hooks
-import { useObjectives } from "@/hooks/useObjectives";
+import { useObjectives } from '@/hooks/useObjectives';
 
 // Components
-import CardSearchPanel from "@/features/deckBuilder/components/CardSearchPanel";
-import ManaCost from "@/components/ManaSymbol/ManaCost";
-import ObjectivePill from "@/features/objectives/components/ObjectivePill";
+import CardSearchPanel from '@/features/deckBuilder/components/CardSearchPanel';
+import ManaCost from '@/components/ManaSymbol/ManaCost';
+import ObjectivePill from '@/features/objectives/components/ObjectivePill';
+
+// Utils
+import { isCardLegalForDeck } from '@/store/deckStore';
+
+// Icons
+import { X } from 'lucide-react';
 
 interface SwapSidebarProps {
   cardToSwap: ScryfallCard;
@@ -30,32 +36,26 @@ interface SwapSidebarProps {
 }
 
 const CATEGORY_ORDER: CardCategory[] = [
-  "Creature",
-  "Instant",
-  "Sorcery",
-  "Enchantment",
-  "Artifact",
-  "Planeswalker",
-  "Land",
-  "Other",
+  'Creature',
+  'Instant',
+  'Sorcery',
+  'Enchantment',
+  'Artifact',
+  'Planeswalker',
+  'Land',
+  'Other',
 ];
 
-// ... Helper functions (inferCategory, isLegalForDeck, toggle) remain the same ...
 function inferCategory(typeLine: string): CardCategory {
   const t = typeLine.toLowerCase();
-  if (t.includes("creature")) return "Creature";
-  if (t.includes("land")) return "Land";
-  if (t.includes("instant")) return "Instant";
-  if (t.includes("sorcery")) return "Sorcery";
-  if (t.includes("enchantment")) return "Enchantment";
-  if (t.includes("artifact")) return "Artifact";
-  if (t.includes("planeswalker")) return "Planeswalker";
-  return "Other";
-}
-
-function isLegalForDeck(card: ScryfallCard, colorIdentity: string[]): boolean {
-  if (card.color_identity.length === 0) return true;
-  return card.color_identity.every((c) => colorIdentity.includes(c));
+  if (t.includes('creature')) return 'Creature';
+  if (t.includes('land')) return 'Land';
+  if (t.includes('instant')) return 'Instant';
+  if (t.includes('sorcery')) return 'Sorcery';
+  if (t.includes('enchantment')) return 'Enchantment';
+  if (t.includes('artifact')) return 'Artifact';
+  if (t.includes('planeswalker')) return 'Planeswalker';
+  return 'Other';
 }
 
 function toggle<T>(arr: T[], val: T): T[] {
@@ -73,8 +73,9 @@ export default function SwapSidebar({
   onSwapEntry,
 }: SwapSidebarProps) {
   const [selected, setSelected] = useState<ScryfallCard | null>(null);
-  const [activeTab, setActiveTab] = useState<"search" | "wishlist">("search");
+  const [activeTab, setActiveTab] = useState<'search' | 'wishlist'>('search');
   const [colorError, setColorError] = useState<string | null>(null);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [typeFilters, setTypeFilters] = useState<CardCategory[]>([]);
@@ -86,13 +87,12 @@ export default function SwapSidebar({
   const { objectives } = useObjectives();
 
   useEffect(() => {
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     };
   }, []);
 
-  // --- Logic ---
   const activeObjectiveIds = useMemo(() => {
     const ids = new Set<string>();
     deckWishlist.forEach((e) =>
@@ -134,8 +134,13 @@ export default function SwapSidebar({
     typeFilters.length + objectiveFilters.length + (hideSwapped ? 1 : 0);
 
   const handleSelect = (card: ScryfallCard) => {
-    if (!isLegalForDeck(card, colorIdentity)) {
+    if (!isCardLegalForDeck(colorIdentity, card)) {
       setColorError(`${card.name} is outside this deck's color identity.`);
+      setSelected(null);
+      return;
+    }
+    if (deckEntryIds.has(card.id)) {
+      setDuplicateError(`${card.name} is already in this deck.`);
       setSelected(null);
       return;
     }
@@ -157,7 +162,7 @@ export default function SwapSidebar({
 
   const scrollToTop = () => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -174,13 +179,13 @@ export default function SwapSidebar({
         className={`
         fixed top-0 right-0 h-full z-70 bg-base-100 border-l border-base-300
         flex flex-col shadow-2xl transition-all duration-300 ease-in-out
-        w-full sm:w-[85vw] ${activeTab === "wishlist" ? "lg:w-4xl" : "lg:w-lg"}
+        w-full sm:w-[85vw] ${activeTab === 'wishlist' ? 'lg:w-4xl' : 'lg:w-2xl'}
       `}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-base-300 bg-base-200/50">
           <div>
-            <h2 className="text-[10px] font-black uppercase tracking-tighter opacity-40">
+            <h2 className="text-sm font-black uppercase tracking-tighter opacity-40">
               Swapping Out
             </h2>
             <p className="text-lg font-bold truncate max-w-60">
@@ -192,21 +197,21 @@ export default function SwapSidebar({
           </button>
         </div>
 
-        {/* Tab Switcher (DaisyUI Tabs) */}
+        {/* Tab Switcher */}
         <div className="tabs tabs-boxed bg-base-300 m-6 mb-2 gap-1 p-1">
           <button
-            className={`tab flex-1 font-bold ${activeTab === "search" ? "tab-active bg-primary! text-primary-content!" : ""}`}
+            className={`tab flex-1 font-bold ${activeTab === 'search' ? 'tab-active bg-primary! text-primary-content!' : ''}`}
             onClick={() => {
-              setActiveTab("search");
+              setActiveTab('search');
               setSelected(null);
             }}
           >
             Search
           </button>
           <button
-            className={`tab flex-1 font-bold ${activeTab === "wishlist" ? "tab-active bg-primary! text-primary-content!" : ""}`}
+            className={`tab flex-1 font-bold ${activeTab === 'wishlist' ? 'tab-active bg-primary! text-primary-content!' : ''}`}
             onClick={() => {
-              setActiveTab("wishlist");
+              setActiveTab('wishlist');
               setSelected(null);
             }}
           >
@@ -214,16 +219,16 @@ export default function SwapSidebar({
           </button>
         </div>
 
-        {/* Action Bar (Confirmation) */}
+        {/* Action Bar */}
         <div className="px-6 py-4 flex flex-col gap-3 border-b border-base-300/50">
           <button
             onClick={handleConfirm}
             disabled={!selected}
-            className={`btn btn-block ${selected ? "btn-primary shadow-lg shadow-primary/20" : "btn-disabled"}`}
+            className={`btn btn-block ${selected ? 'btn-primary shadow-lg shadow-primary/20' : 'btn-disabled'}`}
           >
             {selected
               ? `Confirm Swap with ${selected.name}`
-              : "Select a replacement"}
+              : 'Select a replacement'}
           </button>
         </div>
 
@@ -233,18 +238,29 @@ export default function SwapSidebar({
           onScroll={handleScroll}
         >
           {colorError && (
-            <div className="alert alert-error text-xs font-bold mb-4 shadow-lg py-2">
-              <span>{colorError}</span>
+            <div className="alert alert-error text-xs font-bold mb-4 shadow-lg py-2 mt-2">
               <button
                 onClick={() => setColorError(null)}
                 className="btn btn-ghost btn-xs btn-circle"
               >
-                ✕
+                <X />
               </button>
+              <span>{colorError}</span>
+            </div>
+          )}
+          {duplicateError && (
+            <div className="alert alert-info text-xs text-base-content font-bold mb-4 shadow-lg py-2 mt-2">
+              <button
+                onClick={() => setDuplicateError(null)}
+                className="btn btn-ghost btn-xs btn-circle"
+              >
+                <X />
+              </button>
+              <span>{duplicateError}</span>
             </div>
           )}
 
-          {activeTab === "search" ? (
+          {activeTab === 'search' ? (
             <div className="space-y-6 py-6">
               <CardSearchPanel
                 label="Replacement Name"
@@ -258,7 +274,7 @@ export default function SwapSidebar({
                     <img
                       src={selected.image_uris?.normal}
                       alt={selected.name}
-                      className="rounded-xl shadow-2xl"
+                      className="rounded-xl shadow-2xl w-1/2 h-1/2"
                     />
                   </figure>
                   <div className="card-body items-center text-center">
@@ -280,15 +296,15 @@ export default function SwapSidebar({
             </div>
           ) : (
             <div className="space-y-6 py-6">
-              {/* Filter Header - Now inside scrollable area */}
+              {/* Filter Header */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <button
                     onClick={() => setShowFilters(!showFilters)}
                     className={`btn btn-sm btn-outline gap-2 transition-all ${
                       showFilters || filterCount > 0
-                        ? "border-primary text-primary bg-primary/5"
-                        : "border-base-300"
+                        ? 'border-primary text-primary bg-primary/5'
+                        : 'border-base-300'
                     }`}
                   >
                     <svg
@@ -331,7 +347,7 @@ export default function SwapSidebar({
                             onClick={() =>
                               setTypeFilters((prev) => toggle(prev, cat))
                             }
-                            className={`btn btn-xs rounded-full ${typeFilters.includes(cat) ? "btn-primary" : "btn-ghost bg-base-300"}`}
+                            className={`btn btn-xs rounded-full ${typeFilters.includes(cat) ? 'btn-primary' : 'btn-ghost bg-base-300'}`}
                           >
                             {cat}
                           </button>
@@ -354,7 +370,7 @@ export default function SwapSidebar({
                                   toggle(prev, o.id),
                                 )
                               }
-                              className={`transition-all rounded-full p-0.5 ${objectiveFilters.includes(o.id) ? "ring-2 ring-primary ring-offset-2 ring-offset-base-200" : ""}`}
+                              className={`transition-all rounded-full p-0.5 ${objectiveFilters.includes(o.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-base-200' : ''}`}
                             >
                               <ObjectivePill objective={o} size="sm" />
                             </button>
@@ -398,7 +414,7 @@ export default function SwapSidebar({
               {/* Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-4">
                 {filtered.map((entry) => {
-                  const legal = isLegalForDeck(entry.card, colorIdentity);
+                  const legal = isCardLegalForDeck(colorIdentity, entry.card);
                   const isSelected = selected?.id === entry.card.id;
                   const isSwapped = swappedEntries.some(
                     (c) => c.id === entry.card.id,
@@ -416,9 +432,9 @@ export default function SwapSidebar({
                       }
                       className={`
                         relative group flex flex-col gap-3 p-3 rounded-2xl border transition-all cursor-pointer
-                        ${isSelected ? "bg-primary/5 border-primary shadow-inner ring-2 ring-primary" : "bg-base-200 border-base-300 hover:border-primary/50"}
-                        ${isSwapped || !legal ? "opacity-40 grayscale-[0.5]" : "opacity-100"}
-                        ${isInDeck ? "ring-1 ring-warning" : ""}
+                        ${isSelected ? 'bg-primary/5 border-primary shadow-inner ring-2 ring-primary' : 'bg-base-200 border-base-300 hover:border-primary/50'}
+                        ${isSwapped || !legal ? 'opacity-40 grayscale-[0.5]' : 'opacity-100'}
+                        ${isInDeck ? 'ring-1 ring-warning' : ''}
                       `}
                     >
                       <div className="relative aspect-5/7 overflow-hidden rounded-xl shadow-lg">

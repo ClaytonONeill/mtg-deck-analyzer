@@ -1,5 +1,5 @@
 // Types
-import type { Deck, DeckEntry, ScryfallCard } from '@/types';
+import type { Deck, DeckEntry, Objective, ScryfallCard } from '@/types';
 
 // Lib
 import { supabase } from '@/lib/supabase';
@@ -97,7 +97,6 @@ export const deckStore = {
 
     if (!data) return undefined;
 
-    // Mapping the database row to your Deck interface
     return {
       id: data.id,
       name: data.name,
@@ -159,6 +158,26 @@ export function removePartner(deck: Deck): Deck {
   };
 }
 
+export function addStrategicObjective(deck: Deck, objective: Objective): Deck {
+  if (deck.objectives.some((o) => o.id === objective.id)) return deck;
+  return {
+    ...deck,
+    objectives: [...deck.objectives, objective],
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function removeStrategicObjective(
+  deck: Deck,
+  objectiveId: string,
+): Deck {
+  return {
+    ...deck,
+    objectives: deck.objectives.filter((o) => o.id !== objectiveId),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 export function addCardToDeck(deck: Deck, card: ScryfallCard): Deck {
   const category = inferCategory(card);
   const existing = deck.entries.findIndex((e) => e.card.id === card.id);
@@ -180,10 +199,20 @@ export function removeCardFromDeck(deck: Deck, cardId: string): Deck {
   return { ...deck, entries, updatedAt: new Date().toISOString() };
 }
 
-export function isCardLegalForDeck(deck: Deck, card: ScryfallCard): boolean {
-  if (!deck.commander) return true;
-  if (card.color_identity.length === 0) return true;
-  return card.color_identity.every((c) => deck.colorIdentity.includes(c));
+export function isCardLegalForDeck(
+  colorIdentity: string[],
+  card: ScryfallCard,
+): boolean {
+  return card.color_identity.every((c) => colorIdentity.includes(c));
+}
+
+export function duplicateCardInDeck(deck: Deck, card: ScryfallCard): boolean {
+  if (deck.commander?.id === card.id || deck.partner?.id === card.id)
+    return true;
+  return (
+    deck.entries.filter(({ card: existingCard }) => existingCard.id === card.id)
+      .length > 0
+  );
 }
 
 export function getDeckCardCount(deck: Deck): number {

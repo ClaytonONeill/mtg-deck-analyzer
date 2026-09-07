@@ -7,6 +7,7 @@ import {
   addCardToDeck,
   removeCardFromDeck,
   isCardLegalForDeck,
+  duplicateCardInDeck,
   deckStore,
   setCommander as storeSetCommander,
   setPartner as storeSetPartner,
@@ -26,6 +27,7 @@ export function useDeckBuilder(deckId?: string) {
   const [deck, setDeck] = useState<Deck>(createNewDeck(''));
   const [loading, setLoading] = useState(!!deckId);
   const [colorWarning, setColorWarning] = useState<string | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [partnerWarning, setPartnerWarning] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,6 +53,7 @@ export function useDeckBuilder(deckId?: string) {
     setDeck((d) => storeSetCommander(d, card));
     setColorWarning(null);
     setPartnerWarning(null);
+    setDuplicateWarning(null);
   }, []);
 
   const setPartner = useCallback((card: ScryfallCard) => {
@@ -73,13 +76,18 @@ export function useDeckBuilder(deckId?: string) {
 
   const addCard = useCallback((card: ScryfallCard) => {
     setDeck((d) => {
-      if (!isCardLegalForDeck(d, card)) {
+      if (!isCardLegalForDeck(d.colorIdentity, card)) {
         setColorWarning(
           `${card.name} is outside your commander's color identity and cannot be added.`,
         );
         return d;
       }
+      if (duplicateCardInDeck(d, card)) {
+        setDuplicateWarning(`${card.name} is already in your deck.`);
+        return d;
+      }
       setColorWarning(null);
+      setDuplicateWarning(null);
       return addCardToDeck(d, card);
     });
   }, []);
@@ -94,8 +102,12 @@ export function useDeckBuilder(deckId?: string) {
     return true;
   }, [deck]);
 
-  const clearWarning = useCallback(() => setColorWarning(null), []);
+  const clearColorWarning = useCallback(() => setColorWarning(null), []);
   const clearPartnerWarning = useCallback(() => setPartnerWarning(null), []);
+  const clearDuplicateWarning = useCallback(
+    () => setDuplicateWarning(null),
+    [],
+  );
 
   const commanderPartnerInfo = deck.commander
     ? getPartnerInfo(deck.commander)
@@ -117,6 +129,7 @@ export function useDeckBuilder(deckId?: string) {
     partnerWarning,
     commanderHasPartner,
     requiredPartnerName,
+    duplicateWarning,
     setName,
     setCommander,
     setPartner,
@@ -124,7 +137,8 @@ export function useDeckBuilder(deckId?: string) {
     addCard,
     removeCard,
     saveDeck,
-    clearWarning,
+    clearColorWarning,
     clearPartnerWarning,
+    clearDuplicateWarning,
   };
 }

@@ -56,6 +56,8 @@ export interface Deck {
   entries: DeckEntry[];
   createdAt: string;
   updatedAt: string;
+  /** Deck-level strategic objectives (1-2 core themes), distinct from each
+   * DeckEntry's `objectiveIds`, which tag a card's mechanical role. */
   objectives: Objective[];
   versions: DeckVersion[];
 }
@@ -82,3 +84,21 @@ export interface PendingSwap {
   removeCardId: string;
   addCard: ScryfallCard;
 }
+
+export type Theme =
+  | "dark"
+  | "light"
+  | "emerald"
+  | "fantasy"
+  | "retro"
+  | "nord"
+  | "cupcake"
+  | "bumblebee"
+  | "pastel"
+  | "valentine"
+  | "halloween"
+  | "garden"
+  | "forest"
+  | "dracula"
+  | "business"
+  | "night";
