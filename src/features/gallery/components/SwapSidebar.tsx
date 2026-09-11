@@ -12,14 +12,17 @@ import type { ScryfallCard, CardCategory, WishlistEntry } from '@/types';
 
 // Hooks
 import { useObjectives } from '@/hooks/useObjectives';
+import { useCardPrices } from '@/hooks/useCardPriceContext';
 
 // Components
 import CardSearchPanel from '@/features/deckBuilder/components/CardSearchPanel';
+import CardPrice from '@/components/CardPrice/CardPrice';
 import ManaCost from '@/components/ManaSymbol/ManaCost';
 import ObjectivePill from '@/features/objectives/components/ObjectivePill';
 
 // Utils
 import { isCardLegalForDeck } from '@/store/deckStore';
+import { getCardPriceValue } from '@/utils/priceUtils';
 
 // Icons
 import { X } from 'lucide-react';
@@ -82,9 +85,14 @@ export default function SwapSidebar({
   const [objectiveFilters, setObjectiveFilters] = useState<string[]>([]);
   const [hideSwapped, setHideSwapped] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [wishlistSort, setWishlistSort] = useState<'name' | 'price'>('name');
+  const [wishlistSortDir, setWishlistSortDir] = useState<'asc' | 'desc'>(
+    'desc',
+  );
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { objectives } = useObjectives();
+  const livePrices = useCardPrices();
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -129,6 +137,21 @@ export default function SwapSidebar({
     hideSwapped,
     swappedEntries,
   ]);
+
+  const sorted = useMemo(() => {
+    const mult = wishlistSortDir === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      if (wishlistSort === 'price') {
+        const aPrice = getCardPriceValue(a.card, livePrices);
+        const bPrice = getCardPriceValue(b.card, livePrices);
+        if (aPrice === null && bPrice === null) return 0;
+        if (aPrice === null) return 1;
+        if (bPrice === null) return -1;
+        return mult * (aPrice - bPrice);
+      }
+      return mult * a.card.name.localeCompare(b.card.name);
+    });
+  }, [filtered, wishlistSort, wishlistSortDir, livePrices]);
 
   const filterCount =
     typeFilters.length + objectiveFilters.length + (hideSwapped ? 1 : 0);
@@ -282,6 +305,7 @@ export default function SwapSidebar({
                     <p className="text-xs opacity-60 font-bold">
                       {selected.type_line}
                     </p>
+                    <CardPrice card={selected} />
                     <div className="card-actions mt-4">
                       <button
                         className="btn btn-ghost btn-sm rounded-full"
@@ -328,8 +352,37 @@ export default function SwapSidebar({
                     )}
                   </button>
                   <span className="text-[10px] font-mono font-bold opacity-40">
-                    {filtered.length} Cards Found
+                    {sorted.length} Cards Found
                   </span>
+                </div>
+
+                {/* Sort Row */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">
+                    Sort By
+                  </span>
+                  <div className="join">
+                    <button
+                      onClick={() => setWishlistSort('name')}
+                      className={`join-item btn btn-xs px-3 ${wishlistSort === 'name' ? 'btn-primary' : 'btn-ghost bg-base-200'}`}
+                    >
+                      Name
+                    </button>
+                    <button
+                      onClick={() => setWishlistSort('price')}
+                      className={`join-item btn btn-xs px-3 ${wishlistSort === 'price' ? 'btn-primary' : 'btn-ghost bg-base-200'}`}
+                    >
+                      Price
+                    </button>
+                  </div>
+                  <button
+                    onClick={() =>
+                      setWishlistSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+                    }
+                    className="btn btn-xs btn-ghost border border-base-300"
+                  >
+                    {wishlistSortDir === 'asc' ? 'Asc.' : 'Desc.'}
+                  </button>
                 </div>
 
                 {/* Collapsible Filter Content */}
@@ -413,7 +466,7 @@ export default function SwapSidebar({
 
               {/* Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-4">
-                {filtered.map((entry) => {
+                {sorted.map((entry) => {
                   const legal = isCardLegalForDeck(colorIdentity, entry.card);
                   const isSelected = selected?.id === entry.card.id;
                   const isSwapped = swappedEntries.some(
@@ -485,6 +538,7 @@ export default function SwapSidebar({
                           </p>
                           <ManaCost cost={entry.card.mana_cost} size={12} />
                         </div>
+                        <CardPrice card={entry.card} />
                         <div className="flex flex-wrap gap-1">
                           {(entry.objectives ?? []).map((o) => (
                             <ObjectivePill key={o.id} objective={o} size="sm" />

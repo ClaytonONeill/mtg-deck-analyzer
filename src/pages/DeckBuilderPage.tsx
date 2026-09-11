@@ -5,10 +5,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useDeckBuilder } from '@/features/deckBuilder/hooks/useDeckBuilder';
 
 // Store
-import { getDeckCardCount } from '@/store/deckStore';
+import { getDeckCardCount, getAllCardIdsInDeck } from '@/store/deckStore';
+
+// Context
+import { CardPriceProvider } from '@/context/CardPriceContext';
 
 // Components
 import CardSearchPanel from '@/features/deckBuilder/components/CardSearchPanel';
+import CardPrice from '@/components/CardPrice/CardPrice';
 import BasicLandsPanel from '@/features/deckBuilder/components/BasicLandsPanel';
 import DeckEntryList from '@/features/deckBuilder/components/DeckEntryList';
 import ColorPip from '@/components/ManaSymbol/ColorPip';
@@ -63,6 +67,7 @@ export default function DeckBuilderPage() {
   }
 
   return (
+    <CardPriceProvider cardIds={getAllCardIdsInDeck(deck)}>
     <div className="min-h-screen bg-base-300 text-base-content">
       {/* Navbar */}
       <header className="navbar bg-base-100 px-6 border-b border-base-content/10 sticky z-5 top-0 shadow-sm">
@@ -120,6 +125,7 @@ export default function DeckBuilderPage() {
                       <p className="text-xs opacity-60">
                         {deck.commander.type_line}
                       </p>
+                      <CardPrice card={deck.commander} />
                     </div>
                     <div className="flex gap-1 bg-base-200 p-2 rounded-lg">
                       {deck.commander.color_identity.map((c) => (
@@ -172,6 +178,7 @@ export default function DeckBuilderPage() {
                         <p className="text-xs opacity-60">
                           {deck.partner.type_line}
                         </p>
+                        <CardPrice card={deck.partner} />
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="flex gap-1 bg-base-200 p-2 rounded-lg">
@@ -295,5 +302,6 @@ export default function DeckBuilderPage() {
         </aside>
       </div>
     </div>
+    </CardPriceProvider>
   );
 }

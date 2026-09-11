@@ -16,7 +16,14 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { BASIC_LANDS } from "@/features/deckBuilder/utils/basicLands";
 
 // Components
+import CardPrice from "@/components/CardPrice/CardPrice";
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
+
+// Hooks
+import { useCardPrices } from "@/hooks/useCardPriceContext";
+
+// Utils
+import { getCardPriceValue } from "@/utils/priceUtils";
 import SwapSidebar from "@/features/gallery/components/SwapSidebar";
 import SwapBanner from "@/features/gallery/components/SwapBanner";
 import FilterSection from "@/components/FilterSection/FilterSection";
@@ -40,7 +47,7 @@ interface CardGalleryProps {
   onUndoSwap: (removeCardId: string) => void;
 }
 
-type SortKey = "type" | "color" | "cmc" | "name";
+type SortKey = "type" | "color" | "cmc" | "name" | "price";
 type SortDirection = "asc" | "desc";
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -48,6 +55,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "color", label: "Color" },
   { key: "cmc", label: "Mana" },
   { key: "name", label: "Name" },
+  { key: "price", label: "Price" },
 ];
 
 const CATEGORY_ORDER: CardCategory[] = [
@@ -76,9 +84,9 @@ export default function CardGallery({
   onUndoSwap,
 }: CardGalleryProps) {
   const [sort, setSort] = useState<SortKey>("type");
-  const [sortDir, setSortDir] = useState<SortDirection>("asc");
+  const [sortDir, setSortDir] = useState<SortDirection>("desc");
   const [expandedCard, setExpandedCard] = useState<ScryfallCard | null>(null);
-  const [showCommanders, setShowCommanders] = useState(false);
+  const [commanderCardVisible, setCommanderCardVisible] = useState(true);
   const [swapping, setSwapping] = useState<ScryfallCard | null>(null);
   const [swappedEntries, setSwappedEntries] = useState<ScryfallCard[]>([]);
   const [showFilters, setShowFilters] = useState(false);
@@ -92,6 +100,7 @@ export default function CardGallery({
   const { getForDeck } = useWishlist();
   const deckWishlist = getForDeck(deckId);
   const swappedOutIds = new Set(pendingSwaps.map((s) => s.removeCardId));
+  const livePrices = useCardPrices();
 
   // Logic: Filters & Sorting (Type Safe)
   const filteredAndSorted = useMemo(() => {
@@ -133,11 +142,41 @@ export default function CardGallery({
             (CATEGORY_ORDER.indexOf(a.category) -
               CATEGORY_ORDER.indexOf(b.category))
           );
+        case "price": {
+          const aPrice = getCardPriceValue(a.card, livePrices);
+          const bPrice = getCardPriceValue(b.card, livePrices);
+          if (aPrice === null && bPrice === null) return 0;
+          if (aPrice === null) return 1;
+          if (bPrice === null) return -1;
+          return mult * (aPrice - bPrice);
+        }
         default:
           return 0;
       }
     });
-  }, [entries, filters, sort, sortDir]);
+  }, [entries, filters, sort, sortDir, livePrices]);
+
+  const renderCommanderTile = (card: ScryfallCard) => (
+    <div key={card.id} className="flex flex-col gap-3 group transition-all duration-300">
+      <div className="relative">
+        <img
+          src={card.image_uris?.large || card.image_uris?.normal}
+          alt={card.name}
+          onClick={() => setExpandedCard(card)}
+          className="w-full rounded-2xl shadow-2xl border border-base-300 transition-all duration-500 cursor-zoom-in group-hover:scale-[1.03] group-hover:border-primary/50 ring-0 group-hover:ring-4 ring-primary/10"
+        />
+      </div>
+
+      <div className="px-2 space-y-3">
+        <div className="flex flex-col">
+          <h3 className="text-base font-bold truncate tracking-tight">
+            {card.name}
+          </h3>
+          <CardPrice card={card} />
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -166,9 +205,9 @@ export default function CardGallery({
           </div>
           <button
             onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
-            className="btn btn-sm btn-circle btn-ghost bg-base-100 border border-base-300 shadow-sm font-bold"
+            className="btn btn-sm btn-ghost bg-base-100 border border-base-300 shadow-sm font-bold px-4"
           >
-            {sortDir === "asc" ? "↑" : "↓"}
+            {sortDir === "asc" ? "Asc." : "Desc."}
           </button>
         </div>
 
@@ -181,18 +220,10 @@ export default function CardGallery({
               {filteredAndSorted.length} / {entries.length}
             </span>
           </div>
-          {commander && (
-            <button
-              onClick={() => setShowCommanders(true)}
-              className="btn btn-sm px-6 rounded-full btn-outline border-base-300 shrink-0"
-            >
-              View Commander
-            </button>
-          )}
         </div>
       </div>
 
-      <div className="flex items-start gap-3">
+      <div className="flex flex-col sm:flex-row items-start gap-3">
         <FilterSection
           isOpen={showFilters}
           onToggle={setShowFilters}
@@ -218,7 +249,25 @@ export default function CardGallery({
           }
           filterCount={0}
         />
+
+        {(commander || partner) && (
+          <button
+            onClick={() => setCommanderCardVisible((v) => !v)}
+            className="btn btn-sm w-full sm:w-auto btn-outline border-base-300 opacity-70"
+          >
+            {commanderCardVisible ? "Hide" : "Show"} Commander
+            {partner ? "s" : ""}
+          </button>
+        )}
       </div>
+
+      {/* --- COMMANDER ROW --- */}
+      {commanderCardVisible && (commander || partner) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          {commander && renderCommanderTile(commander)}
+          {partner && renderCommanderTile(partner)}
+        </div>
+      )}
 
       {/* --- GRID (1 col mobile, 4 col desktop) --- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -270,6 +319,7 @@ export default function CardGallery({
                   <h3 className="text-base font-bold truncate tracking-tight">
                     {entry.card.name}
                   </h3>
+                  <CardPrice card={entry.card} />
                   {pendingReplacement && (
                     <span className="text-success text-xs font-bold italic">
                       → {pendingReplacement.name}
@@ -340,41 +390,19 @@ export default function CardGallery({
 
       {/* --- NATIVE MODAL --- */}
       <dialog
-        className={`modal modal-bottom sm:modal-middle ${expandedCard || showCommanders ? "modal-open" : ""}`}
-        onClick={() => {
-          setExpandedCard(null);
-          setShowCommanders(false);
-        }}
+        className={`modal modal-bottom sm:modal-middle ${expandedCard ? "modal-open" : ""}`}
+        onClick={() => setExpandedCard(null)}
       >
         <div
           className="modal-box p-0 bg-transparent shadow-none w-auto max-w-none"
           onClick={(e) => e.stopPropagation()}
         >
-          {showCommanders ? (
-            <div className="flex flex-wrap justify-center gap-4">
-              {commander && (
-                <img
-                  src={commander.image_uris?.large}
-                  alt={commander.name}
-                  className="max-h-[85vh] w-auto rounded-[3%] shadow-2xl ring-1 ring-white/20 animate-in zoom-in-95 duration-200"
-                />
-              )}
-              {partner && (
-                <img
-                  src={partner.image_uris?.large}
-                  alt={partner.name}
-                  className="max-h-[85vh] w-auto rounded-[3%] shadow-2xl ring-1 ring-white/20 animate-in zoom-in-95 duration-200"
-                />
-              )}
-            </div>
-          ) : (
-            expandedCard && (
-              <img
-                src={expandedCard.image_uris?.large}
-                alt={expandedCard.name}
-                className="max-h-[85vh] w-auto rounded-[3%] shadow-2xl ring-1 ring-white/20 animate-in zoom-in-95 duration-200"
-              />
-            )
+          {expandedCard && (
+            <img
+              src={expandedCard.image_uris?.large}
+              alt={expandedCard.name}
+              className="max-h-[85vh] w-auto rounded-[3%] shadow-2xl ring-1 ring-white/20 animate-in zoom-in-95 duration-200"
+            />
           )}
         </div>
         <form

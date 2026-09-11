@@ -2,9 +2,16 @@
 import { useState, useCallback, useMemo } from "react";
 
 // Types
-import type { Deck, DeckEntry, Objective, ScryfallCard } from "@/types";
+import type {
+  Deck,
+  DeckEntry,
+  Objective,
+  ScryfallCard,
+  ScryfallPrices,
+} from "@/types";
 
 // Components
+import CardPrice from "@/components/CardPrice/CardPrice";
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 // Utils
@@ -34,6 +41,7 @@ interface SimCard {
   oracle_text: string;
   image_uris?: { normal?: string; large?: string };
   objectiveIds: string[];
+  prices?: ScryfallPrices;
 }
 
 interface PermanentInPlay {
@@ -96,6 +104,7 @@ function scryfallToSimCard(card: ScryfallCard, id: string): SimCard {
     oracle_text: card.oracle_text ?? "",
     image_uris: card.image_uris,
     objectiveIds: [],
+    prices: card.prices,
   };
 }
 
@@ -112,6 +121,7 @@ function buildCardPool(entries: DeckEntry[]): SimCard[] {
         oracle_text: entry.card.oracle_text ?? "",
         image_uris: entry.card.image_uris,
         objectiveIds: entry.objectiveIds ?? [],
+        prices: entry.card.prices,
       });
     }
   });
@@ -1065,6 +1075,12 @@ export default function HandSimulator({
                     <p className="text-[10px] opacity-60">
                       {sim.selectedCard.type_line}
                     </p>
+                    <CardPrice
+                      card={{
+                        id: sim.selectedCard.entryId,
+                        prices: sim.selectedCard.prices,
+                      }}
+                    />
                   </div>
                   <button
                     onClick={() => setSim((s) => ({ ...s, selectedCard: null }))}

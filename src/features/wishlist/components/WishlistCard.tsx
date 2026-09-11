@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { Deck, Objective, WishlistEntry } from "@/types";
 
 // Components
+import CardPrice from "@/components/CardPrice/CardPrice";
 import ManaCost from "@/components/ManaSymbol/ManaCost";
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
@@ -72,6 +73,7 @@ export default function WishlistCard({
               {entry.card.name}
             </h3>
             <p className="text-xs opacity-60">{entry.card.type_line}</p>
+            <CardPrice card={entry.card} />
           </div>
           <button
             onClick={() => onRemove(entry.id)}

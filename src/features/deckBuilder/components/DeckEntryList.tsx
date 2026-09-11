@@ -2,6 +2,7 @@
 import { removeCardFromDeck } from "@/store/deckStore";
 
 // Components
+import CardPrice from "@/components/CardPrice/CardPrice";
 import ManaCost from "@/components/ManaSymbol/ManaCost";
 
 // Types
@@ -70,8 +71,11 @@ export default function DeckEntryList({
                     <span className="text-xs font-mono font-bold opacity-40">
                       {entry.quantity}x
                     </span>
-                    <span className="truncate font-medium text-sm transition-colors pr-2">
-                      {entry.card.name}
+                    <span className="min-w-0 pr-2">
+                      <span className="block truncate font-medium text-sm transition-colors">
+                        {entry.card.name}
+                      </span>
+                      <CardPrice card={entry.card} />
                     </span>
                     <div className="flex justify-end min-w-15 opacity-80 scale-90 origin-right">
                       <ManaCost cost={entry.card.mana_cost} size={14} />
