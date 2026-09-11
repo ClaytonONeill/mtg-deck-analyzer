@@ -21,6 +21,7 @@ import { ChartSelectionProvider } from "@/features/metrics/context/ChartSelectio
 import TypesChart from "@/features/metrics/components/TypesChart";
 import CMCChart from "@/features/metrics/components/CMCChart";
 import SelectedCategoryModal from "@/features/metrics/components/SelectedCategoryModal";
+import CardPrice from "@/components/CardPrice/CardPrice";
 
 interface VersionCompareProps {
   deck: Deck;
@@ -162,6 +163,7 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
                       <span className="text-xs font-medium group-hover:text-error transition-colors truncate">
                         {e.card.name}
                       </span>
+                      <CardPrice card={e.card} className="shrink-0" />
                     </div>
                   ))
                 )}
@@ -197,6 +199,7 @@ export default function VersionCompare({ deck }: VersionCompareProps) {
                       <span className="text-xs font-medium group-hover:text-success transition-colors truncate">
                         {e.card.name}
                       </span>
+                      <CardPrice card={e.card} className="shrink-0" />
                     </div>
                   ))
                 )}

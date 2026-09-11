@@ -1,5 +1,8 @@
 import { X } from "lucide-react";
 
+// Components
+import CardPrice from "@/components/CardPrice/CardPrice";
+
 // Hooks
 import { useChartSelection } from "../hooks/useChartSelection";
 
@@ -87,6 +90,7 @@ export default function SelectedCategoryModal() {
                     <span className="text-[10px] uppercase font-black tracking-widest opacity-30">
                       {entry.card.type_line.split("—")[0]}
                     </span>
+                    <CardPrice card={entry.card} />
                   </div>
                 </div>
               );

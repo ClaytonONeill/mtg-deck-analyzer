@@ -1,3 +1,12 @@
+export interface ScryfallPrices {
+  usd: string | null;
+  usd_foil: string | null;
+  usd_etched: string | null;
+  eur: string | null;
+  eur_foil: string | null;
+  tix: string | null;
+}
+
 export interface ScryfallCard {
   id: string;
   name: string;
@@ -11,6 +20,7 @@ export interface ScryfallCard {
   toughness?: string;
   legalities: Record<string, string>;
   image_uris?: { small: string; normal: string; large: string };
+  prices?: ScryfallPrices;
 }
 
 export type CardCategory =

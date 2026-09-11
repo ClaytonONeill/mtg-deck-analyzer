@@ -7,9 +7,13 @@ import { Layers, BarChart2, ChevronLeft, Edit3 } from "lucide-react";
 import {
   deckStore,
   getDeckCardCount,
+  getAllCardIdsInDeck,
   addStrategicObjective,
   removeStrategicObjective,
 } from "@/store/deckStore";
+
+// Context
+import { CardPriceProvider } from "@/context/CardPriceContext";
 
 // Hooks
 import { useObjectives } from "@/hooks/useObjectives";
@@ -250,6 +254,7 @@ export default function DeckDetailPage() {
   ];
 
   return (
+    <CardPriceProvider cardIds={getAllCardIdsInDeck(activeDeck)}>
     <div className="min-h-screen bg-base-100 text-base-content">
       <div className="px-6 py-4 flex items-center justify-between border-b border-base-300 bg-base-100/50 backdrop-blur sticky top-0 z-30">
         <button
@@ -560,5 +565,6 @@ export default function DeckDetailPage() {
         />
       )}
     </div>
+    </CardPriceProvider>
   );
 }

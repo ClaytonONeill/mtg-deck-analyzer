@@ -5,6 +5,7 @@ import type { Deck, ScryfallCard } from "@/types";
 
 // Components
 import CardSearchPanel from "@/features/deckBuilder/components/CardSearchPanel";
+import CardPrice from "@/components/CardPrice/CardPrice";
 
 interface WishlistAddPanelProps {
   onAdd: (card: ScryfallCard, note?: string) => void;
@@ -60,6 +61,7 @@ export default function WishlistAddPanel({
                 <p className="text-xs opacity-60 uppercase tracking-tighter font-semibold">
                   {pending.type_line}
                 </p>
+                <CardPrice card={pending} />
               </div>
             </div>
 
