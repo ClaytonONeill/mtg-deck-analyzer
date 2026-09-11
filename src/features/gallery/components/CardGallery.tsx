@@ -16,7 +16,14 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { BASIC_LANDS } from "@/features/deckBuilder/utils/basicLands";
 
 // Components
+import CardPrice from "@/components/CardPrice/CardPrice";
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
+
+// Hooks
+import { useCardPrices } from "@/hooks/useCardPriceContext";
+
+// Utils
+import { getCardPriceValue } from "@/utils/priceUtils";
 import SwapSidebar from "@/features/gallery/components/SwapSidebar";
 import SwapBanner from "@/features/gallery/components/SwapBanner";
 import FilterSection from "@/components/FilterSection/FilterSection";
@@ -40,7 +47,7 @@ interface CardGalleryProps {
   onUndoSwap: (removeCardId: string) => void;
 }
 
-type SortKey = "type" | "color" | "cmc" | "name";
+type SortKey = "type" | "color" | "cmc" | "name" | "price";
 type SortDirection = "asc" | "desc";
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -48,6 +55,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "color", label: "Color" },
   { key: "cmc", label: "Mana" },
   { key: "name", label: "Name" },
+  { key: "price", label: "Price" },
 ];
 
 const CATEGORY_ORDER: CardCategory[] = [
@@ -76,7 +84,7 @@ export default function CardGallery({
   onUndoSwap,
 }: CardGalleryProps) {
   const [sort, setSort] = useState<SortKey>("type");
-  const [sortDir, setSortDir] = useState<SortDirection>("asc");
+  const [sortDir, setSortDir] = useState<SortDirection>("desc");
   const [expandedCard, setExpandedCard] = useState<ScryfallCard | null>(null);
   const [showCommanders, setShowCommanders] = useState(false);
   const [swapping, setSwapping] = useState<ScryfallCard | null>(null);
@@ -92,6 +100,7 @@ export default function CardGallery({
   const { getForDeck } = useWishlist();
   const deckWishlist = getForDeck(deckId);
   const swappedOutIds = new Set(pendingSwaps.map((s) => s.removeCardId));
+  const livePrices = useCardPrices();
 
   // Logic: Filters & Sorting (Type Safe)
   const filteredAndSorted = useMemo(() => {
@@ -133,11 +142,19 @@ export default function CardGallery({
             (CATEGORY_ORDER.indexOf(a.category) -
               CATEGORY_ORDER.indexOf(b.category))
           );
+        case "price": {
+          const aPrice = getCardPriceValue(a.card, livePrices);
+          const bPrice = getCardPriceValue(b.card, livePrices);
+          if (aPrice === null && bPrice === null) return 0;
+          if (aPrice === null) return 1;
+          if (bPrice === null) return -1;
+          return mult * (aPrice - bPrice);
+        }
         default:
           return 0;
       }
     });
-  }, [entries, filters, sort, sortDir]);
+  }, [entries, filters, sort, sortDir, livePrices]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -166,9 +183,9 @@ export default function CardGallery({
           </div>
           <button
             onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
-            className="btn btn-sm btn-circle btn-ghost bg-base-100 border border-base-300 shadow-sm font-bold"
+            className="btn btn-sm btn-ghost bg-base-100 border border-base-300 shadow-sm font-bold px-4"
           >
-            {sortDir === "asc" ? "↑" : "↓"}
+            {sortDir === "asc" ? "Asc." : "Desc."}
           </button>
         </div>
 
@@ -270,6 +287,7 @@ export default function CardGallery({
                   <h3 className="text-base font-bold truncate tracking-tight">
                     {entry.card.name}
                   </h3>
+                  <CardPrice card={entry.card} />
                   {pendingReplacement && (
                     <span className="text-success text-xs font-bold italic">
                       → {pendingReplacement.name}

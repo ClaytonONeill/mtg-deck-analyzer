@@ -225,6 +225,17 @@ export function getDeckCardCount(deck: Deck): number {
   );
 }
 
+export function getAllCardIdsInDeck(deck: Deck): string[] {
+  const ids = [
+    deck.commander?.id,
+    deck.partner?.id,
+    ...deck.entries.map((e) => e.card.id),
+    ...deck.versions.flatMap((v) => v.swaps.map((s) => s.addCard.id)),
+  ].filter((id): id is string => Boolean(id));
+
+  return [...new Set(ids)];
+}
+
 export type DeckExportFormat = 'json' | 'xlsx';
 
 export function defaultExportFilename(

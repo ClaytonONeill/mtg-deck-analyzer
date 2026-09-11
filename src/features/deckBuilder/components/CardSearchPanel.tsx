@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useCardSearch } from '@/features/deckBuilder/hooks/useCardSearch';
 
 // Components
+import CardPrice from '@/components/CardPrice/CardPrice';
 import ManaCost from '@/components/ManaSymbol/ManaCost';
 import ColorPip from '@/components/ManaSymbol/ColorPip';
 
@@ -192,6 +193,9 @@ export default function CardSearchPanel({
                     </div>
                   )}
                 </div>
+
+                {/* Row 4: Price */}
+                <CardPrice card={card} />
               </button>
             </li>
           ))}

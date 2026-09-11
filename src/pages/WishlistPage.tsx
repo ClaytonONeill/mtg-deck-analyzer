@@ -5,22 +5,27 @@ import { useNavigate } from "react-router-dom";
 // Hooks
 import { useWishlist } from "@/hooks/useWishlist";
 import { useObjectives } from "@/hooks/useObjectives";
+import { useCardPrices } from "@/hooks/useCardPriceContext";
 
 // Store
 import { deckStore } from "@/store/deckStore";
 
+// Context
+import { CardPriceProvider } from "@/context/CardPriceContext";
+
 // Utils
 import { inferCategory } from "@/utils/utils";
+import { getCardPriceValue } from "@/utils/priceUtils";
 
 // Types
-import type { Deck, CardCategory, WishlistEntry } from "@/types";
+import type { Deck, CardCategory, Objective, ScryfallPrices, WishlistEntry } from "@/types";
 
 // Components
 import WishlistAddPanel from "@/features/wishlist/components/WishlistAddPanel";
 import WishlistCard from "@/features/wishlist/components/WishlistCard";
 import FilterSection from "@/components/FilterSection/FilterSection";
 
-type SortKey = "name" | "cmc" | "color" | "type" | "date";
+type SortKey = "name" | "cmc" | "color" | "type" | "date" | "price";
 type SortDirection = "asc" | "desc";
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -29,6 +34,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "cmc", label: "Mana Value" },
   { key: "color", label: "Color Identity" },
   { key: "type", label: "Type" },
+  { key: "price", label: "Price" },
 ];
 
 const COLOR_ORDER = ["W", "U", "B", "R", "G"];
@@ -75,6 +81,7 @@ function sortEntries(
   entries: WishlistEntry[],
   sort: SortKey,
   direction: SortDirection,
+  livePrices: Map<string, ScryfallPrices> | null,
 ): WishlistEntry[] {
   const mult = direction === "asc" ? 1 : -1;
   return [...entries].sort((a, b) => {
@@ -100,6 +107,14 @@ function sortEntries(
           (b.card.color_identity ?? [])[0] ?? "",
         );
         return mult * (aFirst - bFirst);
+      }
+      case "price": {
+        const aPrice = getCardPriceValue(a.card, livePrices);
+        const bPrice = getCardPriceValue(b.card, livePrices);
+        if (aPrice === null && bPrice === null) return 0;
+        if (aPrice === null) return 1;
+        if (bPrice === null) return -1;
+        return mult * (aPrice - bPrice);
       }
       default:
         return 0;
@@ -173,10 +188,6 @@ export default function WishlistPage() {
     () => applyFilters(entries, filters),
     [entries, filters],
   );
-  const sorted = useMemo(
-    () => sortEntries(filtered, sort, sortDir),
-    [filtered, sort, sortDir],
-  );
 
   if (loading) {
     return (
@@ -190,6 +201,7 @@ export default function WishlistPage() {
   }
 
   return (
+    <CardPriceProvider cardIds={entries.map((e) => e.card.id)}>
     <div className="min-h-screen bg-base-200 text-base-content pb-20">
       {/* Sticky Header */}
       <header className="sticky top-0 z-30 bg-base-100/80 backdrop-blur-md border-b border-base-300 px-4 py-3">
@@ -218,88 +230,161 @@ export default function WishlistPage() {
         </section>
 
         {entries.length > 0 && (
-          <div className="flex flex-col gap-6">
-            {/* Sorting & Stats Row */}
-            <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between bg-base-100 p-4 rounded-2xl shadow-sm border border-base-300">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">
-                  Sort By
-                </span>
-
-                {/* Mobile Sort Dropdown */}
-                <select
-                  className="select select-bordered select-sm md:hidden"
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as SortKey)}
-                >
-                  {SORT_OPTIONS.map((opt) => (
-                    <option key={opt.key} value={opt.key}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Desktop Sort Join */}
-                <div className="join hidden md:inline-flex">
-                  {SORT_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.key}
-                      onClick={() => setSort(opt.key)}
-                      className={`join-item btn btn-xs px-4 ${sort === opt.key ? "btn-primary" : "btn-ghost bg-base-200"}`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() =>
-                    setSortDir((d) => (d === "asc" ? "desc" : "asc"))
-                  }
-                  className="btn btn-sm btn-ghost border-base-300"
-                >
-                  {sortDir === "asc" ? "↑" : "↓"}
-                </button>
-              </div>
-
-              <span className="text-xs font-bold opacity-40">
-                SHOWING {sorted.length} / {entries.length}
-              </span>
-            </div>
-
-            {/* Filter Section */}
-            <FilterSection
-              isOpen={showFilters}
-              onToggle={setShowFilters}
-              colorIdentity={COLOR_ORDER}
-              cardCategories={CATEGORY_ORDER}
-              objectives={allObjectives}
-              decks={allDecks}
-              draft={filters}
-              onChange={setFilters}
-              onClear={() => setFilters(EMPTY_FILTERS)}
-              filterCount={filterCount}
-            />
-
-            {/* Result Grid */}
-            <div className="grid grid-cols-1 gap-6">
-              {sorted.map((entry) => (
-                <WishlistCard
-                  key={entry.id}
-                  entry={entry}
-                  allDecks={allDecks}
-                  allObjectives={allObjectives}
-                  onRemove={removeEntry}
-                  onTagDeck={tagDeck}
-                  onUntagDeck={untagDeck}
-                  onAssignObjective={assignObjective}
-                  onUnassignObjective={unassignObjective}
-                />
-              ))}
-            </div>
-          </div>
+          <WishlistResults
+            filtered={filtered}
+            totalCount={entries.length}
+            sort={sort}
+            setSort={setSort}
+            sortDir={sortDir}
+            setSortDir={setSortDir}
+            showFilters={showFilters}
+            setShowFilters={setShowFilters}
+            filters={filters}
+            setFilters={setFilters}
+            filterCount={filterCount}
+            allDecks={allDecks}
+            allObjectives={allObjectives}
+            onRemove={removeEntry}
+            onTagDeck={tagDeck}
+            onUntagDeck={untagDeck}
+            onAssignObjective={assignObjective}
+            onUnassignObjective={unassignObjective}
+          />
         )}
       </main>
+    </div>
+    </CardPriceProvider>
+  );
+}
+
+interface WishlistResultsProps {
+  filtered: WishlistEntry[];
+  totalCount: number;
+  sort: SortKey;
+  setSort: (sort: SortKey) => void;
+  sortDir: SortDirection;
+  setSortDir: (fn: (d: SortDirection) => SortDirection) => void;
+  showFilters: boolean;
+  setShowFilters: (open: boolean) => void;
+  filters: ActiveFilters;
+  setFilters: (filters: ActiveFilters) => void;
+  filterCount: number;
+  allDecks: Deck[];
+  allObjectives: Objective[];
+  onRemove: (id: string) => void;
+  onTagDeck: (entryId: string, deckId: string) => void;
+  onUntagDeck: (entryId: string, deckId: string) => void;
+  onAssignObjective: (entryId: string, objective: Objective) => void;
+  onUnassignObjective: (entryId: string, objectiveId: string) => void;
+}
+
+// Rendered inside WishlistPage's CardPriceProvider so "Price" sort can read
+// live-refreshed prices, not just whatever's baked into each stored card.
+function WishlistResults({
+  filtered,
+  totalCount,
+  sort,
+  setSort,
+  sortDir,
+  setSortDir,
+  showFilters,
+  setShowFilters,
+  filters,
+  setFilters,
+  filterCount,
+  allDecks,
+  allObjectives,
+  onRemove,
+  onTagDeck,
+  onUntagDeck,
+  onAssignObjective,
+  onUnassignObjective,
+}: WishlistResultsProps) {
+  const livePrices = useCardPrices();
+
+  const sorted = useMemo(
+    () => sortEntries(filtered, sort, sortDir, livePrices),
+    [filtered, sort, sortDir, livePrices],
+  );
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Sorting & Stats Row */}
+      <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between bg-base-100 p-4 rounded-2xl shadow-sm border border-base-300">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">
+            Sort By
+          </span>
+
+          {/* Mobile Sort Dropdown */}
+          <select
+            className="select select-bordered select-sm md:hidden"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.key} value={opt.key}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Desktop Sort Join */}
+          <div className="join hidden md:inline-flex">
+            {SORT_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setSort(opt.key)}
+                className={`join-item btn btn-xs px-4 ${sort === opt.key ? "btn-primary" : "btn-ghost bg-base-200"}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+            className="btn btn-sm btn-ghost border-base-300"
+          >
+            {sortDir === "asc" ? "Asc." : "Desc."}
+          </button>
+        </div>
+
+        <span className="text-xs font-bold opacity-40">
+          SHOWING {sorted.length} / {totalCount}
+        </span>
+      </div>
+
+      {/* Filter Section */}
+      <FilterSection
+        isOpen={showFilters}
+        onToggle={setShowFilters}
+        colorIdentity={COLOR_ORDER}
+        cardCategories={CATEGORY_ORDER}
+        objectives={allObjectives}
+        decks={allDecks}
+        draft={filters}
+        onChange={setFilters}
+        onClear={() => setFilters(EMPTY_FILTERS)}
+        filterCount={filterCount}
+      />
+
+      {/* Result Grid */}
+      <div className="grid grid-cols-1 gap-6">
+        {sorted.map((entry) => (
+          <WishlistCard
+            key={entry.id}
+            entry={entry}
+            allDecks={allDecks}
+            allObjectives={allObjectives}
+            onRemove={onRemove}
+            onTagDeck={onTagDeck}
+            onUntagDeck={onUntagDeck}
+            onAssignObjective={onAssignObjective}
+            onUnassignObjective={onUnassignObjective}
+          />
+        ))}
+      </div>
     </div>
   );
 }

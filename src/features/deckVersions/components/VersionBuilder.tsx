@@ -6,6 +6,7 @@ import type { Deck, ScryfallCard } from '@/types';
 
 // Components
 import CardSearchPanel from '@/features/deckBuilder/components/CardSearchPanel';
+import CardPrice from '@/components/CardPrice/CardPrice';
 
 interface VersionBuilderProps {
   deck: Deck;
@@ -119,8 +120,11 @@ export default function VersionBuilder({
                   }}
                 >
                   <span>{entry.card.name}</span>
-                  <span className="text-slate-500 text-xs">
-                    {entry.category}
+                  <span className="flex items-center gap-2">
+                    <CardPrice card={entry.card} />
+                    <span className="text-slate-500 text-xs">
+                      {entry.category}
+                    </span>
                   </span>
                 </button>
               );
@@ -167,6 +171,7 @@ export default function VersionBuilder({
                     <span className="text-green-400">
                       + {swap.addCard.name}
                     </span>
+                    <CardPrice card={swap.addCard} />
                   </div>
                   <button
                     onClick={() => onRemoveSwap(i)}
