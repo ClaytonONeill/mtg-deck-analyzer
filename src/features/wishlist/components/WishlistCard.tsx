@@ -13,6 +13,9 @@ import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 // Utils
 import { getCardImageUris } from "@/utils/cardImage";
 
+// Icons
+import { X } from "lucide-react";
+
 interface WishlistCardProps {
   entry: WishlistEntry;
   allDecks: Deck[];
@@ -79,11 +82,14 @@ export default function WishlistCard({
             <p className="text-xs opacity-60">{entry.card.type_line}</p>
             <CardPrice card={entry.card} />
           </div>
+          {/* btn-md on mobile: the old btn-xs (24px) was too small to tap reliably */}
           <button
+            type="button"
             onClick={() => onRemove(entry.id)}
-            className="btn btn-ghost btn-xs btn-circle text-error"
+            aria-label={`Remove ${entry.card.name} from wishlist`}
+            className="btn btn-ghost btn-md sm:btn-xs btn-circle text-error shrink-0 touch-manipulation -mr-2 -mt-2 sm:m-0"
           >
-            ✕
+            <X size={18} />
           </button>
         </div>
 
@@ -155,23 +161,14 @@ export default function WishlistCard({
                   className="badge badge-primary badge-outline gap-1 pl-2.5 py-3"
                 >
                   <span className="text-xs font-semibold">{d.name}</span>
+                  {/* Padding widens the tap target; negative margin keeps the badge the same size */}
                   <button
+                    type="button"
                     onClick={() => onUntagDeck(entry.id, d.id)}
-                    className="hover:text-error transition-colors"
+                    aria-label={`Untag ${d.name}`}
+                    className="hover:text-error transition-colors p-1.5 -m-1.5 touch-manipulation"
                   >
-                    <svg
-                      className="w-3 h-3"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                    <X size={12} strokeWidth={3} />
                   </button>
                 </div>
               ))}

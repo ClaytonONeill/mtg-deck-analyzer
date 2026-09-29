@@ -17,6 +17,7 @@ import BasicLandsPanel from '@/features/deckBuilder/components/BasicLandsPanel';
 import DeckEntryList from '@/features/deckBuilder/components/DeckEntryList';
 import ColorPip from '@/components/ManaSymbol/ColorPip';
 import ImportDeckButton from '@/components/ImportDeckButton/ImportDeckButton';
+import PageShell from '@/components/PageShell/PageShell';
 
 // Types
 import type { Deck } from '@/types';
@@ -24,8 +25,15 @@ import type { Deck } from '@/types';
 // Icons
 import { TriangleAlert, X } from 'lucide-react';
 
+// `/build` and `/build/:deckId` render the same element, so React Router reuses
+// the mounted instance when navigating between them (e.g. "New Deck" while
+// editing). Keying on deckId forces a fresh mount so no builder state leaks.
 export default function DeckBuilderPage() {
   const { deckId } = useParams();
+  return <DeckBuilder key={deckId ?? 'new'} deckId={deckId} />;
+}
+
+function DeckBuilder({ deckId }: { deckId?: string }) {
   const navigate = useNavigate();
 
   const {
@@ -57,18 +65,18 @@ export default function DeckBuilderPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-base-300 flex flex-col items-center justify-center gap-4">
+      <PageShell tone="recessed" className="flex flex-col gap-4 items-center justify-center">
         <span className="loading loading-ring loading-lg text-primary"></span>
         <p className="text-base-content/60 text-sm font-medium tracking-widest uppercase">
           Loading deck...
         </p>
-      </div>
+      </PageShell>
     );
   }
 
   return (
     <CardPriceProvider cardIds={getAllCardIdsInDeck(deck)}>
-    <div className="min-h-screen bg-base-300 text-base-content">
+    <PageShell tone="recessed">
       {/* Navbar */}
       <header className="navbar bg-base-100 px-6 border-b border-base-content/10 sticky z-5 top-0 shadow-sm">
         <div className="flex h-min gap-3 justify-end w-full">
@@ -301,7 +309,7 @@ export default function DeckBuilderPage() {
           </div>
         </aside>
       </div>
-    </div>
+    </PageShell>
     </CardPriceProvider>
   );
 }

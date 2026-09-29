@@ -9,11 +9,14 @@ import { objectivesStore } from "@/store/objectivesStore";
 
 export function useObjectives() {
   const [objectives, setObjectives] = useState<Objective[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     objectivesStore.getAllObjectives().then((data) => {
-      if (mounted) setObjectives(data);
+      if (!mounted) return;
+      setObjectives(data);
+      setLoading(false);
     });
     return () => {
       mounted = false;
@@ -90,6 +93,7 @@ export function useObjectives() {
 
   return {
     objectives,
+    loading,
     addObjective,
     deleteObjective,
     updateObjective,

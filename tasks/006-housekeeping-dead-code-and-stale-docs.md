@@ -10,7 +10,7 @@ A grab-bag of small, independent, low-risk cleanups found during the initial aud
 
 ## Subtasks
 
-- [ ] **Remove unused `useLocalStorage` hook.** `src/hooks/useLocalStorage.ts` has no callers anywhere in the app (confirmed via a repo-wide search — the only match was the file's own definition). Delete it. Re-search before deleting in case something was added since this was written.
+- [x] ~~**Remove unused `useLocalStorage` hook.**~~ **Obsolete (2026-09-29):** the gallery's mobile cards-per-row setting now uses it, so keep it. `src/hooks/useLocalStorage.ts` has no callers anywhere in the app (confirmed via a repo-wide search — the only match was the file's own definition). Delete it. Re-search before deleting in case something was added since this was written.
 - [ ] **Rename `ObjetivesPage.tsx` → `ObjectivesPage.tsx`.** The file is missing a "c" (`Objetives`) while every other reference in the app — the route, the component name, the page title, `objectivesStore`, `useObjectives` — spells it correctly. It's only ever imported once, in `App.tsx` (`import ObjectivesPage from "./pages/ObjetivesPage"`), so this is a low-risk rename. Update the import path after renaming.
 - [x] **Reconcile `IDEAS.md`'s "Themes" section with reality.** Done — the product owner removed the section directly (commit `8c995ae`) after the theme switcher (`Header.tsx`'s theme `<select>` + `src/context/ThemeContext.tsx`, ~16 daisyUI themes) shipped. No curated MTG-flavored themes ("Vampire"/"Forest") were added beyond daisyUI's stock list; revisit only if the product owner asks for that specifically.
 
