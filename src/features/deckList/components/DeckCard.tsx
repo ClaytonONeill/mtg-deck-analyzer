@@ -15,7 +15,6 @@ interface DeckCardProps {
   onOpen: () => void;
   onEdit: () => void;
   onDelete: (deck: Deck) => void;
-  onExport: (deck: Deck) => void;
 }
 
 export default function DeckCard({
@@ -23,7 +22,6 @@ export default function DeckCard({
   onOpen,
   onEdit,
   onDelete,
-  onExport,
 }: DeckCardProps) {
   const cardCount = getDeckCardCount(deck);
 
@@ -117,12 +115,6 @@ export default function DeckCard({
             className="btn btn-sm btn-neutral flex-1 hover:border-primary/50"
           >
             Edit
-          </button>
-          <button
-            onClick={() => onExport(deck)}
-            className="btn btn-sm btn-neutral flex-1 hover:border-primary/50"
-          >
-            Export
           </button>
           <button
             onClick={() => onDelete(deck)}

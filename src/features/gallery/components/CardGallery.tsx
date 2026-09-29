@@ -157,7 +157,10 @@ export default function CardGallery({
   }, [entries, filters, sort, sortDir, livePrices]);
 
   const renderCommanderTile = (card: ScryfallCard) => (
-    <div key={card.id} className="flex flex-col gap-3 group transition-all duration-300">
+    <div
+      key={card.id}
+      className="flex flex-col gap-3 group transition-all duration-300"
+    >
       <div className="relative">
         <img
           src={card.image_uris?.large || card.image_uris?.normal}
@@ -188,24 +191,26 @@ export default function CardGallery({
 
       {/* --- DASHBOARD STYLE CONTROLS --- */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-base-200/50 p-4 rounded-2xl border border-base-300 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-black text-primary/usage uppercase tracking-widest hidden sm:inline">
-            Sort by
-          </span>
-          <div className="join bg-base-100 border border-base-300 shadow-sm">
-            {SORT_OPTIONS.map((opt) => (
-              <button
-                key={opt.key}
-                onClick={() => setSort(opt.key)}
-                className={`join-item btn btn-sm px-4 border-none transition-all ${sort === opt.key ? "btn-primary" : "btn-ghost opacity-60"}`}
-              >
-                {opt.label}
-              </button>
-            ))}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-black text-primary/usage uppercase tracking-widest hidden sm:inline">
+              Sort by
+            </span>
+            <div className="join bg-base-100 border border-base-300 shadow-sm">
+              {SORT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => setSort(opt.key)}
+                  className={`join-item btn btn-sm px-4 border-none transition-all ${sort === opt.key ? "btn-primary" : "btn-ghost opacity-60"}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
           <button
             onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
-            className="btn btn-sm btn-ghost bg-base-100 border border-base-300 shadow-sm font-bold px-4"
+            className="btn btn-sm btn-ghost bg-base-100 border border-base-300 shadow-sm font-bold px-4 self-start sm:self-auto"
           >
             {sortDir === "asc" ? "Asc." : "Desc."}
           </button>

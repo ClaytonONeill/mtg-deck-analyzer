@@ -7,6 +7,9 @@ import type { Deck, DeckVersion, ScryfallCard } from '@/types';
 // Store
 import { deckStore } from '@/store/deckStore';
 
+// Utils
+import { applyVersionToDeck } from '@/features/deckVersions/utils/versionUtils';
+
 interface PendingSwap {
   removeCardId: string;
   addCard: ScryfallCard;
@@ -28,13 +31,21 @@ export function useDeckVersions(
   );
 
   const saveAsVersion = useCallback(
-    (name: string, note: string, swaps: PendingSwap[]) => {
+    (name: string, note: string, swaps: PendingSwap[], baseVersionId?: string) => {
+      // Branch off the version currently being viewed (if any): a new
+      // version's swaps/overrides start from its base version's, so the
+      // branch fully reflects what the user was looking at, not just the
+      // newly staged swaps on top of a bare main deck.
+      const baseVersion = baseVersionId
+        ? safeDeck.versions.find((v) => v.id === baseVersionId)
+        : undefined;
+
       const newVersion: DeckVersion = {
         id: crypto.randomUUID(),
         name: name.trim(),
         note: note.trim(),
-        swaps,
-        objectiveOverrides: [],
+        swaps: [...(baseVersion?.swaps ?? []), ...swaps],
+        objectiveOverrides: baseVersion?.objectiveOverrides ?? [],
         createdAt: new Date().toISOString(),
       };
       const updated: Deck = {
@@ -42,8 +53,10 @@ export function useDeckVersions(
         versions: [...safeDeck.versions, newVersion],
         updatedAt: new Date().toISOString(),
       };
-      deckStore.save(updated);
       onDeckChange(updated);
+      void deckStore.save(updated).catch(() => {
+        onDeckChange(safeDeck);
+      });
       return newVersion.id;
     },
     [safeDeck, onDeckChange],
@@ -136,6 +149,29 @@ export function useDeckVersions(
     [safeDeck, onDeckChange],
   );
 
+  const promoteVersionToMain = useCallback(
+    (versionId: string) => {
+      const version = safeDeck.versions.find((v) => v.id === versionId);
+      if (!version) return;
+
+      // Resolve the version's diff against the current main entries, then
+      // write that resolved list back as the new main. This only touches
+      // `entries` — it never removes the version itself; deleting a
+      // now-merged version is a separate, explicitly-confirmed action.
+      const resolved = applyVersionToDeck(safeDeck, version);
+      const updated: Deck = {
+        ...safeDeck,
+        entries: resolved.entries,
+        updatedAt: new Date().toISOString(),
+      };
+      onDeckChange(updated);
+      void deckStore.save(updated).catch(() => {
+        onDeckChange(safeDeck);
+      });
+    },
+    [safeDeck, onDeckChange],
+  );
+
   const appendToVersion = useCallback(
     (versionId: string, newSwaps: PendingSwap[]) => {
       const updated: Deck = {
@@ -166,5 +202,6 @@ export function useDeckVersions(
     assignObjectiveToVersion,
     unassignObjectiveFromVersion,
     appendToVersion,
+    promoteVersionToMain,
   };
 }

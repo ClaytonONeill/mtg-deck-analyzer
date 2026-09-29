@@ -5,12 +5,20 @@ interface ConfirmDeleteProps {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  title?: string;
+  message?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
 }
 
 export default function ConfirmDelete({
   open,
   onClose,
   onConfirm,
+  title = 'Delete this deck?',
+  message = 'This action cannot be undone.',
+  confirmLabel = 'Delete',
+  cancelLabel = 'Cancel',
 }: ConfirmDeleteProps) {
   return (
     <dialog className="modal" open={open}>
@@ -21,19 +29,17 @@ export default function ConfirmDelete({
           </div>
           <div>
             <h3 className="text-lg font-semibold text-base-content">
-              Delete this deck?
+              {title}
             </h3>
-            <p className="text-sm text-base-content/50 mt-1">
-              This action cannot be undone.
-            </p>
+            <p className="text-sm text-base-content/50 mt-1">{message}</p>
           </div>
         </div>
         <div className="flex gap-3 mt-6">
           <button className="btn btn-md flex-1" onClick={onClose}>
-            Cancel
+            {cancelLabel}
           </button>
           <button className="btn btn-md btn-error flex-1" onClick={onConfirm}>
-            Delete
+            {confirmLabel}
           </button>
         </div>
       </div>
