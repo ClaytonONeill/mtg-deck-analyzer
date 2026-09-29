@@ -64,8 +64,7 @@ That eyebrow-label pattern (small, uppercase, bold, wide tracking, muted) is a r
 | Value | Used by | Note |
 |---|---|---|
 | `z-10` | `HandSimulator.tsx` (card highlight, error overlay) | Contained within a card's own local stacking context — low risk. |
-| `z-[1]` | `WishlistCard.tsx` (×2), `ObjectiveManager.tsx` — all on daisyUI's `dropdown-content` class | **Likely bug** — see below. |
-| `z-[20]` | `CardGallery.tsx` — also on `dropdown-content` | Same bug pattern as above, different number. |
+| `z-[1]` | `ObjectiveManager.tsx` — on daisyUI's `dropdown-content` class (`WishlistCard.tsx`'s two uses removed 2026-09-29) | **Likely bug** — see below. |
 | `z-30` | `WishlistPage.tsx`, `DeckDetailPage.tsx` sticky in-page headers | |
 | `z-50` | `Header.tsx` (global header, **not** actually `sticky` — just `relative`), `DeckBuilderPage.tsx` navbar, `ImportDeckButton.tsx` modal backdrop, `SwapSidebar.tsx` floating action button | Four unrelated things sharing one value by coincidence, not design. |
 | `z-60` | `SwapSidebar.tsx` backdrop | |

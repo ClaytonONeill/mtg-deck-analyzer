@@ -7,6 +7,7 @@ import type { Deck, Objective, WishlistEntry } from "@/types";
 // Components
 import CardPrice from "@/components/CardPrice/CardPrice";
 import ManaCost from "@/components/ManaSymbol/ManaCost";
+import ObjectiveAssignMenu from "@/features/objectives/components/ObjectiveAssignMenu";
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 // Utils
@@ -49,7 +50,7 @@ export default function WishlistCard({
   );
 
   return (
-    <div className="card sm:card-side bg-base-100 border border-base-300 shadow-xl overflow-hidden w-full">
+    <div className="card sm:card-side bg-base-100 border border-base-300 shadow-xl w-full">
       {/* Card Image Section */}
       <figure className="shrink-0 w-full sm:w-48 md:w-56 bg-base-200/50 flex items-center justify-center p-6 sm:p-0">
         {getCardImageUris(entry.card)?.large ? (
@@ -95,11 +96,17 @@ export default function WishlistCard({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
           {/* Objectives Column */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 min-w-0">
             <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">
               Objectives
             </span>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <ObjectiveAssignMenu
+                objectives={unassignedObjectives}
+                onAssign={(o) => onAssignObjective(entry.id, o)}
+                triggerLabel="+ Objective"
+                triggerClassName="btn btn-xs btn-outline btn-primary rounded-full"
+              />
               {assignedObjectives.map((o) => (
                 <ObjectivePill
                   key={o.id}
@@ -107,46 +114,41 @@ export default function WishlistCard({
                   onRemove={() => onUnassignObjective(entry.id, o.id)}
                 />
               ))}
+            </div>
+          </div>
 
-              {unassignedObjectives.length > 0 && (
-                <div className="dropdown dropdown-top md:dropdown-right">
+          {/* Decks Column */}
+          <div className="flex flex-col gap-2 min-w-0">
+            <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">
+              Tagged Decks
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {untagged.length > 0 && (
+                <div className="dropdown dropdown-top dropdown-start shrink-0">
                   <div
                     tabIndex={0}
                     role="button"
-                    className="btn btn-xs btn-outline btn-primary rounded-full"
+                    className="btn btn-xs btn-outline rounded-full"
                   >
-                    + Objective
+                    + Add to Deck
                   </div>
                   <ul
                     tabIndex={0}
-                    className="dropdown-content z-[1] menu p-2 shadow-2xl bg-base-200 border border-base-300 rounded-box w-52 mb-2"
+                    className="dropdown-content menu flex-nowrap max-h-80 overflow-y-auto p-2 shadow-2xl bg-base-200 border border-base-300 rounded-box w-56 max-w-[calc(100vw-2rem)] mb-2"
                   >
-                    {unassignedObjectives.map((o) => (
-                      <li key={o.id}>
+                    {untagged.map((d) => (
+                      <li key={d.id}>
                         <button
-                          onClick={() => onAssignObjective(entry.id, o)}
+                          onClick={() => onTagDeck(entry.id, d.id)}
                           className="text-xs"
                         >
-                          <span
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: o.color }}
-                          />
-                          {o.label}
+                          {d.name}
                         </button>
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Decks Column */}
-          <div className="flex flex-col gap-2">
-            <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">
-              Tagged Decks
-            </span>
-            <div className="flex flex-wrap gap-1.5">
               {taggedDecks.map((d) => (
                 <div
                   key={d.id}
@@ -173,33 +175,6 @@ export default function WishlistCard({
                   </button>
                 </div>
               ))}
-
-              {untagged.length > 0 && (
-                <div className="dropdown dropdown-top md:dropdown-right">
-                  <div
-                    tabIndex={0}
-                    role="button"
-                    className="btn btn-xs btn-outline rounded-full"
-                  >
-                    + Add to Deck
-                  </div>
-                  <ul
-                    tabIndex={0}
-                    className="dropdown-content z-[1] menu p-2 shadow-2xl bg-base-200 border border-base-300 rounded-box w-52 mb-2"
-                  >
-                    {untagged.map((d) => (
-                      <li key={d.id}>
-                        <button
-                          onClick={() => onTagDeck(entry.id, d.id)}
-                          className="text-xs"
-                        >
-                          {d.name}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
           </div>
         </div>
