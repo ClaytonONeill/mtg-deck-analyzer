@@ -4,6 +4,9 @@ import { useState } from "react";
 // Lib
 import { supabase } from "@/lib/supabase";
 
+// Components
+import PageShell from "@/components/PageShell/PageShell";
+
 // Icons
 
 import { CircleX, CircleCheck } from "lucide-react";
@@ -51,7 +54,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-base-300 flex items-center justify-center px-4">
+    <PageShell tone="recessed" className="flex items-center justify-center px-4">
       <div className="card w-full max-w-md bg-base-100 shadow-2xl border border-base-content/5">
         <div className="card-body p-8 gap-6">
           {/* Title */}
@@ -162,6 +165,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

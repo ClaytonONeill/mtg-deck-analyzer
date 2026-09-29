@@ -22,7 +22,7 @@ import ManaCost from '@/components/ManaSymbol/ManaCost';
 import ObjectivePill from '@/features/objectives/components/ObjectivePill';
 
 // Utils
-import { isCardLegalForDeck } from '@/store/deckStore';
+import { isCardLegalForDeck, isDuplicateCard } from '@/store/deckStore';
 import { getCardPriceValue } from '@/utils/priceUtils';
 import { getCardImageUris } from '@/utils/cardImage';
 
@@ -32,7 +32,8 @@ import { X } from 'lucide-react';
 interface SwapSidebarProps {
   cardToSwap: ScryfallCard;
   deckWishlist: WishlistEntry[];
-  deckEntryIds: Set<string>;
+  /** Every card already in (or being swapped into) the deck, incl. commanders. */
+  deckCards: ScryfallCard[];
   colorIdentity: string[];
   onConfirm: (replacement: ScryfallCard) => void;
   onClose: () => void;
@@ -70,7 +71,7 @@ function toggle<T>(arr: T[], val: T): T[] {
 export default function SwapSidebar({
   cardToSwap,
   deckWishlist,
-  deckEntryIds,
+  deckCards,
   colorIdentity,
   onConfirm,
   onClose,
@@ -164,12 +165,13 @@ export default function SwapSidebar({
       setSelected(null);
       return;
     }
-    if (deckEntryIds.has(card.id)) {
+    if (isDuplicateCard(deckCards, card)) {
       setDuplicateError(`${card.name} is already in this deck.`);
       setSelected(null);
       return;
     }
     setColorError(null);
+    setDuplicateError(null);
     setSelected(card);
   };
 
@@ -475,7 +477,7 @@ export default function SwapSidebar({
                   const isSwapped = swappedEntries.some(
                     (c) => c.id === entry.card.id,
                   );
-                  const isInDeck = deckEntryIds.has(entry.card.id);
+                  const isInDeck = isDuplicateCard(deckCards, entry.card);
 
                   return (
                     <div

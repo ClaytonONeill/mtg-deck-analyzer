@@ -11,12 +11,14 @@ import {
 
 // Hooks
 import { useChartSelection } from "../hooks/useChartSelection";
+import { useTapToInspect } from "../hooks/useTapToInspect";
 
 // Utils
 import { getFillForKey, collectMulticolorGroups } from "../utils/chartColors";
 
 // Components
 import CustomTooltip from "./CustomTooltip";
+import ChartTapActions from "./ChartTapActions";
 import GradientDefs from "@/features/metrics/components/GradientDefs";
 
 // Types
@@ -57,7 +59,17 @@ function flattenPoint(
 }
 
 export default function TypesChart({ data }: TypesChartProps) {
-  const { setSelectedCategory, isStacked } = useChartSelection();
+  const { isStacked } = useChartSelection();
+  const {
+    isTouch,
+    inspected,
+    containerRef,
+    tooltipActive,
+    handleBarClick,
+    handleChartTap,
+    openInspected,
+    clearInspected,
+  } = useTapToInspect();
 
   if (data.length === 0) {
     return (
@@ -72,60 +84,76 @@ export default function TypesChart({ data }: TypesChartProps) {
   const multicolorGroups = collectMulticolorGroups(data);
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <BarChart
-        data={flatData}
-        margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
-        barGap={isStacked ? 0 : 2}
-      >
-        <GradientDefs groups={multicolorGroups} />
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke="#334155"
-          vertical={false}
-        />
-        <XAxis
-          dataKey="category"
-          tick={{ fill: "#94a3b8", fontSize: 12 }}
-          axisLine={{ stroke: "#334155" }}
-          tickLine={false}
-        />
-        <YAxis
-          allowDecimals={false}
-          tick={{ fill: "#94a3b8", fontSize: 12 }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <Tooltip
-          content={
-            <CustomTooltip
-              active={false}
-              payload={[]}
-              coordinate={undefined}
-              accessibilityLayer={false}
-              activeIndex={undefined}
-              chartType="types"
-            />
+    <div ref={containerRef}>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart
+          data={flatData}
+          onClick={(state) =>
+            handleChartTap(
+              state.activeLabel === undefined
+                ? undefined
+                : String(state.activeLabel),
+            )
           }
-          cursor={{ fill: "rgba(255,255,255, 0.1)" }}
-        />
-        ;
-        {colorKeys.map((key) => (
-          <Bar
-            key={key}
-            dataKey={key}
-            stackId={isStacked ? "a" : undefined}
-            fill={getFillForKey(data, key)}
-            radius={isStacked ? [0, 0, 0, 0] : [4, 4, 0, 0]}
-            maxBarSize={isStacked ? 32 : 12}
-            style={{ cursor: "pointer" }}
-            onClick={(entry) => {
-              if (entry?.payload?.category)
-                setSelectedCategory(entry.payload.category);
-            }}
+          margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
+          barGap={isStacked ? 0 : 2}
+        >
+          <GradientDefs groups={multicolorGroups} />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="#334155"
+            vertical={false}
           />
-        ))}
-      </BarChart>
-    </ResponsiveContainer>
+          <XAxis
+            dataKey="category"
+            tick={{ fill: "#94a3b8", fontSize: 12 }}
+            axisLine={{ stroke: "#334155" }}
+            tickLine={false}
+          />
+          <YAxis
+            allowDecimals={false}
+            tick={{ fill: "#94a3b8", fontSize: 12 }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip
+            active={tooltipActive}
+            content={
+              <CustomTooltip
+                active={false}
+                payload={[]}
+                coordinate={undefined}
+                accessibilityLayer={false}
+                activeIndex={undefined}
+                chartType="types"
+              />
+            }
+            cursor={{ fill: "rgba(255,255,255, 0.1)" }}
+          />
+          {colorKeys.map((key) => (
+            <Bar
+              key={key}
+              dataKey={key}
+              stackId={isStacked ? "a" : undefined}
+              fill={getFillForKey(data, key)}
+              radius={isStacked ? [0, 0, 0, 0] : [4, 4, 0, 0]}
+              maxBarSize={isStacked ? 32 : 12}
+              style={{ cursor: "pointer" }}
+              onClick={(entry) => {
+                if (entry?.payload?.category)
+                  handleBarClick(entry.payload.category);
+              }}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+      {isTouch && (
+        <ChartTapActions
+          inspected={inspected}
+          onView={openInspected}
+          onClear={clearInspected}
+        />
+      )}
+    </div>
   );
 }

@@ -65,17 +65,6 @@ selected at that moment. This results in users going to make changes to Version 
 
 A similar issue is apparent in the compare setting, where your current deck version is not the default selection.
 
-## BUG: Inconsistent oObjective Tagging Behavior in Wishlist
-
-The objectives dropdown in the wishlist page has major z-axis issues and is truncated by the parent container it opens within,
-instead of floating over all content (as it does in other instances where it is used.) Additionally, this version of the objectives
-dropdown has color pips, another disparity from the other instances of this component. This should be a normalized, reusable component
-with predictable behavior in every instance it appears.
-
-One other bug with the objectives list in the wish list page is that the button to add objectives shifts with every new objective added, when it
-should stay anchored to the left side of the row it is on, and objectives fill in to the right; again a behavior that is inconsistent from the way
-that objective tagging is working in the gallery, for example.
-
 ## Deck Color Breakdown Should Display Below Metrics Chart
 
 The metrics chart shows the color breakdown by the color of the stacked sections or individual lines in the bar graph, but a clean, easy to read

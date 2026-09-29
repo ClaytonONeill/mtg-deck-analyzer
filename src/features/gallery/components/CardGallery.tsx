@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 
 // Types
 import type {
@@ -11,6 +11,7 @@ import type {
 
 // Hooks
 import { useWishlist } from "@/hooks/useWishlist";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 // Utils
 import { BASIC_LANDS } from "@/features/deckBuilder/utils/basicLands";
@@ -18,16 +19,26 @@ import { BASIC_LANDS } from "@/features/deckBuilder/utils/basicLands";
 // Components
 import CardPrice from "@/components/CardPrice/CardPrice";
 import FlippableCardImage from "@/components/FlippableCardImage/FlippableCardImage";
+import ObjectiveAssignMenu from "@/features/objectives/components/ObjectiveAssignMenu";
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 // Hooks
 import { useCardPrices } from "@/hooks/useCardPriceContext";
 
 // Utils
-import { getCardPriceValue } from "@/utils/priceUtils";
+import {
+  sortCards,
+  CATEGORY_ORDER,
+  type CardSortKey,
+  type SortDirection,
+} from "@/utils/sortCards";
 import SwapSidebar from "@/features/gallery/components/SwapSidebar";
 import SwapBanner from "@/features/gallery/components/SwapBanner";
 import FilterSection from "@/components/FilterSection/FilterSection";
+import ThenBySelect from "@/components/ThenBySelect/ThenBySelect";
+
+// Icons
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface CardGalleryProps {
   deckId: string;
@@ -48,8 +59,7 @@ interface CardGalleryProps {
   onUndoSwap: (removeCardId: string) => void;
 }
 
-type SortKey = "type" | "color" | "cmc" | "name" | "price";
-type SortDirection = "asc" | "desc";
+type SortKey = Exclude<CardSortKey, "date">;
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "type", label: "Type" },
@@ -59,16 +69,16 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "price", label: "Price" },
 ];
 
-const CATEGORY_ORDER: CardCategory[] = [
-  "Creature",
-  "Instant",
-  "Sorcery",
-  "Enchantment",
-  "Artifact",
-  "Planeswalker",
-  "Land",
-  "Other",
-];
+// Mobile-only cards-per-row setting; sm+ keeps the responsive 2/3/4 columns.
+type MobileColumns = 1 | 2 | 3;
+const MOBILE_GRID_COLS: Record<MobileColumns, string> = {
+  1: "grid-cols-1 gap-8",
+  2: "grid-cols-2 gap-3",
+  3: "grid-cols-3 gap-2",
+};
+
+/** Horizontal swipe distance (px) that counts as "next/previous card". */
+const SWIPE_THRESHOLD = 50;
 
 export default function CardGallery({
   deckId,
@@ -85,6 +95,17 @@ export default function CardGallery({
   onUndoSwap,
 }: CardGalleryProps) {
   const [sort, setSort] = useState<SortKey>("type");
+  const [thenBy, setThenBy] = useState<CardSortKey | null>(null);
+  const [storedMobileCols, setMobileCols] = useLocalStorage<number>(
+    "gallery-mobile-columns",
+    1,
+  );
+  const mobileCols: MobileColumns = [1, 2, 3].includes(storedMobileCols)
+    ? (storedMobileCols as MobileColumns)
+    : 1;
+  // Denser mobile grids need compact tile controls to fit.
+  const dense = mobileCols > 1;
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const [sortDir, setSortDir] = useState<SortDirection>("desc");
   const [expandedCard, setExpandedCard] = useState<ScryfallCard | null>(null);
   // Which face each double-faced card is showing, shared by the tile and the
@@ -138,32 +159,58 @@ export default function CardGallery({
     if (filters.cmc.max !== null)
       result = result.filter((e) => e.card.cmc <= (filters.cmc.max as number));
 
-    const mult = sortDir === "asc" ? 1 : -1;
-    return result.sort((a, b) => {
-      switch (sort) {
-        case "name":
-          return mult * a.card.name.localeCompare(b.card.name);
-        case "cmc":
-          return mult * (a.card.cmc - b.card.cmc);
-        case "type":
-          return (
-            mult *
-            (CATEGORY_ORDER.indexOf(a.category) -
-              CATEGORY_ORDER.indexOf(b.category))
-          );
-        case "price": {
-          const aPrice = getCardPriceValue(a.card, livePrices);
-          const bPrice = getCardPriceValue(b.card, livePrices);
-          if (aPrice === null && bPrice === null) return 0;
-          if (aPrice === null) return 1;
-          if (bPrice === null) return -1;
-          return mult * (aPrice - bPrice);
-        }
-        default:
-          return 0;
-      }
-    });
-  }, [entries, filters, sort, sortDir, livePrices]);
+    return sortCards(result, sort, thenBy, sortDir, livePrices);
+  }, [entries, filters, sort, thenBy, sortDir, livePrices]);
+
+  const selectSort = (key: SortKey) => {
+    setSort(key);
+    if (thenBy === key) setThenBy(null);
+  };
+
+  // Cards reachable with arrow keys / swipe from the enlarged view: the grid's
+  // current order, minus swapped-out cards (which can't be opened either).
+  // Commander/partner aren't in the grid, so they have no neighbors.
+  const navigableCards = filteredAndSorted
+    .filter((e) => !swappedOutIds.has(e.card.id))
+    .map((e) => e.card);
+  const expandedIndex = expandedCard
+    ? navigableCards.findIndex((c) => c.id === expandedCard.id)
+    : -1;
+  const prevCard = expandedIndex > 0 ? navigableCards[expandedIndex - 1] : null;
+  const nextCard =
+    expandedIndex >= 0 && expandedIndex < navigableCards.length - 1
+      ? navigableCards[expandedIndex + 1]
+      : null;
+
+  useEffect(() => {
+    if (!expandedCard) return;
+    const handleKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input, select, textarea")) return;
+      if (e.key === "ArrowLeft" && prevCard) setExpandedCard(prevCard);
+      else if (e.key === "ArrowRight" && nextCard) setExpandedCard(nextCard);
+      else if (e.key === "Escape") setExpandedCard(null);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [expandedCard, prevCard, nextCard]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
+    if (dx < 0 && nextCard) setExpandedCard(nextCard);
+    else if (dx > 0 && prevCard) setExpandedCard(prevCard);
+  };
 
   const renderCommanderTile = (card: ScryfallCard) => (
     <div
@@ -210,7 +257,7 @@ export default function CardGallery({
               {SORT_OPTIONS.map((opt) => (
                 <button
                   key={opt.key}
-                  onClick={() => setSort(opt.key)}
+                  onClick={() => selectSort(opt.key)}
                   className={`join-item btn btn-sm px-4 border-none transition-all ${sort === opt.key ? "btn-primary" : "btn-ghost opacity-60"}`}
                 >
                   {opt.label}
@@ -224,9 +271,32 @@ export default function CardGallery({
           >
             {sortDir === "asc" ? "Asc." : "Desc."}
           </button>
+          <ThenBySelect
+            options={SORT_OPTIONS}
+            primary={sort}
+            value={thenBy}
+            onChange={setThenBy}
+          />
         </div>
 
         <div className="flex items-center justify-between md:justify-end gap-6">
+          <div className="flex items-center gap-2 sm:hidden">
+            <span className="text-xs font-bold opacity-60">Per row</span>
+            <div className="join bg-base-100 border border-base-300 shadow-sm">
+              {([1, 2, 3] as const).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setMobileCols(n)}
+                  aria-label={`${n} card${n > 1 ? "s" : ""} per row`}
+                  aria-pressed={mobileCols === n}
+                  className={`join-item btn btn-sm px-3 border-none ${mobileCols === n ? "btn-primary" : "btn-ghost opacity-60"}`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="flex flex-col items-end">
             <span className="text-xs font-mono font-bold opacity-40 uppercase tracking-tighter">
               Inventory
@@ -278,14 +348,18 @@ export default function CardGallery({
 
       {/* --- COMMANDER ROW --- */}
       {commanderCardVisible && (commander || partner) && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div
+          className={`grid ${MOBILE_GRID_COLS[mobileCols]} sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-8`}
+        >
           {commander && renderCommanderTile(commander)}
           {partner && renderCommanderTile(partner)}
         </div>
       )}
 
-      {/* --- GRID (1 col mobile, 4 col desktop) --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      {/* --- GRID (1-3 cols mobile per user setting, up to 4 on desktop) --- */}
+      <div
+        className={`grid ${MOBILE_GRID_COLS[mobileCols]} sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-8`}
+      >
         {filteredAndSorted.map((entry) => {
           const isSwapped = swappedOutIds.has(entry.card.id);
           const pendingReplacement = pendingSwaps.find(
@@ -327,9 +401,11 @@ export default function CardGallery({
                 )}
               </div>
 
-              <div className="px-2 space-y-3">
-                <div className="flex flex-col">
-                  <h3 className="text-base font-bold truncate tracking-tight">
+              <div className={`${dense ? "px-0 sm:px-2" : "px-2"} space-y-3`}>
+                <div className="flex flex-col min-w-0">
+                  <h3
+                    className={`${dense ? "text-sm sm:text-base" : "text-base"} font-bold truncate tracking-tight`}
+                  >
                     {entry.card.name}
                   </h3>
                   <CardPrice card={entry.card} />
@@ -342,47 +418,30 @@ export default function CardGallery({
 
                 <div className="flex flex-wrap items-center gap-1.5 min-h-[32px]">
                   {!isSwapped ? (
-                    <div className="flex gap-2 items-center w-full">
-                      {unassigned.length > 0 && (
-                        <div className="dropdown dropdown-top dropdown-start">
-                          <div
-                            tabIndex={0}
-                            role="button"
-                            className="btn btn-ghost btn-md btn-circle bg-base-200 border-none opacity-60 hover:opacity-100 hover:bg-primary hover:text-primary-content"
-                          >
-                            +
-                          </div>
-                          <ul
-                            tabIndex={0}
-                            className="dropdown-content z-[20] menu p-2 shadow-2xl bg-base-200 rounded-box w-56 max-w-[calc(100vw-2rem)] border border-base-300 mb-2"
-                          >
-                            <li className="menu-title text-[10px] opacity-40 uppercase tracking-widest">
-                              Assign Objective
-                            </li>
-                            {unassigned.map((o) => (
-                              <li key={o.id}>
-                                <button
-                                  onClick={() => onAssign(entry.card.id, o.id)}
-                                  className="text-xs py-2"
-                                >
-                                  {o.label}
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                    <div
+                      className={`flex items-center w-full ${dense ? "gap-1 sm:gap-2" : "gap-2"}`}
+                    >
+                      <ObjectiveAssignMenu
+                        objectives={unassigned}
+                        onAssign={(o) => onAssign(entry.card.id, o.id)}
+                        triggerLabel="+"
+                        triggerClassName={`btn btn-ghost ${dense ? "btn-sm sm:btn-md" : "btn-md"} btn-circle bg-base-200 border-none opacity-60 hover:opacity-100 hover:bg-primary hover:text-primary-content`}
+                      />
                       <button
                         onClick={() => setSwapping(entry.card)}
-                        className="btn btn-ghost btn-md rounded-full bg-base-200 border-none px-4 opacity-60 hover:opacity-100  transition-all"
+                        aria-label={`Swap ${entry.card.name}`}
+                        className={`btn btn-ghost ${dense ? "btn-sm sm:btn-md px-2 sm:px-4" : "btn-md px-4"} rounded-full bg-base-200 border-none opacity-60 hover:opacity-100  transition-all`}
                       >
-                        ⇄ Swap
+                        ⇄
+                        <span className={dense ? "hidden sm:inline" : ""}>
+                          Swap
+                        </span>
                       </button>
                     </div>
                   ) : (
                     <button
                       onClick={() => onUndoSwap(entry.card.id)}
-                      className="btn btn-error btn-outline btn-md rounded-full px-4"
+                      className={`btn btn-error btn-outline ${dense ? "btn-sm sm:btn-md px-2 sm:px-4" : "btn-md px-4"} rounded-full`}
                     >
                       Undo Swap
                     </button>
@@ -407,17 +466,43 @@ export default function CardGallery({
         onClick={() => setExpandedCard(null)}
       >
         <div
-          className="modal-box p-0 bg-transparent shadow-none w-auto max-w-none"
+          className="modal-box p-0 bg-transparent shadow-none w-auto max-w-none flex items-center gap-4"
           onClick={(e) => e.stopPropagation()}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         >
+          {/* Desktop-only arrow hints; mobile uses swipe */}
+          {expandedIndex >= 0 && (
+            <button
+              type="button"
+              onClick={() => prevCard && setExpandedCard(prevCard)}
+              disabled={!prevCard}
+              aria-label="Previous card"
+              className="hidden sm:flex btn btn-ghost btn-circle text-white/70 hover:text-white disabled:bg-transparent disabled:opacity-0"
+            >
+              <ChevronLeft size={32} />
+            </button>
+          )}
           {expandedCard && (
             <FlippableCardImage
+              key={expandedCard.id}
               card={expandedCard}
               size="large"
               buttonSize="md"
               {...faceProps(expandedCard.id)}
               className="max-h-[85vh] w-auto rounded-[3%] shadow-2xl ring-1 ring-white/20 animate-in zoom-in-95 duration-200"
             />
+          )}
+          {expandedIndex >= 0 && (
+            <button
+              type="button"
+              onClick={() => nextCard && setExpandedCard(nextCard)}
+              disabled={!nextCard}
+              aria-label="Next card"
+              className="hidden sm:flex btn btn-ghost btn-circle text-white/70 hover:text-white disabled:bg-transparent disabled:opacity-0"
+            >
+              <ChevronRight size={32} />
+            </button>
           )}
         </div>
         <form
@@ -433,7 +518,12 @@ export default function CardGallery({
         <SwapSidebar
           cardToSwap={swapping}
           deckWishlist={deckWishlist}
-          deckEntryIds={new Set(entries.map((e) => e.card.id))}
+          deckCards={[
+            ...(commander ? [commander] : []),
+            ...(partner ? [partner] : []),
+            ...entries.map((e) => e.card),
+            ...pendingSwaps.map((s) => s.addCard),
+          ]}
           colorIdentity={colorIdentity}
           onConfirm={(replacement) => {
             onAddSwap(swapping.name, swapping.id, replacement);

@@ -7,10 +7,14 @@ import type { Deck, Objective, WishlistEntry } from "@/types";
 // Components
 import CardPrice from "@/components/CardPrice/CardPrice";
 import ManaCost from "@/components/ManaSymbol/ManaCost";
+import ObjectiveAssignMenu from "@/features/objectives/components/ObjectiveAssignMenu";
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 // Utils
 import { getCardImageUris } from "@/utils/cardImage";
+
+// Icons
+import { X } from "lucide-react";
 
 interface WishlistCardProps {
   entry: WishlistEntry;
@@ -49,7 +53,7 @@ export default function WishlistCard({
   );
 
   return (
-    <div className="card sm:card-side bg-base-100 border border-base-300 shadow-xl overflow-hidden w-full">
+    <div className="card sm:card-side bg-base-100 border border-base-300 shadow-xl w-full">
       {/* Card Image Section */}
       <figure className="shrink-0 w-full sm:w-48 md:w-56 bg-base-200/50 flex items-center justify-center p-6 sm:p-0">
         {getCardImageUris(entry.card)?.large ? (
@@ -78,11 +82,14 @@ export default function WishlistCard({
             <p className="text-xs opacity-60">{entry.card.type_line}</p>
             <CardPrice card={entry.card} />
           </div>
+          {/* btn-md on mobile: the old btn-xs (24px) was too small to tap reliably */}
           <button
+            type="button"
             onClick={() => onRemove(entry.id)}
-            className="btn btn-ghost btn-xs btn-circle text-error"
+            aria-label={`Remove ${entry.card.name} from wishlist`}
+            className="btn btn-ghost btn-md sm:btn-xs btn-circle text-error shrink-0 touch-manipulation -mr-2 -mt-2 sm:m-0"
           >
-            ✕
+            <X size={18} />
           </button>
         </div>
 
@@ -95,11 +102,17 @@ export default function WishlistCard({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
           {/* Objectives Column */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 min-w-0">
             <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">
               Objectives
             </span>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <ObjectiveAssignMenu
+                objectives={unassignedObjectives}
+                onAssign={(o) => onAssignObjective(entry.id, o)}
+                triggerLabel="+ Objective"
+                triggerClassName="btn btn-xs btn-outline btn-primary rounded-full"
+              />
               {assignedObjectives.map((o) => (
                 <ObjectivePill
                   key={o.id}
@@ -107,75 +120,17 @@ export default function WishlistCard({
                   onRemove={() => onUnassignObjective(entry.id, o.id)}
                 />
               ))}
-
-              {unassignedObjectives.length > 0 && (
-                <div className="dropdown dropdown-top md:dropdown-right">
-                  <div
-                    tabIndex={0}
-                    role="button"
-                    className="btn btn-xs btn-outline btn-primary rounded-full"
-                  >
-                    + Objective
-                  </div>
-                  <ul
-                    tabIndex={0}
-                    className="dropdown-content z-[1] menu p-2 shadow-2xl bg-base-200 border border-base-300 rounded-box w-52 mb-2"
-                  >
-                    {unassignedObjectives.map((o) => (
-                      <li key={o.id}>
-                        <button
-                          onClick={() => onAssignObjective(entry.id, o)}
-                          className="text-xs"
-                        >
-                          <span
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: o.color }}
-                          />
-                          {o.label}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
           </div>
 
           {/* Decks Column */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 min-w-0">
             <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">
               Tagged Decks
             </span>
-            <div className="flex flex-wrap gap-1.5">
-              {taggedDecks.map((d) => (
-                <div
-                  key={d.id}
-                  className="badge badge-primary badge-outline gap-1 pl-2.5 py-3"
-                >
-                  <span className="text-xs font-semibold">{d.name}</span>
-                  <button
-                    onClick={() => onUntagDeck(entry.id, d.id)}
-                    className="hover:text-error transition-colors"
-                  >
-                    <svg
-                      className="w-3 h-3"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-
+            <div className="flex flex-wrap items-center gap-1.5">
               {untagged.length > 0 && (
-                <div className="dropdown dropdown-top md:dropdown-right">
+                <div className="dropdown dropdown-top dropdown-start shrink-0">
                   <div
                     tabIndex={0}
                     role="button"
@@ -185,7 +140,7 @@ export default function WishlistCard({
                   </div>
                   <ul
                     tabIndex={0}
-                    className="dropdown-content z-[1] menu p-2 shadow-2xl bg-base-200 border border-base-300 rounded-box w-52 mb-2"
+                    className="dropdown-content menu flex-nowrap max-h-80 overflow-y-auto p-2 shadow-2xl bg-base-200 border border-base-300 rounded-box w-56 max-w-[calc(100vw-2rem)] mb-2"
                   >
                     {untagged.map((d) => (
                       <li key={d.id}>
@@ -200,6 +155,23 @@ export default function WishlistCard({
                   </ul>
                 </div>
               )}
+              {taggedDecks.map((d) => (
+                <div
+                  key={d.id}
+                  className="badge badge-primary badge-outline gap-1 pl-2.5 py-3"
+                >
+                  <span className="text-xs font-semibold">{d.name}</span>
+                  {/* Padding widens the tap target; negative margin keeps the badge the same size */}
+                  <button
+                    type="button"
+                    onClick={() => onUntagDeck(entry.id, d.id)}
+                    aria-label={`Untag ${d.name}`}
+                    className="hover:text-error transition-colors p-1.5 -m-1.5 touch-manipulation"
+                  >
+                    <X size={12} strokeWidth={3} />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>
