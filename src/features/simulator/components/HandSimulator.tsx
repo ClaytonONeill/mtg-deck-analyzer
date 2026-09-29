@@ -7,15 +7,18 @@ import type {
   DeckEntry,
   Objective,
   ScryfallCard,
+  ScryfallCardFace,
   ScryfallPrices,
 } from "@/types";
 
 // Components
 import CardPrice from "@/components/CardPrice/CardPrice";
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
+import FlippableCardImage from "@/components/FlippableCardImage/FlippableCardImage";
 
 // Utils
 import { BASIC_LAND_NAMES, configureBasicLandEndpoint } from "@/utils/utils";
+import { getCardImageUris } from "@/utils/cardImage";
 import {
   computeAvailableMana,
   isCreatureType,
@@ -40,6 +43,7 @@ interface SimCard {
   mana_cost: string;
   oracle_text: string;
   image_uris?: { normal?: string; large?: string };
+  card_faces?: ScryfallCardFace[];
   objectiveIds: string[];
   prices?: ScryfallPrices;
 }
@@ -102,7 +106,8 @@ function scryfallToSimCard(card: ScryfallCard, id: string): SimCard {
     type_line: card.type_line,
     mana_cost: card.mana_cost ?? "",
     oracle_text: card.oracle_text ?? "",
-    image_uris: card.image_uris,
+    image_uris: getCardImageUris(card),
+    card_faces: card.card_faces,
     objectiveIds: [],
     prices: card.prices,
   };
@@ -119,7 +124,8 @@ function buildCardPool(entries: DeckEntry[]): SimCard[] {
         type_line: entry.card.type_line,
         mana_cost: entry.card.mana_cost ?? "",
         oracle_text: entry.card.oracle_text ?? "",
-        image_uris: entry.card.image_uris,
+        image_uris: getCardImageUris(entry.card),
+        card_faces: entry.card.card_faces,
         objectiveIds: entry.objectiveIds ?? [],
         prices: entry.card.prices,
       });
@@ -1047,16 +1053,19 @@ export default function HandSimulator({
           <div className="card w-full max-w-xs bg-base-100 shadow-2xl border border-primary/20 pointer-events-auto">
             <div className="card-body p-4 items-center">
               <div className="w-48 sm:w-56 shrink-0 aspect-[5/7] rounded-lg overflow-hidden shadow-lg border border-base-300">
-                {sim.selectedCard.image_uris?.normal ? (
+                {BASIC_LAND_NAMES.includes(
+                  sim.selectedCard.name.toLowerCase(),
+                ) ? (
                   <img
-                    src={
-                      BASIC_LAND_NAMES.includes(
-                        sim.selectedCard.name.toLowerCase(),
-                      )
-                        ? configureBasicLandEndpoint(sim.selectedCard.name)
-                        : sim.selectedCard.image_uris.normal
-                    }
+                    src={configureBasicLandEndpoint(sim.selectedCard.name)}
                     alt={sim.selectedCard.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : sim.selectedCard.image_uris?.normal ? (
+                  <FlippableCardImage
+                    key={sim.selectedCard.id}
+                    card={sim.selectedCard}
+                    wrapperClassName="w-full h-full"
                     className="w-full h-full object-cover"
                   />
                 ) : (

@@ -7,6 +7,9 @@ import ColorPip from '@/components/ManaSymbol/ColorPip';
 // Types
 import type { Deck } from '@/types';
 
+// Utils
+import { getCardImageUris } from '@/utils/cardImage';
+
 // Icons
 import { X } from 'lucide-react';
 
@@ -25,8 +28,8 @@ export default function DeckCard({
 }: DeckCardProps) {
   const cardCount = getDeckCardCount(deck);
 
-  const commanderImage = deck.commander?.image_uris?.normal;
-  const partnerImage = deck.partner?.image_uris?.normal;
+  const commanderImage = getCardImageUris(deck.commander)?.normal;
+  const partnerImage = getCardImageUris(deck.partner)?.normal;
   const hasPartner = Boolean(deck.partner && partnerImage);
 
   return (

@@ -17,12 +17,14 @@ import { useCardPrices } from '@/hooks/useCardPriceContext';
 // Components
 import CardSearchPanel from '@/features/deckBuilder/components/CardSearchPanel';
 import CardPrice from '@/components/CardPrice/CardPrice';
+import FlippableCardImage from '@/components/FlippableCardImage/FlippableCardImage';
 import ManaCost from '@/components/ManaSymbol/ManaCost';
 import ObjectivePill from '@/features/objectives/components/ObjectivePill';
 
 // Utils
 import { isCardLegalForDeck } from '@/store/deckStore';
 import { getCardPriceValue } from '@/utils/priceUtils';
+import { getCardImageUris } from '@/utils/cardImage';
 
 // Icons
 import { X } from 'lucide-react';
@@ -294,10 +296,11 @@ export default function SwapSidebar({
               {selected && (
                 <div className="card bg-base-200 border border-primary/30 shadow-xl overflow-hidden animate-in slide-in-from-bottom-4">
                   <figure className="px-10 pt-10">
-                    <img
-                      src={selected.image_uris?.normal}
-                      alt={selected.name}
-                      className="rounded-xl shadow-2xl w-1/2 h-1/2"
+                    <FlippableCardImage
+                      key={selected.id}
+                      card={selected}
+                      wrapperClassName="w-1/2"
+                      className="rounded-xl shadow-2xl w-full"
                     />
                   </figure>
                   <div className="card-body items-center text-center">
@@ -492,7 +495,7 @@ export default function SwapSidebar({
                     >
                       <div className="relative aspect-5/7 overflow-hidden rounded-xl shadow-lg">
                         <img
-                          src={entry.card.image_uris?.normal}
+                          src={getCardImageUris(entry.card)?.normal}
                           alt={entry.card.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
@@ -587,9 +590,9 @@ export default function SwapSidebar({
           {(() => {
             const entry = deckWishlist.find((e) => e.card.id === expanded);
             return (
-              entry?.card.image_uris?.large && (
+              entry && getCardImageUris(entry.card)?.large && (
                 <img
-                  src={entry.card.image_uris.large}
+                  src={getCardImageUris(entry.card)?.large}
                   alt="Zoomed card"
                   className="max-h-full rounded-3xl shadow-2xl ring-1 ring-white/10"
                 />

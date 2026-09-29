@@ -13,6 +13,7 @@ import {
   getTypeBreakdown,
   getCMCBreakdown,
 } from "@/features/metrics/utils/deckMetrics";
+import { getCardImageUris } from "@/utils/cardImage";
 
 // Context
 import { ChartSelectionProvider } from "@/features/metrics/context/ChartSelectionContext";
@@ -164,7 +165,7 @@ export default function VersionCompare({
                       <div className="avatar">
                         <div className="w-8 rounded">
                           <img
-                            src={e.card.image_uris?.small}
+                            src={getCardImageUris(e.card)?.small}
                             alt={e.card.name}
                           />
                         </div>
@@ -200,7 +201,7 @@ export default function VersionCompare({
                       <div className="avatar">
                         <div className="w-8 rounded">
                           <img
-                            src={e.card.image_uris?.small}
+                            src={getCardImageUris(e.card)?.small}
                             alt={e.card.name}
                           />
                         </div>
