@@ -236,7 +236,7 @@ export function getAllCardIdsInDeck(deck: Deck): string[] {
   return [...new Set(ids)];
 }
 
-export type DeckExportFormat = 'json' | 'xlsx';
+export type DeckExportFormat = 'json' | 'xlsx' | 'txt';
 
 export function defaultExportFilename(
   deck: Deck,
@@ -245,11 +245,30 @@ export function defaultExportFilename(
   return `${deck.name.replace(/\s+/g, '_')}.${format}`;
 }
 
+/**
+ * Plain "<quantity> <card name>" per line — the de facto clipboard-import
+ * format supported by most deckbuilding sites (Moxfield, Archidekt, etc).
+ * Commander/partner are included as ordinary lines, same as the rest of
+ * the deck.
+ */
+export function buildDeckTextExport(deck: Deck): string {
+  const lines: string[] = [];
+  if (deck.commander) lines.push(`1 ${deck.commander.name}`);
+  if (deck.partner) lines.push(`1 ${deck.partner.name}`);
+  deck.entries.forEach((entry) => {
+    lines.push(`${entry.quantity} ${entry.card.name}`);
+  });
+  return lines.join('\n');
+}
+
 export async function buildDeckExportBlob(
   deck: Deck,
   format: DeckExportFormat,
 ): Promise<Blob> {
   if (format === 'xlsx') return buildDeckXlsxBlob(deck);
+  if (format === 'txt') {
+    return new Blob([buildDeckTextExport(deck)], { type: 'text/plain' });
+  }
 
   const json = JSON.stringify(deck, null, 2);
   return new Blob([json], { type: 'application/json' });

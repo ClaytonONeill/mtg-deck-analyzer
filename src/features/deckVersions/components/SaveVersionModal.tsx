@@ -1,40 +1,40 @@
 // Modules
 import { useState } from "react";
 
-// Types
-import type { DeckVersion } from "@/types";
-
 type SaveMode = "new" | "update";
 
 interface SaveVersionModalProps {
-  existingVersions: DeckVersion[];
-  onSave: (name: string, note: string) => void;
-  onUpdate: (versionId: string) => void;
+  /** "main" when viewing the main build, otherwise the id of the version
+   * currently being viewed — the modal always targets whichever of these
+   * is active, never an arbitrary other version (see useDeckVersions). */
+  activeVersionId: "main" | string;
+  activeVersionLabel: string;
+  onSaveAsNew: (name: string, note: string) => void;
+  onUpdateActive: () => void;
   onCancel: () => void;
 }
 
 export default function SaveVersionModal({
-  existingVersions,
-  onSave,
-  onUpdate,
+  activeVersionId,
+  activeVersionLabel,
+  onSaveAsNew,
+  onUpdateActive,
   onCancel,
 }: SaveVersionModalProps) {
+  const isViewingVersion = activeVersionId !== "main";
+
   const [mode, setMode] = useState<SaveMode>(
-    existingVersions.length > 0 ? "update" : "new",
+    isViewingVersion ? "update" : "new",
   );
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
-  const [selectedVersionId, setSelectedVersionId] = useState<string>(
-    existingVersions[0]?.id ?? "",
-  );
 
   const handleSave = () => {
     if (mode === "new") {
       if (!name.trim()) return;
-      onSave(name, note);
+      onSaveAsNew(name, note);
     } else {
-      if (!selectedVersionId) return;
-      onUpdate(selectedVersionId);
+      onUpdateActive();
     }
   };
 
@@ -43,51 +43,44 @@ export default function SaveVersionModal({
       <div className="modal-box bg-base-100 border border-base-300 shadow-2xl max-w-md p-6 flex flex-col gap-6">
         <h2 className="text-xl font-bold">Save Version</h2>
 
-        {existingVersions.length > 0 && (
+        {isViewingVersion && (
           <div className="join w-full">
             <button
               onClick={() => setMode("update")}
               className={`join-item btn btn-sm flex-1 ${mode === "update" ? "btn-primary" : "btn-ghost bg-base-200"}`}
             >
-              Update Existing
+              Update "{activeVersionLabel}"
             </button>
             <button
               onClick={() => setMode("new")}
               className={`join-item btn btn-sm flex-1 ${mode === "new" ? "btn-primary" : "btn-ghost bg-base-200"}`}
             >
-              Save as New
+              Branch as New
             </button>
           </div>
         )}
 
-        {/* Update existing */}
-        {mode === "update" && existingVersions.length > 0 && (
+        {/* Update the active version */}
+        {mode === "update" && isViewingVersion && (
           <div className="form-control w-full gap-2">
-            <label className="label py-0">
-              <span className="label-text-alt font-bold opacity-60">
-                SELECT VERSION
-              </span>
-            </label>
-            <select
-              value={selectedVersionId}
-              onChange={(e) => setSelectedVersionId(e.target.value)}
-              className="select select-bordered select-sm w-full bg-base-200"
-            >
-              {existingVersions.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name}
-                </option>
-              ))}
-            </select>
-            <p className="text-[10px] opacity-50 italic">
-              New swaps will be appended to this version's history.
+            <p className="text-xs opacity-70">
+              New swaps will be appended to{" "}
+              <span className="font-semibold">"{activeVersionLabel}"</span>'s
+              history.
             </p>
           </div>
         )}
 
-        {/* Save as new */}
+        {/* Save as new — branches off whatever is currently active */}
         {mode === "new" && (
           <div className="flex flex-col gap-4">
+            {isViewingVersion && (
+              <p className="text-xs opacity-70">
+                This will branch a new version off{" "}
+                <span className="font-semibold">"{activeVersionLabel}"</span>,
+                including its existing changes plus your new swaps.
+              </p>
+            )}
             <div className="form-control w-full gap-1.5">
               <label className="label py-0">
                 <span className="label-text-alt font-bold opacity-60">
@@ -126,7 +119,7 @@ export default function SaveVersionModal({
           </button>
           <button
             onClick={handleSave}
-            disabled={mode === "new" ? !name.trim() : !selectedVersionId}
+            disabled={mode === "new" ? !name.trim() : false}
             className="btn btn-primary px-8"
           >
             {mode === "new" ? "Save Version" : "Update Version"}
