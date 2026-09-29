@@ -36,12 +36,14 @@ import { ChartSelectionProvider } from "@/features/metrics/context/ChartSelectio
 import {
   getTypeBreakdown,
   getCMCBreakdown,
+  getColorDemand,
 } from "@/features/metrics/utils/deckMetrics";
 import { applyVersionToDeck } from "@/features/deckVersions/utils/versionUtils";
 
 // Components
 import TypesChart from "@/features/metrics/components/TypesChart";
 import CMCChart from "@/features/metrics/components/CMCChart";
+import ColorDemandGrid from "@/features/metrics/components/ColorDemandGrid";
 import ColorPip from "@/components/ManaSymbol/ColorPip";
 import CardGallery from "@/features/gallery/components/CardGallery";
 import VersionCompare from "@/features/deckVersions/components/VersionCompare";
@@ -52,6 +54,7 @@ import HandSimulator from "@/features/simulator/components/HandSimulator";
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 import ExportDeckModal from "@/features/deckList/components/ExportDeckModal";
 import ConfirmDelete from "@/components/ConfirmDelete/ConfirmDelete";
+import PageShell from "@/components/PageShell/PageShell";
 
 // Types
 import type { Deck, Objective, PendingSwap } from "@/types";
@@ -190,18 +193,18 @@ export default function DeckDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-base-100 flex flex-col gap-4 items-center justify-center">
+      <PageShell className="flex flex-col gap-4 items-center justify-center">
         <span className="loading loading-spinner loading-lg text-primary"></span>
         <p className="text-base-content/60 animate-pulse">
           Scanning the multiverse...
         </p>
-      </div>
+      </PageShell>
     );
   }
 
   if (error || !activeDeck) {
     return (
-      <div className="min-h-screen bg-base-100 flex flex-col items-center justify-center gap-4">
+      <PageShell className="flex flex-col items-center justify-center gap-4">
         <p className="text-error font-bold">{error ?? "Deck not found."}</p>
         <button
           onClick={() => navigate("/")}
@@ -209,7 +212,7 @@ export default function DeckDetailPage() {
         >
           <ChevronLeft size={16} /> Go home
         </button>
-      </div>
+      </PageShell>
     );
   }
 
@@ -220,6 +223,7 @@ export default function DeckDetailPage() {
   const cardCount = getDeckCardCount(displayDeck);
   const typeData = getTypeBreakdown(displayDeck, includeLands);
   const cmcData = getCMCBreakdown(displayDeck, includeLands);
+  const colorDemand = getColorDemand(displayDeck);
 
   const versionOptions: { value: VersionId; label: string }[] = [
     { value: "main", label: `Main — ${activeDeck.name}` },
@@ -320,7 +324,7 @@ export default function DeckDetailPage() {
 
   return (
     <CardPriceProvider cardIds={getAllCardIdsInDeck(activeDeck)}>
-      <div className="min-h-screen bg-base-100 text-base-content">
+      <PageShell>
         <div className="px-6 py-4 flex items-center justify-between border-b border-base-300 bg-base-100/50 backdrop-blur sticky top-0 z-30">
           <button
             onClick={() => navigate("/")}
@@ -584,6 +588,7 @@ export default function DeckDetailPage() {
                       ) : (
                         <CMCChart data={cmcData} />
                       )}
+                      <ColorDemandGrid demand={colorDemand} />
                     </div>
                   </div>
                 )}
@@ -703,7 +708,7 @@ export default function DeckDetailPage() {
             }
           />
         )}
-      </div>
+      </PageShell>
     </CardPriceProvider>
   );
 }

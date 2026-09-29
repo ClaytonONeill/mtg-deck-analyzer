@@ -17,6 +17,7 @@ import BasicLandsPanel from '@/features/deckBuilder/components/BasicLandsPanel';
 import DeckEntryList from '@/features/deckBuilder/components/DeckEntryList';
 import ColorPip from '@/components/ManaSymbol/ColorPip';
 import ImportDeckButton from '@/components/ImportDeckButton/ImportDeckButton';
+import PageShell from '@/components/PageShell/PageShell';
 
 // Types
 import type { Deck } from '@/types';
@@ -64,18 +65,18 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-base-300 flex flex-col items-center justify-center gap-4">
+      <PageShell tone="recessed" className="flex flex-col gap-4 items-center justify-center">
         <span className="loading loading-ring loading-lg text-primary"></span>
         <p className="text-base-content/60 text-sm font-medium tracking-widest uppercase">
           Loading deck...
         </p>
-      </div>
+      </PageShell>
     );
   }
 
   return (
     <CardPriceProvider cardIds={getAllCardIdsInDeck(deck)}>
-    <div className="min-h-screen bg-base-300 text-base-content">
+    <PageShell tone="recessed">
       {/* Navbar */}
       <header className="navbar bg-base-100 px-6 border-b border-base-content/10 sticky z-5 top-0 shadow-sm">
         <div className="flex h-min gap-3 justify-end w-full">
@@ -308,7 +309,7 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
           </div>
         </aside>
       </div>
-    </div>
+    </PageShell>
     </CardPriceProvider>
   );
 }

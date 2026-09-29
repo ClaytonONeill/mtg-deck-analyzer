@@ -3,13 +3,14 @@ import { useObjectives } from "@/hooks/useObjectives";
 
 // Components
 import ObjectiveManager from "@/features/objectives/components/ObjectiveManager";
+import PageShell from "@/components/PageShell/PageShell";
 
 export default function ObjectivesPage() {
-  const { objectives, addObjective, deleteObjective, updateObjective } =
+  const { objectives, loading, addObjective, deleteObjective, updateObjective } =
     useObjectives();
 
   return (
-    <div className="min-h-screen bg-base-300">
+    <PageShell tone="recessed">
       {/* Hero Header */}
       <div className="bg-base-100 border-b border-base-content/10 py-12 px-8 mb-8">
         <div className="max-w-6xl mx-auto">
@@ -25,15 +26,25 @@ export default function ObjectivesPage() {
       <div className="max-w-6xl mx-auto px-8 pb-12">
         <div className="card bg-base-100 shadow-xl border border-base-content/5">
           <div className="card-body p-8">
-            <ObjectiveManager
-              objectives={objectives}
-              onCreate={addObjective}
-              onDelete={deleteObjective}
-              onUpdate={updateObjective}
-            />
+            {/* Gate so the empty state doesn't flash before the first fetch */}
+            {loading ? (
+              <div className="flex flex-col gap-4 items-center justify-center py-12">
+                <span className="loading loading-spinner loading-lg text-primary"></span>
+                <p className="text-base-content/70 text-sm font-semibold">
+                  Loading objectives...
+                </p>
+              </div>
+            ) : (
+              <ObjectiveManager
+                objectives={objectives}
+                onCreate={addObjective}
+                onDelete={deleteObjective}
+                onUpdate={updateObjective}
+              />
+            )}
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
