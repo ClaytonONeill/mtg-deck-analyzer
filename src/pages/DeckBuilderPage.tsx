@@ -24,8 +24,15 @@ import type { Deck } from '@/types';
 // Icons
 import { TriangleAlert, X } from 'lucide-react';
 
+// `/build` and `/build/:deckId` render the same element, so React Router reuses
+// the mounted instance when navigating between them (e.g. "New Deck" while
+// editing). Keying on deckId forces a fresh mount so no builder state leaks.
 export default function DeckBuilderPage() {
   const { deckId } = useParams();
+  return <DeckBuilder key={deckId ?? 'new'} deckId={deckId} />;
+}
+
+function DeckBuilder({ deckId }: { deckId?: string }) {
   const navigate = useNavigate();
 
   const {

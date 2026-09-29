@@ -632,7 +632,13 @@ export default function DeckDetailPage() {
           )}
 
           {activeTab === "simulator" && (
-            <HandSimulator deck={displayDeck} objectives={objectives} />
+            // Keyed on the version so switching versions restarts the
+            // simulator at turn 1 with the newly selected deck list.
+            <HandSimulator
+              key={activeVersionId}
+              deck={displayDeck}
+              objectives={objectives}
+            />
           )}
           {/* Wishlist tab */}
           {activeTab === "wishlist" && (

@@ -17,9 +17,9 @@
 
 ## Acceptance Criteria
 
-- [ ] Navigating to "New Deck" from an active Edit Deck view fully clears the previously loaded deck's commander, partner, and entries before the import button becomes usable.
-- [ ] Fix at the state layer (`useDeckBuilder`'s effect explicitly resetting to `createNewDeck('')` when `deckId` becomes undefined) rather than papering over it by forcing a full remount — a remount-based fix (e.g. a `key` prop keyed on `deckId`) is an acceptable alternative if simpler, but confirm it doesn't reintroduce a flash-of-stale-content on the transition.
-- [ ] Verify the reverse transition too (editing deck A, then navigating directly to edit deck B via a different route) doesn't leak deck A's state either — same root cause, same fix should cover it.
+- [x] Navigating to "New Deck" from an active Edit Deck view fully clears the previously loaded deck's commander, partner, and entries before the import button becomes usable.
+- [x] Fix at the state layer (`useDeckBuilder`'s effect explicitly resetting to `createNewDeck('')` when `deckId` becomes undefined) rather than papering over it by forcing a full remount — a remount-based fix (e.g. a `key` prop keyed on `deckId`) is an acceptable alternative if simpler, but confirm it doesn't reintroduce a flash-of-stale-content on the transition.
+- [x] Verify the reverse transition too (editing deck A, then navigating directly to edit deck B via a different route) doesn't leak deck A's state either — same root cause, same fix should cover it. — Done via remount: `DeckBuilderPage` now renders an inner `DeckBuilder` keyed on `deckId ?? "new"`. No stale flash, since `loading` initializes from `!!deckId` on the fresh mount. Also clears local search-box text and warnings, which a hook-only reset would not.
 
 ## Files / Areas Touched
 

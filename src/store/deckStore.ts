@@ -206,13 +206,47 @@ export function isCardLegalForDeck(
   return card.color_identity.every((c) => colorIdentity.includes(c));
 }
 
-export function duplicateCardInDeck(deck: Deck, card: ScryfallCard): boolean {
-  if (deck.commander?.id === card.id || deck.partner?.id === card.id)
-    return true;
+/** Cards exempt from Commander's singleton rule: basic lands, plus cards like
+ * Relentless Rats whose own text allows any number of copies. */
+export function isSingletonExempt(card: ScryfallCard): boolean {
   return (
-    deck.entries.filter(({ card: existingCard }) => existingCard.id === card.id)
-      .length > 0
+    /\bBasic\b/.test(card.type_line ?? '') ||
+    /a deck can have any number of cards named/i.test(card.oracle_text ?? '')
   );
+}
+
+/** Singleton check by card name (not Scryfall id), so a different printing of
+ * a card already in `existingCards` still counts as a duplicate. */
+export function isDuplicateCard(
+  existingCards: ScryfallCard[],
+  card: ScryfallCard,
+): boolean {
+  if (isSingletonExempt(card)) return false;
+  return existingCards.some((c) => c.name === card.name);
+}
+
+export function duplicateCardInDeck(deck: Deck, card: ScryfallCard): boolean {
+  const existing = [
+    ...(deck.commander ? [deck.commander] : []),
+    ...(deck.partner ? [deck.partner] : []),
+    ...deck.entries.map((e) => e.card),
+  ];
+  return isDuplicateCard(existing, card);
+}
+
+/** Names of non-exempt cards appearing more than once across the commander,
+ * partner, and entries (including a single entry with quantity > 1). */
+export function findDuplicateCardNames(deck: Deck): string[] {
+  const counts = new Map<string, number>();
+  const add = (card: ScryfallCard | undefined, quantity: number) => {
+    // Imported files are only loosely validated, so tolerate malformed entries.
+    if (!card?.name || isSingletonExempt(card)) return;
+    counts.set(card.name, (counts.get(card.name) ?? 0) + quantity);
+  };
+  if (deck.commander) add(deck.commander, 1);
+  if (deck.partner) add(deck.partner, 1);
+  deck.entries.forEach((e) => add(e?.card, e?.quantity ?? 1));
+  return [...counts].filter(([, n]) => n > 1).map(([name]) => name);
 }
 
 export function getDeckCardCount(deck: Deck): number {
@@ -326,6 +360,15 @@ export async function importDeckFromFile(file: File): Promise<Deck> {
         const parsed = JSON.parse(e.target?.result as string);
         if (!isValidDeck(parsed)) {
           reject(new Error('Invalid deck file — missing required fields.'));
+          return;
+        }
+        const duplicates = findDuplicateCardNames(parsed as Deck);
+        if (duplicates.length > 0) {
+          reject(
+            new Error(
+              `Invalid deck file — Commander decks can only contain one copy of: ${duplicates.join(', ')}.`,
+            ),
+          );
           return;
         }
         resolve(parsed as Deck);

@@ -411,7 +411,12 @@ export default function CardGallery({
         <SwapSidebar
           cardToSwap={swapping}
           deckWishlist={deckWishlist}
-          deckEntryIds={new Set(entries.map((e) => e.card.id))}
+          deckCards={[
+            ...(commander ? [commander] : []),
+            ...(partner ? [partner] : []),
+            ...entries.map((e) => e.card),
+            ...pendingSwaps.map((s) => s.addCard),
+          ]}
           colorIdentity={colorIdentity}
           onConfirm={(replacement) => {
             onAddSwap(swapping.name, swapping.id, replacement);

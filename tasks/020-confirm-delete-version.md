@@ -28,10 +28,10 @@
 
 ## Acceptance Criteria
 
-- [ ] Deleting a deck version routes through the same shared `ConfirmDelete` component `HomePage` already uses, rather than a new one-off implementation.
-- [ ] Confirm copy clearly identifies what's being deleted (the version's name, not a generic "are you sure").
-- [ ] `setActiveVersionId("main")` still happens after a confirmed delete, so the UI doesn't end up pointing at a deleted version.
-- [ ] `deleteVersion` itself is still fire-and-forget per `001`'s findings — if `001` hasn't landed yet, at minimum don't make this task's UI imply a guarantee ("Deleted!") that the underlying call doesn't back up; if `001` has landed, use its established await/rollback pattern here too.
+- [x] Deleting a deck version routes through the same shared `ConfirmDelete` component `HomePage` already uses, rather than a new one-off implementation.
+- [x] Confirm copy clearly identifies what's being deleted (the version's name, not a generic "are you sure").
+- [x] `setActiveVersionId("main")` still happens after a confirmed delete, so the UI doesn't end up pointing at a deleted version.
+- [x] `deleteVersion` itself is still fire-and-forget per `001`'s findings — if `001` hasn't landed yet, at minimum don't make this task's UI imply a guarantee ("Deleted!") that the underlying call doesn't back up; if `001` has landed, use its established await/rollback pattern here too. — Already landed with the versioning-fixes PR (`ConfirmAction` in `DeckDetailPage`); verified 2026-09-29, no code change needed.
 
 ## Files / Areas Touched
 
