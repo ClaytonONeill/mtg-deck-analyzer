@@ -17,10 +17,10 @@ Filtering *is* already shared, via `src/components/FilterSection/FilterSection.t
 
 ## Acceptance Criteria
 
-- [ ] Extract a single shared multi-key sort util (e.g. `sortCards(cards, keys: SortKey[], dir)`) that both `CardGallery` and `WishlistPage` use, replacing their separate hand-rolled comparators.
-- [ ] UI supports selecting a primary sort key plus at least one secondary tiebreaker key (e.g. "Type, then Color") — a simple two-level picker is enough, doesn't need to be arbitrarily deep.
-- [ ] Existing single-key sort behavior is preserved exactly when no secondary key is chosen (no regression to current default sorting).
-- [ ] If `009`'s Phase 1 hasn't landed yet, this task's extraction satisfies that overlap — no need to redo the move later.
+- [x] Extract a single shared multi-key sort util (e.g. `sortCards(cards, keys: SortKey[], dir)`) that both `CardGallery` and `WishlistPage` use, replacing their separate hand-rolled comparators. — `src/utils/sortCards.ts` (`sortCards(items, primary, secondary, dir, livePrices)`). This also fixes the gallery's "Color" sort, which previously fell through to `return 0` and did nothing.
+- [x] UI supports selecting a primary sort key plus at least one secondary tiebreaker key (e.g. "Type, then Color") — a simple two-level picker is enough, doesn't need to be arbitrarily deep. — Shared `ThenBySelect` component. The secondary key always sorts ascending (A–Z, low→high), so "Type desc, then Name" is still alphabetical within each type.
+- [x] Existing single-key sort behavior is preserved exactly when no secondary key is chosen (no regression to current default sorting).
+- [x] If `009`'s Phase 1 hasn't landed yet, this task's extraction satisfies that overlap — no need to redo the move later.
 
 ## Files / Areas Touched
 

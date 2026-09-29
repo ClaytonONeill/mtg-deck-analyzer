@@ -12,6 +12,7 @@ import type { Deck } from '@/types';
 import DeckCard from '@/features/deckList/components/DeckCard';
 import EmptyState from '@/features/deckList/components/EmptyState';
 import ConfirmDelete from '@/components/ConfirmDelete/ConfirmDelete';
+import PageShell from '@/components/PageShell/PageShell';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -35,17 +36,17 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-base-100 flex flex-col gap-4 items-center justify-center">
+      <PageShell className="flex flex-col gap-4 items-center justify-center">
         <span className="loading loading-spinner loading-lg text-primary"></span>
         <p className="text-base-content/70 text-sm font-semibold">
           Loading decks...
         </p>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-base-100 text-base-content">
+    <PageShell>
       <main className="max-w-5xl mx-auto px-6 py-10">
         {decks.length === 0 ? (
           <EmptyState onBuildDeck={() => navigate('/build')} />
@@ -73,6 +74,6 @@ export default function HomePage() {
           onConfirm={handleDeleteConfirm}
         />
       </main>
-    </div>
+    </PageShell>
   );
 }

@@ -15,18 +15,24 @@ import { CardPriceProvider } from "@/context/CardPriceContext";
 
 // Utils
 import { inferCategory } from "@/utils/utils";
-import { getCardPriceValue } from "@/utils/priceUtils";
+import {
+  sortCards,
+  CATEGORY_ORDER,
+  type CardSortKey,
+  type SortDirection,
+} from "@/utils/sortCards";
 
 // Types
-import type { Deck, CardCategory, Objective, ScryfallPrices, WishlistEntry } from "@/types";
+import type { Deck, CardCategory, Objective, WishlistEntry } from "@/types";
 
 // Components
 import WishlistAddPanel from "@/features/wishlist/components/WishlistAddPanel";
 import WishlistCard from "@/features/wishlist/components/WishlistCard";
 import FilterSection from "@/components/FilterSection/FilterSection";
+import ThenBySelect from "@/components/ThenBySelect/ThenBySelect";
+import PageShell from "@/components/PageShell/PageShell";
 
-type SortKey = "name" | "cmc" | "color" | "type" | "date" | "price";
-type SortDirection = "asc" | "desc";
+type SortKey = CardSortKey;
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "date", label: "Date Added" },
@@ -38,17 +44,6 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 ];
 
 const COLOR_ORDER = ["W", "U", "B", "R", "G"];
-
-const CATEGORY_ORDER: CardCategory[] = [
-  "Creature",
-  "Instant",
-  "Sorcery",
-  "Enchantment",
-  "Artifact",
-  "Planeswalker",
-  "Land",
-  "Other",
-];
 
 interface ActiveFilters {
   colors: string[];
@@ -77,50 +72,7 @@ function activeFilterCount(filters: ActiveFilters): number {
   );
 }
 
-function sortEntries(
-  entries: WishlistEntry[],
-  sort: SortKey,
-  direction: SortDirection,
-  livePrices: Map<string, ScryfallPrices> | null,
-): WishlistEntry[] {
-  const mult = direction === "asc" ? 1 : -1;
-  return [...entries].sort((a, b) => {
-    switch (sort) {
-      case "date":
-        return (
-          mult * (new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime())
-        );
-      case "name":
-        return mult * a.card.name.localeCompare(b.card.name);
-      case "cmc":
-        return mult * (a.card.cmc - b.card.cmc);
-      case "type": {
-        const aCat = CATEGORY_ORDER.indexOf(inferCategory(a.card.type_line));
-        const bCat = CATEGORY_ORDER.indexOf(inferCategory(b.card.type_line));
-        return mult * (aCat - bCat);
-      }
-      case "color": {
-        const aFirst = COLOR_ORDER.indexOf(
-          (a.card.color_identity ?? [])[0] ?? "",
-        );
-        const bFirst = COLOR_ORDER.indexOf(
-          (b.card.color_identity ?? [])[0] ?? "",
-        );
-        return mult * (aFirst - bFirst);
-      }
-      case "price": {
-        const aPrice = getCardPriceValue(a.card, livePrices);
-        const bPrice = getCardPriceValue(b.card, livePrices);
-        if (aPrice === null && bPrice === null) return 0;
-        if (aPrice === null) return 1;
-        if (bPrice === null) return -1;
-        return mult * (aPrice - bPrice);
-      }
-      default:
-        return 0;
-    }
-  });
-}
+
 
 function applyFilters(
   entries: WishlistEntry[],
@@ -158,6 +110,7 @@ export default function WishlistPage() {
   const [allDecks, setAllDecks] = useState<Deck[]>([]);
   const [sort, setSort] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDirection>("desc");
+  const [thenBy, setThenBy] = useState<SortKey | null>(null);
   const [filters, setFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -191,18 +144,18 @@ export default function WishlistPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-base-200 flex flex-col gap-4 items-center justify-center">
+      <PageShell tone="recessed" className="flex flex-col gap-4 items-center justify-center">
         <span className="loading loading-spinner loading-lg text-primary"></span>
         <p className="text-base-content/70 text-sm font-semibold">
           Loading wishlist...
         </p>
-      </div>
+      </PageShell>
     );
   }
 
   return (
     <CardPriceProvider cardIds={entries.map((e) => e.card.id)}>
-    <div className="min-h-screen bg-base-200 text-base-content pb-20">
+    <PageShell tone="recessed" className="pb-20">
       {/* Sticky Header */}
       <header className="sticky top-0 z-30 bg-base-100/80 backdrop-blur-md border-b border-base-300 px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -235,6 +188,8 @@ export default function WishlistPage() {
             totalCount={entries.length}
             sort={sort}
             setSort={setSort}
+            thenBy={thenBy}
+            setThenBy={setThenBy}
             sortDir={sortDir}
             setSortDir={setSortDir}
             showFilters={showFilters}
@@ -252,7 +207,7 @@ export default function WishlistPage() {
           />
         )}
       </main>
-    </div>
+    </PageShell>
     </CardPriceProvider>
   );
 }
@@ -262,6 +217,8 @@ interface WishlistResultsProps {
   totalCount: number;
   sort: SortKey;
   setSort: (sort: SortKey) => void;
+  thenBy: SortKey | null;
+  setThenBy: (key: SortKey | null) => void;
   sortDir: SortDirection;
   setSortDir: (fn: (d: SortDirection) => SortDirection) => void;
   showFilters: boolean;
@@ -285,6 +242,8 @@ function WishlistResults({
   totalCount,
   sort,
   setSort,
+  thenBy,
+  setThenBy,
   sortDir,
   setSortDir,
   showFilters,
@@ -303,9 +262,14 @@ function WishlistResults({
   const livePrices = useCardPrices();
 
   const sorted = useMemo(
-    () => sortEntries(filtered, sort, sortDir, livePrices),
-    [filtered, sort, sortDir, livePrices],
+    () => sortCards(filtered, sort, thenBy, sortDir, livePrices),
+    [filtered, sort, thenBy, sortDir, livePrices],
   );
+
+  const selectSort = (key: SortKey) => {
+    setSort(key);
+    if (thenBy === key) setThenBy(null);
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -320,7 +284,7 @@ function WishlistResults({
           <select
             className="select select-bordered select-sm md:hidden"
             value={sort}
-            onChange={(e) => setSort(e.target.value as SortKey)}
+            onChange={(e) => selectSort(e.target.value as SortKey)}
           >
             {SORT_OPTIONS.map((opt) => (
               <option key={opt.key} value={opt.key}>
@@ -334,7 +298,7 @@ function WishlistResults({
             {SORT_OPTIONS.map((opt) => (
               <button
                 key={opt.key}
-                onClick={() => setSort(opt.key)}
+                onClick={() => selectSort(opt.key)}
                 className={`join-item btn btn-xs px-4 ${sort === opt.key ? "btn-primary" : "btn-ghost bg-base-200"}`}
               >
                 {opt.label}
@@ -348,6 +312,12 @@ function WishlistResults({
           >
             {sortDir === "asc" ? "Asc." : "Desc."}
           </button>
+          <ThenBySelect
+            options={SORT_OPTIONS}
+            primary={sort}
+            value={thenBy}
+            onChange={setThenBy}
+          />
         </div>
 
         <span className="text-xs font-bold opacity-40">

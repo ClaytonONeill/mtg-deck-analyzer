@@ -24,11 +24,11 @@ None of this drift looks deliberate — it reads as five different people (or fi
 
 ## Acceptance Criteria
 
-- [ ] A single shared component (e.g. `src/components/PageShell` or similar — match this repo's existing `components/<Name>/<Name>.tsx` folder convention) provides the `min-h-screen` wrapper and a consistent loading state (spinner variant, copy pattern, background token).
-- [ ] Pick one background token as the standard page background (recommend `bg-base-100`, since it's already used by the two pages a user sees most, `HomePage`/`DeckDetailPage`) and apply it everywhere via the shared component — or, if there's a deliberate reason for `DeckBuilderPage`/`ObjectivesPage` to look different, document that reason in the component instead of leaving it unexplained.
-- [ ] `HomePage`, `DeckDetailPage`, `DeckBuilderPage`, `WishlistPage`, `ObjectivesPage` (and `LoginPage` if applicable) all use the shared component for their base wrapper + loading state.
-- [ ] `ObjectivesPage` gets an actual loading gate matching the others, so it doesn't flash empty content before the first fetch resolves.
-- [ ] Visually spot-check all five pages after the change — layout/spacing inside each page's `<main>`/content area should be unaffected; only the outer wrapper and loading state change.
+- [ ] A single shared component (e.g. `src/components/PageShell` or similar — match this repo's existing `components/<Name>/<Name>.tsx` folder convention) provides the `min-h-screen` wrapper and a consistent loading state (spinner variant, copy pattern, background token). — Partial: `PageShell` exists and owns the wrapper and background. The loading visuals (spinner variant and copy) were deliberately left as-is per page, pending the loading-state overhaul (`010`).
+- [x] Pick one background token as the standard page background (recommend `bg-base-100`, since it's already used by the two pages a user sees most, `HomePage`/`DeckDetailPage`) and apply it everywhere via the shared component — or, if there's a deliberate reason for `DeckBuilderPage`/`ObjectivesPage` to look different, document that reason in the component instead of leaving it unexplained. — Done: `PageShell` has `tone="base"` (bg-base-100: Home, DeckDetail) and `tone="recessed"` (bg-base-200: Builder, Wishlist, Objectives, Login). The recessed pages sit raised `bg-base-100` cards and inputs on the page, so a base-100 background would erase their contrast. That reason is documented on the prop. Builder/Objectives/Login moved from base-300 to base-200.
+- [x] `HomePage`, `DeckDetailPage`, `DeckBuilderPage`, `WishlistPage`, `ObjectivesPage` (and `LoginPage` if applicable) all use the shared component for their base wrapper + loading state. — Loading states now render inside `PageShell`, centered. Each page keeps its original spinner and text; skeletons are still `010`.
+- [x] `ObjectivesPage` gets an actual loading gate matching the others, so it doesn't flash empty content before the first fetch resolves.
+- [ ] Visually spot-check all five pages after the change — layout/spacing inside each page's `<main>`/content area should be unaffected; only the outer wrapper and loading state change. — Not done: needs a manual visual pass in the browser.
 
 ## Files / Areas Touched
 
