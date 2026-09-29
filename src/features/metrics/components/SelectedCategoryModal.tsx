@@ -8,6 +8,7 @@ import { useChartSelection } from "../hooks/useChartSelection";
 
 // Utils
 import { BASIC_LAND_NAMES, configureBasicLandEndpoint } from "@/utils/utils";
+import { getCardImageUris } from "@/utils/cardImage";
 
 export default function SelectedCategoryModal() {
   const { selectedCategory, setSelectedCategory, viewableEntries } =
@@ -67,7 +68,7 @@ export default function SelectedCategoryModal() {
 
               const imageSrc = isBasicLand
                 ? configureBasicLandEndpoint(entry.card.name)
-                : entry.card.image_uris?.large;
+                : getCardImageUris(entry.card)?.large;
 
               return (
                 <div

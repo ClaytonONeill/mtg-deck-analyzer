@@ -14,9 +14,11 @@
 
 ## Acceptance Criteria
 
-- [ ] Extend the `ScryfallCard` type to model `card_faces` (each with its own `image_uris`, `name`, `mana_cost`, `oracle_text`, etc., per Scryfall's actual response shape).
-- [ ] Add a single shared image-resolution helper (e.g. `getCardImageUrl(card, face?)`) that falls back to `card_faces[0].image_uris` when top-level `image_uris` is absent, and use it everywhere the nine components above currently read `card.image_uris` directly — this is the highest-value part of the fix, since it closes the broken-image bug even before flip UI exists.
-- [ ] Add a flip control (e.g. a button/icon overlay on the card image) to at least the primary card-display surfaces (`CardGallery`, deck detail card view, `CardImageTooltip`) that swaps between `card_faces[0]` and `card_faces[1]` — decide with the product owner whether every surface listed above needs flip UI or just the main ones, to keep this from ballooning.
+> **Progress:** broken-image fix landed — `ScryfallCard.card_faces` is typed and `getCardImageUris(card, face?)` in `src/utils/cardImage.ts` is used by every component above (the simulator resolves it once when building `SimCard`s). Flip UI landed via the shared `FlippableCardImage` component, per product-owner scope: gallery tiles + enlarged view (shared face state), the swap sidebar's selected-card preview, and the simulator's selected-card panel. Hover tooltip intentionally excluded.
+
+- [x] Extend the `ScryfallCard` type to model `card_faces` (each with its own `image_uris`, `name`, `mana_cost`, `oracle_text`, etc., per Scryfall's actual response shape).
+- [x] Add a single shared image-resolution helper (e.g. `getCardImageUrl(card, face?)`) that falls back to `card_faces[0].image_uris` when top-level `image_uris` is absent, and use it everywhere the nine components above currently read `card.image_uris` directly — this is the highest-value part of the fix, since it closes the broken-image bug even before flip UI exists.
+- [x] Add a flip control (e.g. a button/icon overlay on the card image) to at least the primary card-display surfaces (`CardGallery`, deck detail card view, `CardImageTooltip`) that swaps between `card_faces[0]` and `card_faces[1]` — decide with the product owner whether every surface listed above needs flip UI or just the main ones, to keep this from ballooning.
 - [ ] Non-DFC cards are unaffected (no visual or behavioral regression for the common single-faced case).
 - [ ] Verify against a couple of real DFC commanders/cards (e.g. a modal double-faced card, a transform card) in the dev environment.
 

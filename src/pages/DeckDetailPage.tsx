@@ -486,7 +486,7 @@ export default function DeckDetailPage() {
                       label: activeVersionLabel,
                     })
                   }
-                  className="btn btn-ghost btn-sm text-error hover:bg-error/10 border border-error/10"
+                  className="btn btn-ghost btn-sm text-error hover:bg-error/10 border border-error  /10"
                 >
                   Delete Version
                 </button>

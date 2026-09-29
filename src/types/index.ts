@@ -7,6 +7,25 @@ export interface ScryfallPrices {
   tix: string | null;
 }
 
+export interface ScryfallImageUris {
+  small: string;
+  normal: string;
+  large: string;
+}
+
+// One face of a multi-faced card (transform, modal DFC, flip, split, adventure).
+// Scryfall only puts image_uris on the faces — not the top-level card — when
+// each face has its own printed image (i.e. double-faced cards).
+export interface ScryfallCardFace {
+  name: string;
+  mana_cost: string;
+  type_line?: string;
+  oracle_text?: string;
+  power?: string;
+  toughness?: string;
+  image_uris?: ScryfallImageUris;
+}
+
 export interface ScryfallCard {
   id: string;
   name: string;
@@ -19,7 +38,8 @@ export interface ScryfallCard {
   power?: string;
   toughness?: string;
   legalities: Record<string, string>;
-  image_uris?: { small: string; normal: string; large: string };
+  image_uris?: ScryfallImageUris;
+  card_faces?: ScryfallCardFace[];
   prices?: ScryfallPrices;
 }
 

@@ -7,6 +7,9 @@ import type { Deck, ScryfallCard } from "@/types";
 import CardSearchPanel from "@/features/deckBuilder/components/CardSearchPanel";
 import CardPrice from "@/components/CardPrice/CardPrice";
 
+// Utils
+import { getCardImageUris } from "@/utils/cardImage";
+
 interface WishlistAddPanelProps {
   onAdd: (card: ScryfallCard, note?: string) => void;
   existingCardIds: string[];
@@ -46,8 +49,8 @@ export default function WishlistAddPanel({
             <div className="flex items-center gap-4">
               <div className="avatar">
                 <div className="w-16 rounded-lg ring ring-primary ring-offset-base-100 ring-offset-2">
-                  {pending.image_uris?.small ? (
-                    <img src={pending.image_uris.small} alt={pending.name} />
+                  {getCardImageUris(pending)?.small ? (
+                    <img src={getCardImageUris(pending)?.small} alt={pending.name} />
                   ) : (
                     <div className="bg-neutral text-neutral-content flex items-center justify-center h-full">
                       <span className="text-xs">MTG</span>
