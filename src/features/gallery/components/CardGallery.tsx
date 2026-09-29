@@ -18,6 +18,7 @@ import { BASIC_LANDS } from "@/features/deckBuilder/utils/basicLands";
 // Components
 import CardPrice from "@/components/CardPrice/CardPrice";
 import FlippableCardImage from "@/components/FlippableCardImage/FlippableCardImage";
+import ObjectiveAssignMenu from "@/features/objectives/components/ObjectiveAssignMenu";
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 // Hooks
@@ -343,35 +344,12 @@ export default function CardGallery({
                 <div className="flex flex-wrap items-center gap-1.5 min-h-[32px]">
                   {!isSwapped ? (
                     <div className="flex gap-2 items-center w-full">
-                      {unassigned.length > 0 && (
-                        <div className="dropdown dropdown-top dropdown-start">
-                          <div
-                            tabIndex={0}
-                            role="button"
-                            className="btn btn-ghost btn-md btn-circle bg-base-200 border-none opacity-60 hover:opacity-100 hover:bg-primary hover:text-primary-content"
-                          >
-                            +
-                          </div>
-                          <ul
-                            tabIndex={0}
-                            className="dropdown-content z-[20] menu p-2 shadow-2xl bg-base-200 rounded-box w-56 max-w-[calc(100vw-2rem)] border border-base-300 mb-2"
-                          >
-                            <li className="menu-title text-[10px] opacity-40 uppercase tracking-widest">
-                              Assign Objective
-                            </li>
-                            {unassigned.map((o) => (
-                              <li key={o.id}>
-                                <button
-                                  onClick={() => onAssign(entry.card.id, o.id)}
-                                  className="text-xs py-2"
-                                >
-                                  {o.label}
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      <ObjectiveAssignMenu
+                        objectives={unassigned}
+                        onAssign={(o) => onAssign(entry.card.id, o.id)}
+                        triggerLabel="+"
+                        triggerClassName="btn btn-ghost btn-md btn-circle bg-base-200 border-none opacity-60 hover:opacity-100 hover:bg-primary hover:text-primary-content"
+                      />
                       <button
                         onClick={() => setSwapping(entry.card)}
                         className="btn btn-ghost btn-md rounded-full bg-base-200 border-none px-4 opacity-60 hover:opacity-100  transition-all"

@@ -23,6 +23,10 @@
 - [ ] Decide whether `useDeckVersions`'s version-scoped assignment can route through the same shared component (likely yes, with the component accepting an assign/unassign callback pair rather than assuming a single global objectives list) or whether its per-version-override semantics genuinely need to stay a separate path — document the decision in this file's Notes once made.
 - [ ] `ObjectiveManager.tsx` (CRUD) is explicitly out of scope — confirm it isn't accidentally merged into the new shared component.
 
+## Notes
+
+- **2026-09-29 (partial):** Product owner asked for the Gallery and Wishlist assignment menus to share one look ("even if the function differs slightly"). Extracted `src/features/objectives/components/ObjectiveAssignMenu.tsx`, a presentational dropdown with an "Assign Objective" title, plain labels (no color dots), opening upward, and no custom z-index. `CardGallery` and `WishlistCard` both use it now, each keeping its own trigger button and adapting its own callback signature through `onAssign(objective)`. The underlying callback signatures are **not** unified yet, and the version-scoped path (`useDeckVersions`) hasn't been looked at. The remaining criteria above are still open.
+
 ## Files / Areas Touched
 
 - `src/features/gallery/components/CardGallery.tsx`, `SwapSidebar.tsx`
