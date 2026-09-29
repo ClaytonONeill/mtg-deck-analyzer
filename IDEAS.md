@@ -14,8 +14,6 @@ It would be a nice feature if the app could auto suggest cards that may go well
 with your deck and also show you all of the token cards that would go well with your
 deck based on the text descriptions of the cards you have added into your deck.
 
-## Dual-sided cards can be flipped to see both sides
-
 ## Compare Decks, Not Just Deck Versions
 
 It may be helpful to compare your decks against one another instead of just different versions of one deck to maybe get a sense of strategy differences that would help with another deck.

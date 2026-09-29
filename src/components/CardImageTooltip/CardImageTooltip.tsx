@@ -10,6 +10,9 @@ import CardPrice from "@/components/CardPrice/CardPrice";
 // Types
 import type { ScryfallCard } from "@/types";
 
+// Utils
+import { getCardImageUris } from "@/utils/cardImage";
+
 interface CardImageTooltipProps {
   card: ScryfallCard | null;
   anchorRect: DOMRect | null;
@@ -29,7 +32,7 @@ export default function CardImageTooltip({
   if (typeof window !== "undefined" && window.innerWidth < MIN_SCREEN_SIZE)
     return null;
 
-  if (!card || !anchorRect || !card.image_uris?.normal) return null;
+  if (!card || !anchorRect || !getCardImageUris(card)?.normal) return null;
 
   const top = anchorRect.top + window.scrollY;
   const left = anchorRect.right + window.scrollX + 12;
@@ -41,7 +44,7 @@ export default function CardImageTooltip({
     >
       <div className="relative">
         <img
-          src={card.image_uris.normal}
+          src={getCardImageUris(card)?.normal}
           alt={card.name}
           className="w-52 rounded-xl shadow-2xl border border-slate-700"
         />

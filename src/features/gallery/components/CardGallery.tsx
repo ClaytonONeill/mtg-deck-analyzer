@@ -17,6 +17,7 @@ import { BASIC_LANDS } from "@/features/deckBuilder/utils/basicLands";
 
 // Components
 import CardPrice from "@/components/CardPrice/CardPrice";
+import FlippableCardImage from "@/components/FlippableCardImage/FlippableCardImage";
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 // Hooks
@@ -86,6 +87,14 @@ export default function CardGallery({
   const [sort, setSort] = useState<SortKey>("type");
   const [sortDir, setSortDir] = useState<SortDirection>("desc");
   const [expandedCard, setExpandedCard] = useState<ScryfallCard | null>(null);
+  // Which face each double-faced card is showing, shared by the tile and the
+  // enlarged view so opening a flipped tile keeps it flipped.
+  const [faceById, setFaceById] = useState<Record<string, number>>({});
+  const faceProps = (id: string) => ({
+    face: faceById[id] ?? 0,
+    onFaceChange: (face: number) =>
+      setFaceById((prev) => ({ ...prev, [id]: face })),
+  });
   const [commanderCardVisible, setCommanderCardVisible] = useState(true);
   const [swapping, setSwapping] = useState<ScryfallCard | null>(null);
   const [swappedEntries, setSwappedEntries] = useState<ScryfallCard[]>([]);
@@ -162,9 +171,10 @@ export default function CardGallery({
       className="flex flex-col gap-3 group transition-all duration-300"
     >
       <div className="relative">
-        <img
-          src={card.image_uris?.large || card.image_uris?.normal}
-          alt={card.name}
+        <FlippableCardImage
+          card={card}
+          size="large"
+          {...faceProps(card.id)}
           onClick={() => setExpandedCard(card)}
           className="w-full rounded-2xl shadow-2xl border border-base-300 transition-all duration-500 cursor-zoom-in group-hover:scale-[1.03] group-hover:border-primary/50 ring-0 group-hover:ring-4 ring-primary/10"
         />
@@ -294,12 +304,10 @@ export default function CardGallery({
               className={`flex flex-col gap-3 group transition-all duration-300 ${isSwapped ? "opacity-40 grayscale-[0.3]" : "opacity-100"}`}
             >
               <div className="relative">
-                <img
-                  src={
-                    entry.card.image_uris?.large ||
-                    entry.card.image_uris?.normal
-                  }
-                  alt={entry.card.name}
+                <FlippableCardImage
+                  card={entry.card}
+                  size="large"
+                  {...faceProps(entry.card.id)}
                   onClick={() => !isSwapped && setExpandedCard(entry.card)}
                   className={`w-full rounded-2xl shadow-2xl border border-base-300 transition-all duration-500 ${!isSwapped ? "cursor-zoom-in group-hover:scale-[1.03] group-hover:border-primary/50 ring-0 group-hover:ring-4 ring-primary/10" : "border-error/30"}`}
                 />
@@ -403,9 +411,11 @@ export default function CardGallery({
           onClick={(e) => e.stopPropagation()}
         >
           {expandedCard && (
-            <img
-              src={expandedCard.image_uris?.large}
-              alt={expandedCard.name}
+            <FlippableCardImage
+              card={expandedCard}
+              size="large"
+              buttonSize="md"
+              {...faceProps(expandedCard.id)}
               className="max-h-[85vh] w-auto rounded-[3%] shadow-2xl ring-1 ring-white/20 animate-in zoom-in-95 duration-200"
             />
           )}

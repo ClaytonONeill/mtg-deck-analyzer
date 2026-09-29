@@ -9,6 +9,9 @@ import CardPrice from "@/components/CardPrice/CardPrice";
 import ManaCost from "@/components/ManaSymbol/ManaCost";
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
+// Utils
+import { getCardImageUris } from "@/utils/cardImage";
+
 interface WishlistCardProps {
   entry: WishlistEntry;
   allDecks: Deck[];
@@ -49,9 +52,9 @@ export default function WishlistCard({
     <div className="card sm:card-side bg-base-100 border border-base-300 shadow-xl overflow-hidden w-full">
       {/* Card Image Section */}
       <figure className="shrink-0 w-full sm:w-48 md:w-56 bg-base-200/50 flex items-center justify-center p-6 sm:p-0">
-        {entry.card.image_uris?.large ? (
+        {getCardImageUris(entry.card)?.large ? (
           <img
-            src={entry.card.image_uris.large}
+            src={getCardImageUris(entry.card)?.large}
             alt={entry.card.name}
             className="w-2/3 sm:w-full h-auto sm:h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300 rounded-xl sm:rounded-none shadow-lg sm:shadow-none"
             onClick={() => setExpanded(true)}
@@ -213,7 +216,7 @@ export default function WishlistCard({
             onClick={(e) => e.stopPropagation()}
           >
             <img
-              src={entry.card.image_uris?.large}
+              src={getCardImageUris(entry.card)?.large}
               alt={entry.card.name}
               className="rounded-2xl shadow-2xl ring-1 ring-white/20"
             />
