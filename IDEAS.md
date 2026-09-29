@@ -107,3 +107,16 @@ move between the cards instead of having to exit and then clicking on another ca
 
 On the desktop, the left and right keyboard arrow icons can be present to show that this action is available. These should be minimalist icons and there should
 be no text. Nothing needs to be shown on mobile, users can intuit swipe-ability.
+
+## DONE: Deck versioning and export
+
+~~Deck versioning does not branch off of the current deck you have active.~~ ~~you cannot export a version of a deck~~ ~~allow you to "set" a deck version as the main build~~ — fixed: "Save as New" now branches off whichever version is currently active (its swaps/overrides are merged into the new version), "Update" always targets the active version instead of an arbitrary picker default, Compare now defaults to Main vs. the active version, an Export button next to the version selector exports whatever's currently being viewed, and a new "Set as Main" action merges a version's resolved card list into main (git-merge style, with its own confirmation, followed by a separate opt-in prompt to delete the now-merged version — nothing is ever deleted without an explicit, distinct confirmation).
+
+## BUG: Mobile wishlist delete button not working
+
+On mobile devices, the click to delete X button for wishlist entries does not appear to be working.
+
+## Feature: Users should be able to set the number of cards per row in the gallery view
+
+Users have indicated that having only a single card on mobile is not great, so the option to set 1,2 or 3 cards per row (mobile only)
+would be a nice quality of life feature.

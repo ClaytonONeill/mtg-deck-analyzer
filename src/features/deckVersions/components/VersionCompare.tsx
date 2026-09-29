@@ -25,15 +25,24 @@ import CardPrice from "@/components/CardPrice/CardPrice";
 
 interface VersionCompareProps {
   deck: Deck;
+  /** Version to default the right-hand ("Target Version") side to — the
+   * version currently active in the gallery/viewer, if any. Falls back to
+   * the first saved version when not viewing a specific one. */
+  defaultTargetId?: "main" | string;
 }
 
 type CompareTarget = "main" | string;
 type ChartView = "types" | "cmc";
 
-export default function VersionCompare({ deck }: VersionCompareProps) {
+export default function VersionCompare({
+  deck,
+  defaultTargetId,
+}: VersionCompareProps) {
   const [leftId, setLeftId] = useState<CompareTarget>("main");
   const [rightId, setRightId] = useState<CompareTarget>(
-    (deck.versions ?? [])[0]?.id ?? "main",
+    defaultTargetId && defaultTargetId !== "main"
+      ? defaultTargetId
+      : ((deck.versions ?? [])[0]?.id ?? "main"),
   );
   const [chartView, setChartView] = useState<ChartView>("types");
   const [includeLands, setIncludeLands] = useState(true);

@@ -4,6 +4,7 @@ import { useState } from 'react';
 // Store
 import {
   buildDeckExportBlob,
+  buildDeckTextExport,
   defaultExportFilename,
   downloadBlob,
   type DeckExportFormat,
@@ -13,11 +14,22 @@ import {
 import type { Deck } from '@/types';
 
 // Icons
-import { FileJson, FileSpreadsheet, FolderOpen } from 'lucide-react';
+import {
+  FileJson,
+  FileSpreadsheet,
+  FileText,
+  FolderOpen,
+  ClipboardCopy,
+  ClipboardCheck,
+} from 'lucide-react';
 
 interface ExportDeckModalProps {
   deck: Deck | null;
   onClose: () => void;
+  /** Clear label for whichever build is being exported, e.g. "Main Build"
+   * or a version's name — shown prominently so it's obvious which one
+   * you're about to download. */
+  versionLabel?: string;
 }
 
 const supportsDirectoryPicker =
@@ -28,7 +40,11 @@ const supportsDirectoryPicker =
  * fresh instance — and fresh state below — mounts each time a new export
  * starts instead of needing an effect to reset state on prop change.
  */
-export default function ExportDeckModal({ deck, onClose }: ExportDeckModalProps) {
+export default function ExportDeckModal({
+  deck,
+  onClose,
+  versionLabel,
+}: ExportDeckModalProps) {
   const [format, setFormat] = useState<DeckExportFormat>('json');
   const [filename, setFilename] = useState(() =>
     deck ? defaultExportFilename(deck, 'json') : '',
@@ -37,12 +53,24 @@ export default function ExportDeckModal({ deck, onClose }: ExportDeckModalProps)
     useState<FileSystemDirectoryHandle | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   if (!deck) return null;
 
   const handleFormatChange = (next: DeckExportFormat) => {
     setFormat(next);
-    setFilename((prev) => prev.replace(/\.(json|xlsx)$/i, `.${next}`));
+    setFilename((prev) => prev.replace(/\.(json|xlsx|txt)$/i, `.${next}`));
+  };
+
+  const handleCopyToClipboard = async () => {
+    setError(null);
+    try {
+      await navigator.clipboard.writeText(buildDeckTextExport(deck));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('Could not copy to clipboard.');
+    }
   };
 
   const handleBrowse = async () => {
@@ -94,6 +122,17 @@ export default function ExportDeckModal({ deck, onClose }: ExportDeckModalProps)
           Export &quot;{deck.name}&quot; as a file.
         </p>
 
+        {versionLabel && (
+          <div className="mt-3 flex items-center gap-2 rounded-lg border border-secondary/40 bg-secondary/10 px-3 py-2">
+            <span className="text-xs font-bold uppercase tracking-widest text-secondary/70">
+              Exporting
+            </span>
+            <span className="badge badge-secondary badge-outline font-bold">
+              {versionLabel}
+            </span>
+          </div>
+        )}
+
         <div className="mt-5 space-y-4">
           {/* Format */}
           <div>
@@ -117,7 +156,22 @@ export default function ExportDeckModal({ deck, onClose }: ExportDeckModalProps)
                 <FileSpreadsheet size={16} />
                 Excel (.xlsx)
               </button>
+              <button
+                type="button"
+                className={`btn btn-sm join-item flex-1 ${format === 'txt' ? 'btn-primary' : 'btn-neutral'}`}
+                onClick={() => handleFormatChange('txt')}
+              >
+                <FileText size={16} />
+                Text List
+              </button>
             </div>
+            {format === 'txt' && (
+              <p className="text-xs text-base-content/50 mt-1.5">
+                Plain "quantity + card name" lines — the format most
+                deckbuilding sites accept when pasting a decklist from your
+                clipboard.
+              </p>
+            )}
           </div>
 
           {/* Title */}
@@ -168,16 +222,33 @@ export default function ExportDeckModal({ deck, onClose }: ExportDeckModalProps)
           {error && <p className="text-sm text-error">{error}</p>}
         </div>
 
-        <div className="flex gap-3 mt-6">
+        <div className="flex flex-wrap gap-3 mt-6">
           <button
-            className="btn btn-md flex-1"
+            className="btn btn-md flex-1 min-w-[100px]"
             onClick={handleClose}
             disabled={saving}
           >
             Cancel
           </button>
+          {format === 'txt' && (
+            <button
+              type="button"
+              className="btn btn-md btn-secondary flex-1 min-w-[100px]"
+              onClick={handleCopyToClipboard}
+            >
+              {copied ? (
+                <>
+                  <ClipboardCheck size={16} /> Copied!
+                </>
+              ) : (
+                <>
+                  <ClipboardCopy size={16} /> Copy
+                </>
+              )}
+            </button>
+          )}
           <button
-            className="btn btn-md btn-primary flex-1"
+            className="btn btn-md btn-primary flex-1 min-w-[100px]"
             onClick={handleConfirm}
             disabled={!filename.trim() || saving}
           >
