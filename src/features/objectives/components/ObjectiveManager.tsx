@@ -9,6 +9,10 @@ import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 // Utils
 import { assignObjectiveColor } from "../utils/objectivePalette";
+import { RECOGNIZED_OBJECTIVE_GROUPS } from "../utils/recognizedObjectives";
+
+// Icons
+import { Sparkles } from "lucide-react";
 
 interface ObjectiveManagerProps {
   objectives: Objective[];
@@ -33,6 +37,15 @@ export default function ObjectiveManager({
   const [editDesc, setEditDesc] = useState("");
 
   const safeObjectives = objectives ?? [];
+  const existingLabels = new Set(
+    safeObjectives.map((o) => o.label.trim().toLowerCase()),
+  );
+  const presetGroups = RECOGNIZED_OBJECTIVE_GROUPS.map((g) => ({
+    ...g,
+    items: g.items.filter(
+      (i) => !existingLabels.has(i.label.toLowerCase()),
+    ),
+  })).filter((g) => g.items.length > 0);
 
   const handleCreate = () => {
     if (!label.trim()) return;
@@ -76,6 +89,39 @@ export default function ObjectiveManager({
             Add a strategic tag for your cards.
           </p>
         </div>
+
+        {presetGroups.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <p className="flex items-center gap-1.5 text-xs md:text-sm text-base-content/60">
+              <Sparkles size={14} className="text-primary shrink-0" />
+              Quick picks: these also improve card suggestions.
+            </p>
+            {presetGroups.map((g) => (
+              <div key={g.group} className="flex flex-col gap-1.5">
+                <span className="text-xs md:text-sm font-bold uppercase tracking-widest opacity-50">
+                  {g.group}
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {g.items.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => {
+                        setLabel(item.label);
+                        setDescription(item.description);
+                      }}
+                      aria-pressed={label === item.label}
+                      title={item.description}
+                      className={`btn btn-xs text-xs md:btn-sm md:text-sm rounded-full ${label === item.label ? "btn-primary" : "btn-outline border-base-content/20"}`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="form-control w-full gap-4">
           <div className="space-y-1.5">

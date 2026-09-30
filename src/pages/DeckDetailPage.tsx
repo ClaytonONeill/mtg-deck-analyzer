@@ -8,6 +8,9 @@ import {
   Edit3,
   Download,
   GitMerge,
+  Heart,
+  ArrowLeftRight,
+  X,
 } from "lucide-react";
 
 // Stores
@@ -55,11 +58,14 @@ import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 import ExportDeckModal from "@/features/deckList/components/ExportDeckModal";
 import ConfirmDelete from "@/components/ConfirmDelete/ConfirmDelete";
 import PageShell from "@/components/PageShell/PageShell";
+import RecommendationsPanel from "@/features/recommendations/components/RecommendationsPanel";
+import SwapOutPicker from "@/features/recommendations/components/SwapOutPicker";
 
 // Types
-import type { Deck, Objective, PendingSwap } from "@/types";
+import type { Deck, Objective, PendingSwap, ScryfallCard } from "@/types";
+import type { RecInput } from "@/features/recommendations/utils/deckSignals";
 
-type Tab = "metrics" | "gallery" | "wishlist" | "simulator";
+type Tab = "metrics" | "gallery" | "wishlist" | "simulator" | "suggestions";
 type MetricView = "types" | "cmc" | "compare";
 type VersionId = "main" | string;
 
@@ -126,6 +132,10 @@ export default function DeckDetailPage() {
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(
     null,
   );
+  // Suggestions tab: the suggested card being swapped in (picker open), and
+  // the confirmation shown after a swap is staged.
+  const [swapInCard, setSwapInCard] = useState<ScryfallCard | null>(null);
+  const [swapNotice, setSwapNotice] = useState<string | null>(null);
 
   const activeDeck = deck;
 
@@ -177,6 +187,7 @@ export default function DeckDetailPage() {
 
   const {
     entries: wishlistEntries,
+    addCard: addWishlistCard,
     removeEntry: removeWishlistEntry,
     tagDeck: tagWishlistDeck,
     untagDeck: untagWishlistDeck,
@@ -287,6 +298,48 @@ export default function DeckDetailPage() {
     }
   };
 
+  // --- Suggestions tab (computed for the active version via displayDeck) ---
+  const recInput: RecInput = {
+    commander: displayDeck.commander,
+    partner: displayDeck.partner,
+    entries: displayDeck.entries,
+    colorIdentity: activeDeck.colorIdentity,
+    strategyObjectives: displayDeck.objectives ?? [],
+    objectives,
+  };
+  const recExclude: ScryfallCard[] = [
+    ...(displayDeck.commander ? [displayDeck.commander] : []),
+    ...(displayDeck.partner ? [displayDeck.partner] : []),
+    ...displayDeck.entries.map((e) => e.card),
+    ...pendingSwaps.map((s) => s.addCard),
+  ];
+
+  const wishlistEntryFor = (card: ScryfallCard) =>
+    wishlistEntries.find((e) => e.card.name === card.name);
+
+  const handleWishlistSuggestion = async (card: ScryfallCard) => {
+    const existing = wishlistEntryFor(card);
+    try {
+      const entry = existing ?? (await addWishlistCard(card));
+      if (!entry.deckIds.includes(activeDeck.id)) {
+        await tagWishlistDeck(entry.id, activeDeck.id);
+      }
+    } catch {
+      // useWishlist already rolled back its optimistic update.
+    }
+  };
+
+  const handleSwapOutPicked = (removeCardName: string, removeCardId: string) => {
+    if (!swapInCard) return;
+    const addCard = swapInCard;
+    setPendingSwaps((prev) => [
+      ...prev,
+      { removeCardName, removeCardId, addCard },
+    ]);
+    setSwapInCard(null);
+    setSwapNotice(`Staged: ${addCard.name} in for ${removeCardName}.`);
+  };
+
   const handleAssignObjective = (cardId: string, objectiveId: string) => {
     if (activeVersionId === "main") {
       assignObjective(cardId, objectiveId);
@@ -320,6 +373,7 @@ export default function DeckDetailPage() {
     { key: "gallery", label: "Gallery" },
     { key: "simulator", label: "Simulator" },
     { key: "wishlist", label: "Deck Wishlist" },
+    { key: "suggestions", label: "Suggestions" },
   ];
 
   return (
@@ -618,6 +672,7 @@ export default function DeckDetailPage() {
                 objectiveIds: e.objectiveIds ?? [],
               }))}
               objectives={objectives}
+              strategyObjectives={displayDeck.objectives ?? []}
               pendingSwaps={pendingSwaps}
               onAssign={handleAssignObjective}
               onUnassign={handleUnassignObjective}
@@ -659,7 +714,82 @@ export default function DeckDetailPage() {
               onUnassignObjective={unassignWishlistObjective}
             />
           )}
+
+          {/* Suggestions tab */}
+          {activeTab === "suggestions" && (
+            <RecommendationsPanel
+              input={recInput}
+              excludeCards={recExclude}
+              title={`Suggestions for ${activeVersionId === "main" ? "Main" : activeVersionLabel}`}
+              renderActions={(card) => {
+                const onWishlist = wishlistEntryFor(card)?.deckIds.includes(
+                  activeDeck.id,
+                );
+                return (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleWishlistSuggestion(card)}
+                      disabled={onWishlist}
+                      aria-label={`Add ${card.name} to wishlist`}
+                      className="btn btn-sm btn-outline flex-1 min-w-0 px-2"
+                    >
+                      <Heart size={14} className="shrink-0" />
+                      <span className="truncate">
+                        {onWishlist ? "Wishlisted" : "Wishlist"}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSwapInCard(card)}
+                      aria-label={`Swap ${card.name} into the deck`}
+                      className="btn btn-sm btn-primary flex-1 min-w-0 px-2"
+                    >
+                      <ArrowLeftRight size={14} className="shrink-0" />
+                      <span className="truncate">Swap in</span>
+                    </button>
+                  </>
+                );
+              }}
+            />
+          )}
         </div>
+
+        {swapInCard && (
+          <SwapOutPicker
+            incoming={swapInCard}
+            entries={displayDeck.entries}
+            swappedOutIds={new Set(pendingSwaps.map((s) => s.removeCardId))}
+            onPick={(entry) => handleSwapOutPicked(entry.card.name, entry.card.id)}
+            onClose={() => setSwapInCard(null)}
+          />
+        )}
+
+        {swapNotice && (
+          <div className="toast toast-center toast-bottom z-50 w-full max-w-md px-4">
+            <div role="status" className="alert alert-success shadow-lg flex flex-wrap">
+              <span className="text-sm flex-1 min-w-0">{swapNotice}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSwapNotice(null);
+                  setActiveTab("gallery");
+                }}
+                className="btn btn-sm"
+              >
+                Review in Gallery
+              </button>
+              <button
+                type="button"
+                onClick={() => setSwapNotice(null)}
+                aria-label="Dismiss"
+                className="btn btn-sm btn-ghost btn-circle"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {showSaveModal && (
           <SaveVersionModal

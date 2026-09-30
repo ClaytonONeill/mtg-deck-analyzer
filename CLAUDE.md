@@ -50,7 +50,7 @@ Each feature has a hook in `hooks/` or `features/<name>/hooks/` that owns a slic
 
 ### Scryfall integration
 
-Called from two independent places with no shared client: `features/deckBuilder/hooks/useCardSearch.ts` (debounced search with `AbortController` + a request-id guard against out-of-order responses — this is the one place with real race-condition handling) and `utils/utils.ts`'s `configureBasicLandEndpoint` (basic land image URLs). No caching, no shared fetch wrapper, no rate-limit handling.
+Called from three independent places with no shared client: `features/recommendations/utils/scryfallRecs.ts` (the card-suggestions engine, with a session cache and requests sent about 120ms apart), `features/deckBuilder/hooks/useCardSearch.ts` (debounced search with `AbortController` + a request-id guard against out-of-order responses — this is the one place with real race-condition handling) and `utils/utils.ts`'s `configureBasicLandEndpoint` (basic land image URLs). Outside the recommendations engine: no caching, no shared fetch wrapper, no rate-limit handling.
 
 ## Styling
 
@@ -68,6 +68,8 @@ If asked to improve stylistic cohesion, the lowest-effort fix is: migrate `App.t
 Separately, `IDEAS.md` notes the objectives-tagging UI ("Objectives Menu Should be a Standardized Shared Component") exists as two or three divergent implementations rather than one shared component. Check for this before adding yet another objectives-tagging surface — a fourth one-off implementation would make the eventual consolidation harder, not easier.
 
 **Breakpoints, minimum type sizes, and the z-index scale are defined in [`docs/design-tokens.md`](docs/design-tokens.md)** — read it before touching layout, typography, or anything `fixed`/`sticky`/`absolute`. It also documents known current violations (e.g. arbitrary sub-12px text, ad hoc z-index values, a likely-live bug where custom z-index utilities fight daisyUI's built-in `dropdown-content` stacking).
+
+**Text size on desktop: new UI keeps shipping too small, so check this on every change.** Any `text-xs` (12px) text must step up on desktop, as `text-xs md:text-sm`. Never go below `text-xs`, and never use `text-[10px]`-style arbitrary sizes. daisyUI size modifiers shrink text too: `btn-xs` and `badge-sm`/`badge-xs` render about 10–11px. So pair them with explicit text classes (`btn btn-xs text-xs md:btn-sm md:text-sm`), or use one size up on desktop. Body copy is `text-sm md:text-base`. The full scale is in `docs/design-tokens.md` §2.
 
 ## Scale-appropriate scope
 

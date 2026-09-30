@@ -18,10 +18,10 @@ This is the least-scoped item in `IDEAS.md` — it's a real feature design probl
 
 ## Acceptance Criteria
 
-- [ ] **Get product-owner sign-off on scope before building anything** — at minimum, decide whether this ships as two separable slices (token suggestions via `all_parts`, then card suggestions later) or one combined feature.
+- [x] **Get product-owner sign-off on scope before building anything** — at minimum, decide whether this ships as two separable slices (token suggestions via `all_parts`, then card suggestions later) or one combined feature. — Signed off 2026-09-29: card suggestions first; token suggestions are a follow-up.
 - [ ] If token suggestions ship first: for each card in the deck, surface any tokens it creates (via Scryfall's `all_parts`, filtered to `component === "token"`), deduplicated across the deck.
-- [ ] If card suggestions ship: define and document the actual heuristic used (don't ship an unexplained black-box recommendation with no rationale visible to the user).
-- [ ] No caching/rate-limit handling exists for Scryfall today (see `CLAUDE.md`'s Scryfall integration section) — a suggestion feature will likely issue many more Scryfall calls than the app does today, so add basic caching/backoff as part of this work rather than hammering the API unthrottled.
+- [x] If card suggestions ship: define and document the actual heuristic used (don't ship an unexplained black-box recommendation with no rationale visible to the user). — Shipped in `src/features/recommendations/`. The heuristic is documented in `utils/deckSignals.ts`: oracle-text theme patterns (commander text weighted ×3), tribal detection, role gaps against rough Commander targets (ramp 10, draw 10, removal 8, wipes 2), and optional objective-label boosts. Every suggested card shows its reasons as chips, plus a "Based on" summary line.
+- [x] No caching/rate-limit handling exists for Scryfall today (see `CLAUDE.md`'s Scryfall integration section) — a suggestion feature will likely issue many more Scryfall calls than the app does today, so add basic caching/backoff as part of this work rather than hammering the API unthrottled. — At most 4 queries per plan, sent one at a time about 120ms apart, with a session cache keyed by plan (`utils/scryfallRecs.ts`).
 
 ## Files / Areas Touched
 
@@ -32,3 +32,7 @@ This is the least-scoped item in `IDEAS.md` — it's a real feature design probl
 
 - Any specific ML/embedding infrastructure unless explicitly approved — default to the simplest heuristic that satisfies the product owner's actual ask.
 - General Scryfall caching/rate-limiting as an app-wide concern beyond what this feature needs (a broader fix, if wanted, is a separate task).
+
+## Notes
+
+- **2026-09-29 (card suggestions shipped):** A deck-page "Suggestions" tab (after Deck Wishlist) offers "Wishlist" (adds the card and tags it to this deck) and "Swap in" (`SwapOutPicker` stages a pending swap). The Gallery swap sidebar has a "Suggested" tab with "For <card>" (same role/type/similar cost) and "For the deck" modes. Suggestions are computed on the version-resolved deck (`displayDeck`) and work without objectives. Pages of 8, capped at 3 "Show more" presses. Remaining follow-ups: token suggestions via `all_parts`, and an EDHREC link-out.
