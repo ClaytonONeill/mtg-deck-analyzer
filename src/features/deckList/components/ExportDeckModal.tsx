@@ -167,9 +167,10 @@ export default function ExportDeckModal({
             </div>
             {format === 'txt' && (
               <p className="text-xs text-base-content/50 mt-1.5">
-                Plain "quantity + card name" lines — the format most
-                deckbuilding sites accept when pasting a decklist from your
-                clipboard.
+                Plain "quantity + card name" lines, with commanders listed
+                under a "Commander" header and the rest under "Deck" — the
+                format most deckbuilding sites accept when pasting a decklist
+                from your clipboard.
               </p>
             )}
           </div>
