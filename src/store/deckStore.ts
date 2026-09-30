@@ -282,13 +282,18 @@ export function defaultExportFilename(
 /**
  * Plain "<quantity> <card name>" per line — the de facto clipboard-import
  * format supported by most deckbuilding sites (Moxfield, Archidekt, etc).
- * Commander/partner are included as ordinary lines, same as the rest of
- * the deck.
+ * Commander/partner go under a "Commander" section header and the rest under
+ * "Deck" (MTG Arena-style), so importers like endstep.cc seat the commanders
+ * in the command zone instead of the 99.
  */
 export function buildDeckTextExport(deck: Deck): string {
   const lines: string[] = [];
-  if (deck.commander) lines.push(`1 ${deck.commander.name}`);
-  if (deck.partner) lines.push(`1 ${deck.partner.name}`);
+  if (deck.commander || deck.partner) {
+    lines.push('Commander');
+    if (deck.commander) lines.push(`1 ${deck.commander.name}`);
+    if (deck.partner) lines.push(`1 ${deck.partner.name}`);
+    lines.push('', 'Deck');
+  }
   deck.entries.forEach((entry) => {
     lines.push(`${entry.quantity} ${entry.card.name}`);
   });

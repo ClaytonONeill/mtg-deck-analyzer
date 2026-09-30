@@ -103,6 +103,13 @@ be no text. Nothing needs to be shown on mobile, users can intuit swipe-ability.
 
 On mobile devices, the click to delete X button for wishlist entries does not appear to be working.
 
+## Feature: Targeted Exports for Different Clients
+
+The text/clipboard export currently uses one format for everything: commanders under a `Commander` header, the rest of the deck under `Deck`
+(MTG Arena-style, confirmed to work with endstep.cc). Different sites and clients expect different conventions — e.g. `*CMDR*` suffixes
+don't work on endstep.cc and show up as a broken card. The export modal should let users pick a target client (endstep.cc, Moxfield,
+Archidekt, MTG Arena, MTGO, etc.) and produce the list in that client's expected format, so each import puts the commander in the right place.
+
 ## Feature: Users should be able to set the number of cards per row in the gallery view
 
 Users have indicated that having only a single card on mobile is not great, so the option to set 1,2 or 3 cards per row (mobile only)
