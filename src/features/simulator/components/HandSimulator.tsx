@@ -636,11 +636,11 @@ export default function HandSimulator({
       `}</style>
 
       {/* Top bar */}
-      <div className="flex items-center justify-between bg-base-200 p-4 rounded-2xl shadow-inner gap-4">
-        <div className="flex items-center gap-6">
-          <div className="stats bg-transparent">
-            <div className="stat pt-0 pb-0">
-              <div className="stat-title text-[10px] uppercase">Game Turn</div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-base-200 p-4 rounded-2xl shadow-inner gap-4">
+        <div className="flex items-center gap-4 sm:gap-6 min-w-0">
+          <div className="stats bg-transparent shrink-0">
+            <div className="stat pt-0 pb-0 px-2 sm:px-6">
+              <div className="stat-title text-xs uppercase">Game Turn</div>
               <div className="stat-value text-2xl text-primary">{sim.turn}</div>
             </div>
           </div>
@@ -656,16 +656,16 @@ export default function HandSimulator({
               </div>
             </div>
           )}
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase font-bold opacity-50 tracking-widest">
+          <div className="flex flex-col gap-1 min-w-0">
+            <span className="text-xs uppercase font-bold opacity-50 tracking-widest">
               Mana Available
             </span>
             {availableMana.total === 0 ? (
-              <span className="text-xs opacity-40 italic">
+              <span className="text-xs md:text-sm opacity-40 italic">
                 No mana sources up
               </span>
             ) : (
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {MANA_COLOR_ORDER.filter(
                   (c) => availableMana.byColor[c] > 0,
                 ).map((c) => (
@@ -681,14 +681,14 @@ export default function HandSimulator({
                     {availableMana.byColor[c]}
                   </span>
                 ))}
-                <span className="text-[10px] opacity-50">
+                <span className="text-xs opacity-50">
                   ({availableMana.total} mana)
                 </span>
               </div>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 shrink-0">
           <button
             onClick={nextTurn}
             disabled={sim.awaitingDiscard}
@@ -707,7 +707,7 @@ export default function HandSimulator({
 
       <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] lg:grid-cols-[160px_1fr] gap-6 md:gap-8 items-start">
         {/* Left Actions */}
-        <div className="flex flex-row md:flex-col items-center md:items-stretch gap-4 p-3 bg-base-200 rounded-2xl border border-base-100">
+        <div className="flex flex-row flex-wrap justify-center md:flex-col md:flex-nowrap items-center md:items-stretch gap-3 md:gap-4 p-3 bg-base-200 rounded-2xl border border-base-100">
           <div className="w-20 sm:w-24 md:w-full shrink-0 aspect-[5/7]">
             {sim.drawPile.length > 0 ? (
               <img
@@ -789,33 +789,33 @@ export default function HandSimulator({
               );
             })}
 
-          <div className="flex-1 flex flex-col gap-3 w-full">
-            <div className="form-control">
-              <label className="label cursor-pointer bg-base-300 px-3 py-1.5 rounded-lg border border-base-100">
-                <span className="label-text text-[9px] uppercase font-bold opacity-60">
+          {/* basis-full drops the controls onto their own row beneath the
+              card piles on mobile; on md+ the panel is a column anyway. */}
+          <div className="basis-full md:basis-auto flex flex-col gap-2 md:gap-3 w-full">
+            <div className="grid grid-cols-2 md:grid-cols-1 gap-2 md:gap-3">
+              <label className="flex items-center justify-between gap-2 cursor-pointer bg-base-300 px-3 py-1.5 rounded-lg border border-base-100">
+                <span className="text-xs uppercase font-bold opacity-60">
                   Auto Discard
                 </span>
                 <input
                   type="checkbox"
-                  className="toggle toggle-primary toggle-xs"
+                  className="toggle toggle-primary toggle-xs shrink-0"
                   checked={autoDiscard}
                   onChange={() => setAutoDiscard(!autoDiscard)}
                 />
               </label>
-            </div>
 
-            <div className="flex flex-col gap-2">
-              <div className="badge badge-neutral w-full py-3 font-mono text-xs">
+              <div className="badge badge-neutral w-full h-auto py-1.5 md:py-3 font-mono text-xs md:text-sm">
                 {sim.drawPile.length} CARDS
               </div>
-              <button
-                onClick={discardHand}
-                disabled={sim.hand.length === 0 || sim.awaitingDiscard}
-                className="btn btn-error btn-outline btn-xs w-full"
-              >
-                Discard Hand
-              </button>
             </div>
+            <button
+              onClick={discardHand}
+              disabled={sim.hand.length === 0 || sim.awaitingDiscard}
+              className="btn btn-error btn-outline btn-sm w-full text-xs md:text-sm"
+            >
+              Discard Hand
+            </button>
           </div>
         </div>
 
