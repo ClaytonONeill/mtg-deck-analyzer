@@ -156,9 +156,9 @@ Use the same candidate pool, then apply `buildSwapPlan`'s constraints (primary t
 ## 5. Phased implementation
 
 ### Phase 0: spike (XS, no UI)
-- [ ] Write `toEdhrecSlug(card)` and verify it against roughly 10 commanders. Cover punctuation (`Atraxa, Praetors' Voice`), DFC/MDFC front faces, partners (confirm alphabetical order, and try the reverse order on 403), "Choose a Background" pairs, Friends Forever, and a brand-new commander (expect 403).
-- [ ] Confirm EDHREC `cardview.id` → Scryfall `/cards/collection` hydrates for every list, including lands.
-- [ ] Record the findings at the bottom of this doc.
+- [x] Write `edhrecSlug` + `commanderSlug` (in `edhrecClient.ts`) and verify it against roughly 10 commanders. Cover punctuation (`Atraxa, Praetors' Voice`), DFC/MDFC front faces, partners (confirm alphabetical order, and try the reverse order on 403), "Choose a Background" pairs, Friends Forever, and a brand-new commander (expect 403).
+- [x] Confirm EDHREC `cardview.id` → Scryfall `/cards/collection` hydrates for every list, including lands.
+- [x] Record the findings at the bottom of this doc.
 
 ### Phase 1: EDHREC source + blended ranking, deck mode (M)
 - New `src/features/recommendations/utils/edhrecClient.ts`: slug builder, `getCommanderPage`, `getThemePage`, parsing into a typed `EdhrecCandidate { scryfallId, name, synergy, inclusion, numDecks, list }`, the cache, and 403 handling. **Only this file knows EDHREC's JSON shape.**
@@ -206,3 +206,42 @@ Use the same candidate pool, then apply `buildSwapPlan`'s constraints (primary t
   - **Versions:** switching deck versions changes suggestions. Pending swaps stay excluded.
   - In the DevTools Network tab: about 1–3 EDHREC requests per deck, no repeat requests when switching tabs, and Scryfall calls spaced.
 - Unit tests for `toEdhrecSlug` and `blend.scoreCandidates` once `tasks/009` provides a runner. Don't add ad hoc tooling.
+
+## 8. Implementation status (2026-11-03)
+
+**Phases 0–2 are built.** Phase 3 (Commander Spellbook, Edge Function proxy) is not. The open questions in §6 are still open. The code uses defaults: "Top picks" is the default, the mode toggle is shown, nonbasic lands are allowed, budget is ignored, and weights are fixed.
+
+### Phase 0 findings
+- Slugs: take the front face, strip accents and apostrophes, turn every other non-alphanumeric run into a dash, and for pairs join the two slugs **sorted alphabetically**. Verified 200 for Atraxa, Yarok, Esika and Ojer Taq (DFC front faces), Y'shtola (apostrophe), Thrasios+Tymna in both input orders, Faceless One+Wilson (Background), Ardenn+Rograkh, Kenrith, Jhoira, Sefris, Wyleth, Don Andres, and Kodama of the West Tree. Pair theme pages work too (`thrasios-triton-hero-tymna-the-weaver/storm`). An unknown slug returns 403.
+- EDHREC `cardview.id` is a Scryfall card id, so it hydrates through `/cards/collection`. EDHREC and Scryfall can pick different printings of the same card, so `blend.ts` matches cards across sources by front-face name, never by id.
+- **Scryfall's hard limit for `/cards/search` and `/cards/collection` is 2 requests per second** (scryfall.com/docs/api/rate-limits; a 429 locks the client out for 30s). The v1 code spaced requests 120ms apart, which was too fast. `scryfallRecs.ts` now has a single shared 550ms schedule (`waitTurn`) that every search and collection request goes through. The cost is a first load of about 3–5s per deck. After that, results come from the session caches. `useCardSearch` (the deck builder's search box) has its own debounce and isn't covered by this schedule.
+
+### Where things live
+- `utils/edhrecClient.ts`: slugs, page fetch and parse, URL cache. This is the only file that knows EDHREC's JSON shape.
+- `utils/scryfallRecs.ts`: the existing search engine, plus `hydrateByIds`, the hydrated-card cache, the shared throttle, and `diversify` (now exported and group-aware).
+- `utils/deckSignals.ts`: the §4a′ fixes:
+  - `strategyText` strips keyword-only lines using Scryfall `keywords`, with a regex fallback for saved cards that lack the field. `ScryfallCard.keywords` was added as optional.
+  - A new `etb` theme (`minCount: 12`, ignores lands).
+  - `RecContext` turns off commander-text signals when EDHREC data exists.
+  - `deckProfile`, `cardThemes`, and the EDHREC theme mapping (`PATTERN_TO_EDHREC_TAGS`, `labelMatchesTheme`).
+  - An "ETB" objective preset was added to `recognizedObjectives.ts`.
+- `utils/blend.ts`: theme fetching and choosing (§4a, including deck resemblance), scoring (§4b), swap filtering (§4c), and Hidden gems.
+- `hooks/useRecommendations.ts`: loads the commander page first, then runs the search, theme pages and hydration in parallel. It blends on every render, so the mode toggle and exclusions don't trigger a refetch. Its return value changed: `plan` became `basis` (summary strings), and it now also returns `edhrec` status/url, `mode`/`setMode` and `searchError`.
+
+### Verified against live data (scratch harness, not committed)
+Test deck: a 40-card Sultai ETB list under Yarok.
+- **v1:** "Commander synergy: Lifegain". Picks were Blood Artist, Zulaport Cutthroat, Bastion of Remembrance, and so on.
+- **v2 fallback (EDHREC unreachable):** "Commander synergy: ETB triggers".
+- **v2 with EDHREC:** top picks were Panharmonicon, Lotus Cobra, Guardian Project, Tireless Provisioner, Tatyova, Coiling Oracle, Avenger of Zendikar and Scute Swarm. The ETB build was picked because of the deck's ETB cards, and Blink because the deck already resembles it.
+- **Adding a "Lifegain" objective:** the Lifegain build is pulled in at full weight, and lifegain cards fill the page (the tag override works).
+- **Distinctness:** the same 99 under Yarok vs. Muldrotha shares **8/16** top picks in v1 and **1/16** in v2. Muldrotha's picks led with Animate Dead, Entomb and Buried Alive.
+- **Swap for Wood Elves:** returned 2–4 cmc creatures (Lotus Cobra, Tireless Provisioner, Coiling Oracle, …).
+
+### Not yet verified
+- The in-app UI, by clicking through it while signed in (needs a Supabase login).
+- The partner-pair and unknown-commander fallbacks *in the UI*. The underlying fetches were checked.
+
+### Follow-ups
+- Tune the weights (`W_*` constants in `blend.ts`) against the product owner's other decks.
+- Add more THEMES for archetypes v1 misses (cast-from-exile, attack triggers, goad, energy, storm, wheels) as real decks call for them.
+- Phase 3.

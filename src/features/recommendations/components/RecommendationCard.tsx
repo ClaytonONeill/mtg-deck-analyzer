@@ -48,14 +48,14 @@ export default function RecommendationCard({
           {reasons.slice(0, MAX_REASONS).map((reason) => (
             <li
               key={reason}
-              className="badge badge-sm badge-ghost h-auto py-0.5 text-xs leading-tight text-left"
+              className="badge badge-sm badge-ghost h-auto py-0.5 text-xs md:text-sm leading-tight text-left"
             >
               {reason}
             </li>
           ))}
           {extra > 0 && (
             <li
-              className="badge badge-sm badge-ghost text-xs"
+              className="badge badge-sm badge-ghost text-xs md:text-sm"
               title={reasons.slice(MAX_REASONS).join(", ")}
             >
               +{extra}

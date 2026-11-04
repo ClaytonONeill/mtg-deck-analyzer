@@ -9,6 +9,9 @@ import type { RecInput } from "../utils/deckSignals";
 // Hooks
 import { useRecommendations, MAX_MORE_CLICKS } from "../hooks/useRecommendations";
 
+// Icons
+import { ExternalLink } from "lucide-react";
+
 // Components
 import RecommendationCard from "./RecommendationCard";
 import FlippableCardImage from "@/components/FlippableCardImage/FlippableCardImage";
@@ -31,10 +34,14 @@ export default function RecommendationsPanel({
   renderActions,
 }: RecommendationsPanelProps) {
   const {
-    plan,
+    basis,
     visible,
     loading,
     error,
+    searchError,
+    edhrec,
+    mode,
+    setMode,
     moreClicks,
     canShowMore,
     capped,
@@ -45,16 +52,72 @@ export default function RecommendationsPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-xs md:text-sm uppercase font-black tracking-widest opacity-50">
-          {title}
-        </h2>
-        <p className="text-xs text-base-content/60">
-          Based on:{" "}
-          {[...plan.signals.map((s) => s.label), ...plan.constraintReasons].join(
-            " · ",
-          )}
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-xs md:text-sm uppercase font-black tracking-widest opacity-50">
+            {title}
+          </h2>
+          <div className="join" role="group" aria-label="Suggestion style">
+            {(
+              [
+                ["top", "Top picks"],
+                ["gems", "Hidden gems"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={mode === value}
+                onClick={() => setMode(value)}
+                title={
+                  value === "gems"
+                    ? "Favors cards that fit this deck but few decks play yet"
+                    : "The strongest fits for this commander and deck"
+                }
+                className={`join-item btn btn-xs text-xs md:btn-sm md:text-sm ${mode === value ? "btn-primary" : "btn-ghost bg-base-200"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="text-xs md:text-sm text-base-content/60">
+          Based on: {basis.join(" · ")}
         </p>
+        {edhrec.status === "ok" && edhrec.url && (
+          <p className="text-xs md:text-sm text-base-content/50">
+            Commander data from{" "}
+            <a
+              href={edhrec.url}
+              target="_blank"
+              rel="noreferrer"
+              className="link link-hover inline-flex items-center gap-0.5"
+            >
+              EDHREC
+              <ExternalLink size={12} className="shrink-0" />
+            </a>
+          </p>
+        )}
+        {edhrec.status === "missing" && (
+          <p className="text-xs md:text-sm text-base-content/50">
+            No EDHREC data for this commander yet; suggestions are based on
+            your deck's cards and objectives.
+          </p>
+        )}
+        {edhrec.status === "error" && (
+          <p className="text-xs md:text-sm text-base-content/50">
+            Couldn't reach EDHREC; suggestions are based on your deck's cards
+            and objectives.{" "}
+            <button type="button" onClick={retry} className="link link-hover">
+              Retry
+            </button>
+          </p>
+        )}
+        {searchError && !error && (
+          <p className="text-xs md:text-sm text-base-content/50">
+            Some suggestions couldn't load ({searchError}).
+          </p>
+        )}
       </div>
 
       {loading && (

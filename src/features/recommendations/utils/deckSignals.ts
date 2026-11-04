@@ -35,16 +35,30 @@ export interface RecPlan {
   constraintReasons: string[];
 }
 
+/** What's known about the commander beyond its own text. */
+export interface RecContext {
+  /** Theme ids EDHREC ranks among this commander's top builds, or null when
+   * there's no EDHREC data (then the commander's rules text is all we have). */
+  commanderThemes: string[] | null;
+}
+
+export const NO_CONTEXT: RecContext = { commanderThemes: null };
+
 interface Pattern {
   id: string;
   name: string;
   test: RegExp;
   query: string;
+  /** Cards in the 99 needed to call it a deck theme (default 5). */
+  minCount?: number;
 }
 
 // Deck themes, detected from oracle text. Queries are plain oracle-text
 // searches (not Tagger `otag:`) so they can't silently break on a tag rename.
 const THEMES: Pattern[] = [
+  // Lots of creatures have an ETB, so it takes more of them to be a theme.
+  // "Triggers an additional time" is Panharmonicon/Yarok-style doubling.
+  { id: "etb", name: "ETB triggers", test: /when(ever)? [^.]*enters|triggers? an additional time/, query: '(o:/when(ever)? [^.]*enters/ or o:"triggers an additional time") -t:land', minCount: 12 },
   { id: "counters", name: "+1/+1 counters", test: /\+1\/\+1 counter/, query: 'o:"+1/+1 counter"' },
   { id: "tokens", name: "Tokens", test: /create[^.]*token/, query: '(o:create o:token -o:"its controller creates" -o:"that player creates")' },
   { id: "sacrifice", name: "Sacrifice", test: /sacrifice (a|an|another) /, query: '(o:"sacrifice a" or o:"sacrifice another")' },
@@ -112,6 +126,7 @@ const OBJECTIVE_SYNONYMS: [RegExp, string | null][] = [
   [/enchant/i, "enchantments"],
   [/voltron|equip|aura/i, "voltron"],
   [/blink|flicker/i, "blink"],
+  [/\betbs?\b|enters? the battlefield|enter triggers/i, "etb"],
   [/mill/i, "mill"],
 ];
 
@@ -127,6 +142,97 @@ export function cardText(card: ScryfallCard): string {
     .toLowerCase();
 }
 
+// Fallback when a saved card predates storing Scryfall's `keywords`: a line
+// that's only short comma-separated words ("Flying, vigilance") or a keyword
+// with a cost ("Ward {2}").
+const KEYWORD_LINE = /^[a-z' -]+( \{[^}]+\})*( \d+)?(, [a-z' -]+( \{[^}]+\})*( \d+)?)*$/;
+
+/**
+ * Rules text that says what a card *does*, without lines that only list its
+ * own keyword abilities. A commander with "Deathtouch, lifelink" isn't a
+ * lifegain commander; its other ability is what the deck is built around.
+ */
+export function strategyText(card: ScryfallCard): string {
+  const keywords = new Set((card.keywords ?? []).map((k) => k.toLowerCase()));
+  return cardText(card)
+    .split("\n")
+    .filter((line) => {
+      const items = line.split(",").map((s) => s.trim());
+      if (keywords.size) {
+        // Every item is exactly a keyword, optionally with a cost or number
+        // ("ward {2}", "crew 3"). Ability-word lines ("landfall — whenever
+        // ...") have more after the word, so they stay.
+        return !items.every((i) =>
+          keywords.has(i.replace(/( \{[^}]+\})+$| \d+$/, "")),
+        );
+      }
+      return !KEYWORD_LINE.test(line) || items.some((i) => i.split(" ").length > 3);
+    })
+    .join("\n");
+}
+
+/**
+ * EDHREC theme slugs that mean the same as a pattern id. A theme only counts
+ * when it's actually one of this commander's EDHREC themes.
+ */
+const PATTERN_TO_EDHREC_TAGS: Record<string, string[]> = {
+  etb: ["etb", "blink", "flicker"],
+  counters: ["plus-1-plus-1-counters", "counters"],
+  tokens: ["tokens", "go-wide"],
+  sacrifice: ["sacrifice", "aristocrats"],
+  graveyard: ["graveyard", "reanimator", "self-mill"],
+  lifegain: ["lifegain"],
+  landfall: ["landfall", "lands-matter"],
+  spellslinger: ["spellslinger", "spells-matter", "storm"],
+  artifacts: ["artifacts"],
+  enchantments: ["enchantress", "enchantments", "auras"],
+  voltron: ["voltron", "equipment", "auras"],
+  blink: ["blink", "flicker", "etb"],
+  mill: ["mill"],
+  ramp: ["ramp"],
+  draw: ["card-draw", "draw"],
+  wipe: ["control"],
+};
+
+/** Normalizes a label or EDHREC slug for comparison ("+1/+1 Counters" ->
+ * "plus-1-plus-1-counters"). */
+export function normalizeTag(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/\+1\/\+1/g, "plus-1-plus-1")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+const singular = (s: string) => s.replace(/(ies|s)$/, (m) => (m === "ies" ? "y" : ""));
+
+/** Whether a freeform objective label names an EDHREC theme. */
+export function labelMatchesTheme(label: string, theme: { slug: string; label: string }): boolean {
+  const l = singular(normalizeTag(label));
+  if (l.length < 3) return false;
+  return [theme.slug, normalizeTag(theme.label)].some((t) => {
+    const s = singular(t);
+    return s === l || (l.length >= 4 && (s.includes(l) || l.includes(s)));
+  });
+}
+
+/** Pattern ids an EDHREC theme slug corresponds to. */
+export function patternsForTheme(slug: string): string[] {
+  return Object.entries(PATTERN_TO_EDHREC_TAGS)
+    .filter(([, tags]) => tags.includes(slug))
+    .map(([id]) => id);
+}
+
+/** EDHREC theme slugs a pattern id corresponds to. */
+export function themesForPattern(id: string): string[] {
+  if (id.startsWith("tribe-")) {
+    const type = id.slice(6).toLowerCase();
+    // EDHREC tribal slugs are plural: "elves", "zombies", "wizards".
+    return [type.endsWith("f") ? `${type.slice(0, -1)}ves` : `${type}s`, type];
+  }
+  return PATTERN_TO_EDHREC_TAGS[id] ?? [];
+}
+
 function frontTypeLine(card: ScryfallCard): string {
   return card.type_line || card.card_faces?.[0]?.type_line || "";
 }
@@ -135,7 +241,14 @@ function isLand(card: ScryfallCard): boolean {
   return /\bLand\b/.test(frontTypeLine(card));
 }
 
-function creatureTypes(card: ScryfallCard): string[] {
+/** Whether a card plays into a theme. A land's "when this enters" is just
+ * how it enters, not an ETB payoff. */
+function playsInto(pattern: Pattern, card: ScryfallCard, text: string): boolean {
+  if (pattern.id === "etb" && isLand(card)) return false;
+  return pattern.test.test(text);
+}
+
+export function creatureTypes(card: ScryfallCard): string[] {
   const line = frontTypeLine(card);
   if (!/\bCreature\b/.test(line) || !line.includes("—")) return [];
   return line.split("—")[1].trim().split(/\s+/);
@@ -150,35 +263,28 @@ function colorQuery(colorIdentity: string[]): string {
   return `id<=${colorIdentity.length ? colorIdentity.join("") : "C"}`;
 }
 
-/** Commander(s) plus the 99, with quantity, as a flat (card, weight) list. */
-function weightedCards(input: RecInput): { card: ScryfallCard; n: number }[] {
-  const commanders = [input.commander, input.partner].filter(
-    (c): c is ScryfallCard => c !== null,
-  );
-  return [
-    // The commander defines the deck, so its text counts triple.
-    ...commanders.map((card) => ({ card, n: 3 })),
-    ...input.entries.map((e) => ({ card: e.card, n: e.quantity })),
-  ];
-}
-
 interface Detected {
-  themes: { pattern: Pattern; count: number; fromCommander: boolean }[];
+  themes: {
+    pattern: Pattern;
+    /** Matching cards in the 99, by quantity. */
+    deckCount: number;
+    /** What the commander's own abilities (not its keywords) point at. */
+    fromCommander: boolean;
+  }[];
   roles: { pattern: (typeof ROLES)[number]; count: number }[];
   tribes: { type: string; count: number }[];
 }
 
 function detect(input: RecInput): Detected {
-  const cards = weightedCards(input);
-  const texts = cards.map(({ card, n }) => ({ text: cardText(card), n, card }));
+  const texts = input.entries.map((e) => ({ card: e.card, text: cardText(e.card), n: e.quantity }));
   const commanderText = [input.commander, input.partner]
     .filter((c): c is ScryfallCard => c !== null)
-    .map(cardText)
+    .map(strategyText)
     .join("\n");
 
   const themes = THEMES.map((pattern) => ({
     pattern,
-    count: texts.reduce((sum, t) => sum + (pattern.test.test(t.text) ? t.n : 0), 0),
+    deckCount: texts.reduce((sum, t) => sum + (playsInto(pattern, t.card, t.text) ? t.n : 0), 0),
     fromCommander: pattern.test.test(commanderText),
   }));
 
@@ -270,19 +376,37 @@ const POPULAR: Signal = {
 
 /** Signals for general, deck-level suggestions. Works with or without
  * objectives: themes, tribes, and role gaps come from the cards themselves. */
-export function buildDeckPlan(input: RecInput): RecPlan {
+export function buildDeckPlan(
+  input: RecInput,
+  ctx: RecContext = NO_CONTEXT,
+): RecPlan {
   const { themes, roles, tribes } = detect(input);
   const signals: Signal[] = [];
+  // Too few cards yet to tell whether the 99 backs a commander theme up.
+  const thinDeck = input.entries.length < 20;
 
-  for (const { pattern, count, fromCommander } of themes) {
-    if (count < 5 && !fromCommander) continue;
+  for (const { pattern, deckCount, fromCommander } of themes) {
+    const min = pattern.minCount ?? 5;
+    // With EDHREC data, how the commander is actually played says what it's
+    // about, so its rules text isn't re-read here. Without it, the text is all
+    // we have, and it only leads if the 99 agrees once the deck has filled out.
+    const commanderSays = ctx.commanderThemes === null && fromCommander;
+    const backed = thinDeck || deckCount >= 3;
+    const edhrecSays =
+      (ctx.commanderThemes?.includes(pattern.id) ?? false) && deckCount >= 3;
+    if (deckCount < min && !commanderSays && !edhrecSays) continue;
+
+    let weight = Math.min(deckCount / (2 * min), 1.5);
+    if (commanderSays) weight += backed ? 1 : 0.25;
+    if (edhrecSays) weight += 0.5;
     signals.push({
       id: pattern.id,
-      label: fromCommander
-        ? `Commander synergy: ${pattern.name}`
-        : `${pattern.name} theme (${count} cards)`,
+      label:
+        commanderSays && backed
+          ? `Commander synergy: ${pattern.name}`
+          : `${pattern.name} theme (${deckCount} cards)`,
       query: pattern.query,
-      weight: Math.min(count / 10, 1.5) + (fromCommander ? 1 : 0),
+      weight,
     });
   }
 
@@ -339,9 +463,62 @@ export function cardRoles(card: ScryfallCard): string[] {
   ).map((p) => p.id);
 }
 
+/** Theme ids a card's rules text plays into (keywords included: a lifelink
+ * creature does fit a lifegain deck). */
+export function cardThemes(card: ScryfallCard): string[] {
+  const text = cardText(card);
+  return THEMES.filter((p) => playsInto(p, card, text)).map((p) => p.id);
+}
+
+/** What the deck's own cards and tags are about, for re-ranking candidates
+ * that came from somewhere else (EDHREC). */
+export interface DeckProfile {
+  /** Themes the 99 supports, strength 0-1. */
+  themes: { id: string; name: string; strength: number }[];
+  tribe: string | null;
+  /** Roles under target. */
+  gaps: { id: string; name: string; count: number; target: number }[];
+  objectives: { label: string; weight: number; patternId: string | null }[];
+}
+
+export function deckProfile(input: RecInput): DeckProfile {
+  const { themes, roles, tribes } = detect(input);
+  return {
+    themes: themes
+      .filter((t) => t.deckCount >= (t.pattern.minCount ?? 5))
+      .map((t) => ({
+        id: t.pattern.id,
+        name: t.pattern.name,
+        strength: Math.min(t.deckCount / (2 * (t.pattern.minCount ?? 5)), 1),
+      })),
+    tribe: tribes[0]?.type ?? null,
+    gaps: roles
+      .filter((r) => r.count < r.pattern.target)
+      .map((r) => ({
+        id: r.pattern.id,
+        name: r.pattern.name,
+        count: r.count,
+        target: r.pattern.target,
+      })),
+    objectives: objectiveLabels(input).map((o) => ({
+      ...o,
+      patternId: objectivePatternId(o.label),
+    })),
+  };
+}
+
+/** Display name of a theme/role pattern id. */
+export function patternName(id: string): string {
+  return ALL_PATTERNS.find((p) => p.id === id)?.name ?? id;
+}
+
 /** Signals for replacing one specific card: same role, same type, similar
  * cost, and whichever of the deck's themes the outgoing card shares. */
-export function buildSwapPlan(input: RecInput, target: ScryfallCard): RecPlan {
+export function buildSwapPlan(
+  input: RecInput,
+  target: ScryfallCard,
+  ctx: RecContext = NO_CONTEXT,
+): RecPlan {
   const text = cardText(target);
   const typeLine = frontTypeLine(target);
   const primaryType = PRIMARY_TYPES.find((t) => typeLine.includes(t));
@@ -373,7 +550,7 @@ export function buildSwapPlan(input: RecInput, target: ScryfallCard): RecPlan {
     });
   }
 
-  const deckPlan = buildDeckPlan(input);
+  const deckPlan = buildDeckPlan(input, ctx);
   for (const pattern of THEMES) {
     if (!pattern.test.test(text)) continue;
     if (!deckPlan.signals.some((s) => s.id === pattern.id)) continue;

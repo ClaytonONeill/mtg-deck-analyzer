@@ -36,6 +36,7 @@ export const RECOGNIZED_OBJECTIVE_GROUPS: {
       { label: "Enchantments", description: "Enchantments matter." },
       { label: "Voltron", description: "Equipment and Auras on one threat." },
       { label: "Blink", description: "Exile and return for ETB value." },
+      { label: "ETB", description: "Enter-the-battlefield triggers matter." },
       { label: "Mill", description: "Mills a library." },
     ],
   },
