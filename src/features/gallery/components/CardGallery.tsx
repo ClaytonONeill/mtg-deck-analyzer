@@ -47,6 +47,8 @@ interface CardGalleryProps {
   partner?: ScryfallCard | null;
   entries: DeckEntry[];
   objectives: Objective[];
+  /** Deck-level strategic objectives, used by swap suggestions. */
+  strategyObjectives?: Objective[];
   pendingSwaps: PendingSwap[];
   onAssign: (cardId: string, objectiveId: string) => void;
   onUnassign: (cardId: string, objectiveId: string) => void;
@@ -87,6 +89,7 @@ export default function CardGallery({
   partner,
   entries,
   objectives,
+  strategyObjectives = [],
   pendingSwaps,
   onAssign,
   onUnassign,
@@ -518,6 +521,14 @@ export default function CardGallery({
         <SwapSidebar
           cardToSwap={swapping}
           deckWishlist={deckWishlist}
+          recInput={{
+            commander: commander ?? null,
+            partner: partner ?? null,
+            entries,
+            colorIdentity,
+            strategyObjectives,
+            objectives,
+          }}
           deckCards={[
             ...(commander ? [commander] : []),
             ...(partner ? [partner] : []),

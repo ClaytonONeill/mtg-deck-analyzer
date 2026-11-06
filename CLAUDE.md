@@ -9,6 +9,8 @@ MTG Deck Analyzer is a personal Commander/EDH deck-building tool for a handful o
 - **Supabase** (Postgres + Auth) — the only backend; the browser talks to it directly via `@supabase/supabase-js`. There is no custom server/API layer.
 - **Scryfall's public REST API** (`api.scryfall.com`) — card data/search/images, called directly from the browser, unauthenticated.
 
+Card suggestions also read **EDHREC's static JSON** (`json.edhrec.com`), straight from the browser. It's unofficial and undocumented, and it's isolated in `features/recommendations/utils/edhrecClient.ts`. See [`docs/plans/card-recommendations-v2.md`](docs/plans/card-recommendations-v2.md).
+
 Core things a user can do: build a Commander deck (search for a commander + up to 99 other cards, respecting color-identity legality and partner-commander rules), save multiple named **versions** of a deck as sets of card swaps and compare them, tag cards with user-defined **objectives** (freeform strategic tags), maintain a cross-deck **wishlist**, view deck composition charts (card types, mana curve), and run a hand-simulator.
 
 `IDEAS.md` at the repo root is the product owner's running backlog/notes — check it for context on what's intentionally unfinished vs. what's a bug. Note it can go stale in both directions: a request can already be partially built (IDEAS.md still asks for a "Confirm Delete Modal"; a shared `ConfirmDelete` component already exists and is wired into `HomePage`'s deck-deletion flow, but not into `DeckDetailPage`'s deck-**version** deletion, so the idea is half-done, not untouched), or a fix can exist without the backlog item being removed (`deckStore.duplicateCardInDeck()` is already enforced in `useDeckBuilder`'s add-card path, which may substantially close "BUG: Duplicate Cards can be Added to the Deck" — unverified for the version-swap path). Don't trust an IDEAS.md line at face value; grep for the feature before assuming it's unbuilt.
@@ -50,7 +52,7 @@ Each feature has a hook in `hooks/` or `features/<name>/hooks/` that owns a slic
 
 ### Scryfall integration
 
-Called from two independent places with no shared client: `features/deckBuilder/hooks/useCardSearch.ts` (debounced search with `AbortController` + a request-id guard against out-of-order responses — this is the one place with real race-condition handling) and `utils/utils.ts`'s `configureBasicLandEndpoint` (basic land image URLs). No caching, no shared fetch wrapper, no rate-limit handling.
+Called from three independent places with no shared client: `features/recommendations/utils/scryfallRecs.ts` (the card-suggestions engine, with session caches and one shared 550ms request schedule, because Scryfall's hard limit for `/cards/search` and `/cards/collection` is 2 requests per second), `features/deckBuilder/hooks/useCardSearch.ts` (debounced search with `AbortController` + a request-id guard against out-of-order responses — this is the one place with real race-condition handling) and `utils/utils.ts`'s `configureBasicLandEndpoint` (basic land image URLs). Outside the recommendations engine: no caching, no shared fetch wrapper, no rate-limit handling.
 
 ## Styling
 
@@ -68,6 +70,8 @@ If asked to improve stylistic cohesion, the lowest-effort fix is: migrate `App.t
 Separately, `IDEAS.md` notes the objectives-tagging UI ("Objectives Menu Should be a Standardized Shared Component") exists as two or three divergent implementations rather than one shared component. Check for this before adding yet another objectives-tagging surface — a fourth one-off implementation would make the eventual consolidation harder, not easier.
 
 **Breakpoints, minimum type sizes, and the z-index scale are defined in [`docs/design-tokens.md`](docs/design-tokens.md)** — read it before touching layout, typography, or anything `fixed`/`sticky`/`absolute`. It also documents known current violations (e.g. arbitrary sub-12px text, ad hoc z-index values, a likely-live bug where custom z-index utilities fight daisyUI's built-in `dropdown-content` stacking).
+
+**Text size on desktop: new UI keeps shipping too small, so check this on every change.** Any `text-xs` (12px) text must step up on desktop, as `text-xs md:text-sm`. Never go below `text-xs`, and never use `text-[10px]`-style arbitrary sizes. daisyUI size modifiers shrink text too: `btn-xs` and `badge-sm`/`badge-xs` render about 10–11px. So pair them with explicit text classes (`btn btn-xs text-xs md:btn-sm md:text-sm`), or use one size up on desktop. Body copy is `text-sm md:text-base`. The full scale is in `docs/design-tokens.md` §2.
 
 ## Scale-appropriate scope
 

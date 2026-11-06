@@ -38,6 +38,8 @@ export interface ScryfallCard {
   power?: string;
   toughness?: string;
   legalities: Record<string, string>;
+  /** Keyword abilities (e.g. ["Deathtouch", "Lifelink"]); absent on old saves. */
+  keywords?: string[];
   image_uris?: ScryfallImageUris;
   card_faces?: ScryfallCardFace[];
   prices?: ScryfallPrices;
