@@ -3,6 +3,16 @@
   themes: all;
 }
 
+/* Hide the scrollbar on horizontally-scrollable rows (e.g. mobile tab pills)
+   while keeping them scrollable by touch/drag. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 button:hover {
   cursor: pointer;
 }

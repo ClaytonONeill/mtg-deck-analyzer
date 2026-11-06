@@ -19,7 +19,7 @@ None of these require live database access. If a task turns out to need it, stop
 | [009](009-testing-foundation-unit-and-acceptance.md) | Establish a testing foundation (unit + acceptance) | infra | High | L (multi-phase) |
 | [010](010-skeleton-loading-states.md) | Replace spinner+text loading states with skeleton placeholders | enhancement | Low | S |
 | [011](011-autosave-deck-builder.md) | Auto-save the deck builder on card add | enhancement | Medium | S |
-| [012](012-card-token-suggestions.md) | Card/token suggestions for a deck | feature | Low | L |
+| [012](012-card-token-suggestions.md) | Card/token suggestions for a deck (cards shipped; tokens open) | feature | Low | L |
 | [013](013-double-faced-card-images.md) | Support double-faced card images and flipping | bug / feature | Medium | M |
 | [014](014-compare-decks.md) | Compare decks against each other, not just versions | feature | Low | L |
 | [015](015-multi-key-sub-sorting.md) | Multi-key sub-sorting in gallery and wishlist | enhancement | Low | S |

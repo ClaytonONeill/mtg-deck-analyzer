@@ -20,6 +20,10 @@ import CardPrice from '@/components/CardPrice/CardPrice';
 import FlippableCardImage from '@/components/FlippableCardImage/FlippableCardImage';
 import ManaCost from '@/components/ManaSymbol/ManaCost';
 import ObjectivePill from '@/features/objectives/components/ObjectivePill';
+import RecommendationsPanel from '@/features/recommendations/components/RecommendationsPanel';
+
+// Types
+import type { RecInput } from '@/features/recommendations/utils/deckSignals';
 
 // Utils
 import { isCardLegalForDeck, isDuplicateCard } from '@/store/deckStore';
@@ -34,6 +38,8 @@ interface SwapSidebarProps {
   deckWishlist: WishlistEntry[];
   /** Every card already in (or being swapped into) the deck, incl. commanders. */
   deckCards: ScryfallCard[];
+  /** Version-resolved deck, for the Suggested tab. */
+  recInput: RecInput;
   colorIdentity: string[];
   onConfirm: (replacement: ScryfallCard) => void;
   onClose: () => void;
@@ -72,6 +78,7 @@ export default function SwapSidebar({
   cardToSwap,
   deckWishlist,
   deckCards,
+  recInput,
   colorIdentity,
   onConfirm,
   onClose,
@@ -79,7 +86,12 @@ export default function SwapSidebar({
   onSwapEntry,
 }: SwapSidebarProps) {
   const [selected, setSelected] = useState<ScryfallCard | null>(null);
-  const [activeTab, setActiveTab] = useState<'search' | 'wishlist'>('search');
+  const [activeTab, setActiveTab] = useState<
+    'search' | 'wishlist' | 'suggested'
+  >('search');
+  // Suggested tab: replacements for this specific card, or general
+  // suggestions for the (version-resolved) deck.
+  const [recMode, setRecMode] = useState<'card' | 'deck'>('card');
   const [colorError, setColorError] = useState<string | null>(null);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -206,7 +218,7 @@ export default function SwapSidebar({
         className={`
         fixed top-0 right-0 h-full z-70 bg-base-100 border-l border-base-300
         flex flex-col shadow-2xl transition-all duration-300 ease-in-out
-        w-full sm:w-[85vw] ${activeTab === 'wishlist' ? 'lg:w-4xl' : 'lg:w-2xl'}
+        w-full sm:w-[85vw] ${activeTab === 'search' ? 'lg:w-2xl' : 'lg:w-4xl'}
       `}
       >
         {/* Header */}
@@ -243,6 +255,15 @@ export default function SwapSidebar({
             }}
           >
             Wishlist ({deckWishlist.length})
+          </button>
+          <button
+            className={`tab flex-1 font-bold ${activeTab === 'suggested' ? 'tab-active bg-primary! text-primary-content!' : ''}`}
+            onClick={() => {
+              setActiveTab('suggested');
+              setSelected(null);
+            }}
+          >
+            Suggested
           </button>
         </div>
 
@@ -287,7 +308,49 @@ export default function SwapSidebar({
             </div>
           )}
 
-          {activeTab === 'search' ? (
+          {activeTab === 'suggested' ? (
+            <div className="space-y-4 py-6">
+              <div className="join w-full" role="group" aria-label="Suggestion mode">
+                <button
+                  type="button"
+                  aria-pressed={recMode === 'card'}
+                  onClick={() => setRecMode('card')}
+                  className={`join-item btn btn-sm flex-1 min-w-0 ${recMode === 'card' ? 'btn-primary' : 'btn-ghost bg-base-200'}`}
+                >
+                  <span className="truncate">For {cardToSwap.name}</span>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={recMode === 'deck'}
+                  onClick={() => setRecMode('deck')}
+                  className={`join-item btn btn-sm flex-1 ${recMode === 'deck' ? 'btn-primary' : 'btn-ghost bg-base-200'}`}
+                >
+                  For the deck
+                </button>
+              </div>
+              <RecommendationsPanel
+                key={recMode}
+                input={recInput}
+                excludeCards={deckCards}
+                target={recMode === 'card' ? cardToSwap : null}
+                title={
+                  recMode === 'card'
+                    ? `Replacements for ${cardToSwap.name}`
+                    : 'Suggestions for this deck'
+                }
+                renderActions={(card) => (
+                  <button
+                    type="button"
+                    onClick={() => handleSelect(card)}
+                    aria-pressed={selected?.id === card.id}
+                    className={`btn btn-sm flex-1 ${selected?.id === card.id ? 'btn-primary' : 'btn-outline'}`}
+                  >
+                    {selected?.id === card.id ? 'Selected' : 'Select'}
+                  </button>
+                )}
+              />
+            </div>
+          ) : activeTab === 'search' ? (
             <div className="space-y-6 py-6">
               <CardSearchPanel
                 label="Replacement Name"
