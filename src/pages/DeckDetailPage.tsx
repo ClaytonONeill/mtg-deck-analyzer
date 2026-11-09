@@ -12,6 +12,7 @@ import {
   ArrowLeftRight,
   X,
   Plus,
+  Check,
 } from "lucide-react";
 
 // Stores
@@ -19,6 +20,9 @@ import {
   deckStore,
   getDeckCardCount,
   getAllCardIdsInDeck,
+  addCardToDeck,
+  duplicateCardInDeck,
+  isCardLegalForDeck,
   addStrategicObjective,
   removeStrategicObjective,
 } from "@/store/deckStore";
@@ -32,6 +36,7 @@ import { useGallery } from "@/features/gallery/hooks/useGallery";
 import { useDeckVersions } from "@/features/deckVersions/hooks/useDeckVersions";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useChartSelection } from "@/features/metrics/hooks/useChartSelection";
+import { useDeckAutosave } from "@/hooks/useDeckAutosave";
 
 // Context
 import { ChartSelectionProvider } from "@/features/metrics/context/ChartSelectionContext";
@@ -63,7 +68,13 @@ import RecommendationsPanel from "@/features/recommendations/components/Recommen
 import SwapOutPicker from "@/features/recommendations/components/SwapOutPicker";
 
 // Types
-import type { Deck, Objective, PendingSwap, ScryfallCard } from "@/types";
+import type {
+  Deck,
+  DeckEntry,
+  Objective,
+  PendingSwap,
+  ScryfallCard,
+} from "@/types";
 import type { RecInput } from "@/features/recommendations/utils/deckSignals";
 
 type Tab = "metrics" | "gallery" | "wishlist" | "simulator" | "suggestions";
@@ -137,8 +148,27 @@ export default function DeckDetailPage() {
   // the confirmation shown after a swap is staged.
   const [swapInCard, setSwapInCard] = useState<ScryfallCard | null>(null);
   const [swapNotice, setSwapNotice] = useState<string | null>(null);
+  // The deck list suggestions were computed from, held still once a card is
+  // quick-added. Live entries would drop each added card from the grid at
+  // once and could re-run the search. Held, added cards stay visible as
+  // "Already in deck". Leaving the tab or switching versions drops it, so
+  // the next suggestions count those cards and leave them out.
+  const [recBasis, setRecBasis] = useState<{
+    versionId: VersionId;
+    entries: DeckEntry[];
+  } | null>(null);
+  const {
+    status: saveStatus,
+    save: autosaveDeck,
+    retry: retrySave,
+  } = useDeckAutosave();
 
   const activeDeck = deck;
+
+  const selectTab = (tab: Tab) => {
+    setActiveTab(tab);
+    setRecBasis(null);
+  };
 
   useEffect(() => {
     if (!deckId) return;
@@ -300,10 +330,14 @@ export default function DeckDetailPage() {
   };
 
   // --- Suggestions tab (computed for the active version via displayDeck) ---
+  const recEntries =
+    recBasis?.versionId === activeVersionId
+      ? recBasis.entries
+      : displayDeck.entries;
   const recInput: RecInput = {
     commander: displayDeck.commander,
     partner: displayDeck.partner,
-    entries: displayDeck.entries,
+    entries: recEntries,
     colorIdentity: activeDeck.colorIdentity,
     strategyObjectives: displayDeck.objectives ?? [],
     objectives,
@@ -311,9 +345,33 @@ export default function DeckDetailPage() {
   const recExclude: ScryfallCard[] = [
     ...(displayDeck.commander ? [displayDeck.commander] : []),
     ...(displayDeck.partner ? [displayDeck.partner] : []),
-    ...displayDeck.entries.map((e) => e.card),
+    ...recEntries.map((e) => e.card),
     ...pendingSwaps.map((s) => s.addCard),
   ];
+
+  // By name, like the builder's singleton check, so another printing counts.
+  // Checks main too: a version can swap out a card that main still has.
+  const isInDeck = (card: ScryfallCard) =>
+    duplicateCardInDeck(displayDeck, card) ||
+    duplicateCardInDeck(activeDeck, card);
+
+  /** Quick add from Suggestions. Writes to the main list, which every
+   * version is built on, and saves at once. */
+  const handleQuickAdd = (card: ScryfallCard) => {
+    if (
+      cardCount >= 100 ||
+      isInDeck(card) ||
+      !isCardLegalForDeck(activeDeck.colorIdentity, card)
+    ) {
+      return;
+    }
+    if (recBasis?.versionId !== activeVersionId) {
+      setRecBasis({ versionId: activeVersionId, entries: displayDeck.entries });
+    }
+    const updated = addCardToDeck(activeDeck, card);
+    setDeck(updated);
+    void autosaveDeck(updated);
+  };
 
   const wishlistEntryFor = (card: ScryfallCard) =>
     wishlistEntries.find((e) => e.card.name === card.name);
@@ -325,8 +383,8 @@ export default function DeckDetailPage() {
       if (!entry.deckIds.includes(activeDeck.id)) {
         await tagWishlistDeck(entry.id, activeDeck.id);
       }
-    } catch {
-      // useWishlist already rolled back its optimistic update.
+    } catch (e) {
+      console.error(`There was an error adding ${card.name} to wishlist: ${e}`);
     }
   };
 
@@ -363,13 +421,14 @@ export default function DeckDetailPage() {
   const handleAssignStrategicObjective = (objective: Objective) => {
     const updated = addStrategicObjective(activeDeck, objective);
     setDeck(updated);
-    void deckStore.save(updated).catch(() => setDeck(activeDeck));
+    // Same queue as quick add, so two whole-deck writes can't land out of order.
+    void autosaveDeck(updated);
   };
 
   const handleUnassignStrategicObjective = (objectiveId: string) => {
     const updated = removeStrategicObjective(activeDeck, objectiveId);
     setDeck(updated);
-    void deckStore.save(updated).catch(() => setDeck(activeDeck));
+    void autosaveDeck(updated);
   };
 
   const tabs: { key: Tab; label: string }[] = [
@@ -508,7 +567,10 @@ export default function DeckDetailPage() {
             </label>
             <select
               value={activeVersionId}
-              onChange={(e) => setActiveVersionId(e.target.value as VersionId)}
+              onChange={(e) => {
+                setActiveVersionId(e.target.value as VersionId);
+                setRecBasis(null);
+              }}
               className="select select-bordered select-sm flex-1 sm:max-w-xs bg-base-100"
             >
               {versionOptions.map((opt) => (
@@ -559,7 +621,7 @@ export default function DeckDetailPage() {
             {tabs.map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => selectTab(tab.key)}
                 className={`snap-start shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all border ${
                   activeTab === tab.key
                     ? "bg-primary text-primary-content border-primary shadow-md shadow-primary/20"
@@ -580,7 +642,7 @@ export default function DeckDetailPage() {
               <button
                 key={tab.key}
                 role="tab"
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => selectTab(tab.key)}
                 className={`tab h-12 font-bold transition-all ${
                   activeTab === tab.key
                     ? "tab-active border-primary! text-primary"
@@ -725,6 +787,7 @@ export default function DeckDetailPage() {
               excludeCards={recExclude}
               title={`Suggestions for ${activeVersionId === "main" ? "Main" : activeVersionLabel}`}
               renderActions={(card) => {
+                const inDeck = isInDeck(card);
                 const onWishlist = wishlistEntryFor(card)?.deckIds.includes(
                   activeDeck.id,
                 );
@@ -745,21 +808,33 @@ export default function DeckDetailPage() {
                     <button
                       type="button"
                       onClick={() => setSwapInCard(card)}
+                      disabled={inDeck}
                       aria-label={`Swap ${card.name} into the deck`}
                       className="btn btn-sm btn-primary flex-1 min-w-0 px-2"
                     >
                       <ArrowLeftRight size={14} className="shrink-0" />
                       <span className="truncate">Swap in</span>
                     </button>
-                    {cardCount < 100 && (
+                    {(inDeck || cardCount < 100) && (
                       <button
                         type="button"
-                        onClick={() => window.alert("AHHH")}
-                        aria-label={`Add ${card.name} to the deck`}
+                        onClick={() => handleQuickAdd(card)}
+                        disabled={inDeck}
+                        aria-label={
+                          inDeck
+                            ? `${card.name} is already in the deck`
+                            : `Add ${card.name} to the deck`
+                        }
                         className="btn btn-sm btn-primary flex-1 min-w-0 px-2"
                       >
-                        <Plus size={14} className="shrink-0" />
-                        <span className="truncate">Add to deck</span>
+                        {inDeck ? (
+                          <Check size={14} className="shrink-0" />
+                        ) : (
+                          <Plus size={14} className="shrink-0" />
+                        )}
+                        <span className="truncate">
+                          {inDeck ? "Already in deck" : "Add to deck"}
+                        </span>
                       </button>
                     )}
                   </div>
@@ -781,32 +856,51 @@ export default function DeckDetailPage() {
           />
         )}
 
-        {swapNotice && (
+        {(swapNotice || saveStatus === "error") && (
           <div className="toast toast-center toast-bottom z-50 w-full max-w-md px-4">
-            <div
-              role="status"
-              className="alert alert-success shadow-lg flex flex-wrap"
-            >
-              <span className="text-sm flex-1 min-w-0">{swapNotice}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setSwapNotice(null);
-                  setActiveTab("gallery");
-                }}
-                className="btn btn-sm"
+            {saveStatus === "error" && (
+              <div
+                role="alert"
+                className="alert alert-error shadow-lg flex flex-wrap"
               >
-                Review in Gallery
-              </button>
-              <button
-                type="button"
-                onClick={() => setSwapNotice(null)}
-                aria-label="Dismiss"
-                className="btn btn-sm btn-ghost btn-circle"
+                <span className="text-sm flex-1 min-w-0">
+                  Couldn't save your deck changes.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void retrySave()}
+                  className="btn btn-sm"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            {swapNotice && (
+              <div
+                role="status"
+                className="alert alert-success shadow-lg flex flex-wrap"
               >
-                <X size={16} />
-              </button>
-            </div>
+                <span className="text-sm flex-1 min-w-0">{swapNotice}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSwapNotice(null);
+                    selectTab("gallery");
+                  }}
+                  className="btn btn-sm"
+                >
+                  Review in Gallery
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSwapNotice(null)}
+                  aria-label="Dismiss"
+                  className="btn btn-sm btn-ghost btn-circle"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
           </div>
         )}
 

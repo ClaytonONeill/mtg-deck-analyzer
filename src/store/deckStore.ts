@@ -1,22 +1,22 @@
 // Types
-import type { Deck, DeckEntry, Objective, ScryfallCard } from '@/types';
+import type { Deck, DeckEntry, Objective, ScryfallCard } from "@/types";
 
 // Lib
-import { supabase } from '@/lib/supabase';
+import { supabase } from "@/lib/supabase";
 
 // Utils
-import { inferCategory } from '@/utils/utils';
-import { mergeColorIdentities } from '@/features/deckBuilder/utils/partnerUtils';
+import { inferCategory } from "@/utils/utils";
+import { mergeColorIdentities } from "@/features/deckBuilder/utils/partnerUtils";
 
 export const deckStore = {
   async getAll(): Promise<Deck[]> {
     const { data, error } = await supabase
-      .from('decks')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("decks")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error('deckStore.getAll error:', error);
+      console.error("deckStore.getAll error:", error);
       return [];
     }
 
@@ -39,13 +39,10 @@ export const deckStore = {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      console.warn(
-        'deckStore.save: no authenticated user, skipping Supabase write',
-      );
-      return;
+      throw new Error("deckStore.save: no authenticated user");
     }
 
-    const { error } = await supabase.from('decks').upsert(
+    const { error } = await supabase.from("decks").upsert(
       {
         id: deck.id,
         user_id: user.id,
@@ -59,39 +56,38 @@ export const deckStore = {
         created_at: deck.createdAt,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'id' },
+      { onConflict: "id" },
     );
 
     if (error) {
-      console.error('deckStore.save error:', error);
-    } else {
-      console.log('deckStore.save success:', deck.name);
+      console.error("deckStore.save error:", error);
+      throw new Error("Failed to save deck");
     }
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase.from('decks').delete().eq('id', id);
+    const { error } = await supabase.from("decks").delete().eq("id", id);
 
     if (error) {
-      console.error('deckStore.delete error:', error);
-      throw new Error('Failed to delete deck');
+      console.error("deckStore.delete error:", error);
+      throw new Error("Failed to delete deck");
     } else {
-      console.log('deckStore.delete success for id:', id);
+      console.log("deckStore.delete success for id:", id);
     }
   },
 
   async getById(id: string): Promise<Deck | undefined> {
     const { data, error } = await supabase
-      .from('decks')
-      .select('*')
-      .eq('id', id)
+      .from("decks")
+      .select("*")
+      .eq("id", id)
       .maybeSingle();
 
     if (error) {
       // Handle the case where the record simply doesn't exist
-      if (error.code === 'PGRST116') return undefined;
+      if (error.code === "PGRST116") return undefined;
 
-      console.error('deckStore.getById error:', error);
+      console.error("deckStore.getById error:", error);
       return undefined;
     }
 
@@ -210,8 +206,8 @@ export function isCardLegalForDeck(
  * Relentless Rats whose own text allows any number of copies. */
 export function isSingletonExempt(card: ScryfallCard): boolean {
   return (
-    /\bBasic\b/.test(card.type_line ?? '') ||
-    /a deck can have any number of cards named/i.test(card.oracle_text ?? '')
+    /\bBasic\b/.test(card.type_line ?? "") ||
+    /a deck can have any number of cards named/i.test(card.oracle_text ?? "")
   );
 }
 
@@ -270,13 +266,13 @@ export function getAllCardIdsInDeck(deck: Deck): string[] {
   return [...new Set(ids)];
 }
 
-export type DeckExportFormat = 'json' | 'xlsx' | 'txt';
+export type DeckExportFormat = "json" | "xlsx" | "txt";
 
 export function defaultExportFilename(
   deck: Deck,
   format: DeckExportFormat,
 ): string {
-  return `${deck.name.replace(/\s+/g, '_')}.${format}`;
+  return `${deck.name.replace(/\s+/g, "_")}.${format}`;
 }
 
 /**
@@ -289,33 +285,33 @@ export function defaultExportFilename(
 export function buildDeckTextExport(deck: Deck): string {
   const lines: string[] = [];
   if (deck.commander || deck.partner) {
-    lines.push('Commander');
+    lines.push("Commander");
     if (deck.commander) lines.push(`1 ${deck.commander.name}`);
     if (deck.partner) lines.push(`1 ${deck.partner.name}`);
-    lines.push('', 'Deck');
+    lines.push("", "Deck");
   }
   deck.entries.forEach((entry) => {
     lines.push(`${entry.quantity} ${entry.card.name}`);
   });
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 export async function buildDeckExportBlob(
   deck: Deck,
   format: DeckExportFormat,
 ): Promise<Blob> {
-  if (format === 'xlsx') return buildDeckXlsxBlob(deck);
-  if (format === 'txt') {
-    return new Blob([buildDeckTextExport(deck)], { type: 'text/plain' });
+  if (format === "xlsx") return buildDeckXlsxBlob(deck);
+  if (format === "txt") {
+    return new Blob([buildDeckTextExport(deck)], { type: "text/plain" });
   }
 
   const json = JSON.stringify(deck, null, 2);
-  return new Blob([json], { type: 'application/json' });
+  return new Blob([json], { type: "application/json" });
 }
 
 async function buildDeckXlsxBlob(deck: Deck): Promise<Blob> {
   // Loaded on demand — xlsx is a large dependency only needed by this format.
-  const XLSX = await import('xlsx');
+  const XLSX = await import("xlsx");
 
   const rows: Record<string, string | number>[] = [];
 
@@ -324,33 +320,35 @@ async function buildDeckXlsxBlob(deck: Deck): Promise<Blob> {
       Quantity: quantity,
       Name: card.name,
       Category: category,
-      'Type Line': card.type_line,
-      'Mana Cost': card.mana_cost,
+      "Type Line": card.type_line,
+      "Mana Cost": card.mana_cost,
       CMC: card.cmc,
-      'Color Identity': card.color_identity.join(''),
+      "Color Identity": card.color_identity.join(""),
     });
   };
 
-  if (deck.commander) addRow('Commander', 1, deck.commander);
-  if (deck.partner) addRow('Commander', 1, deck.partner);
-  deck.entries.forEach((entry) => addRow(entry.category, entry.quantity, entry.card));
+  if (deck.commander) addRow("Commander", 1, deck.commander);
+  if (deck.partner) addRow("Commander", 1, deck.partner);
+  deck.entries.forEach((entry) =>
+    addRow(entry.category, entry.quantity, entry.card),
+  );
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Deck');
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Deck");
   const buffer = XLSX.write(workbook, {
-    type: 'array',
-    bookType: 'xlsx',
+    type: "array",
+    bookType: "xlsx",
   }) as ArrayBuffer;
 
   return new Blob([buffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
+  const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = filename;
   anchor.click();
@@ -364,14 +362,14 @@ export async function importDeckFromFile(file: File): Promise<Deck> {
       try {
         const parsed = JSON.parse(e.target?.result as string);
         if (!isValidDeck(parsed)) {
-          reject(new Error('Invalid deck file — missing required fields.'));
+          reject(new Error("Invalid deck file — missing required fields."));
           return;
         }
         const duplicates = findDuplicateCardNames(parsed as Deck);
         if (duplicates.length > 0) {
           reject(
             new Error(
-              `Invalid deck file — Commander decks can only contain one copy of: ${duplicates.join(', ')}.`,
+              `Invalid deck file — Commander decks can only contain one copy of: ${duplicates.join(", ")}.`,
             ),
           );
           return;
@@ -379,23 +377,23 @@ export async function importDeckFromFile(file: File): Promise<Deck> {
         resolve(parsed as Deck);
       } catch {
         reject(
-          new Error('Could not parse file. Make sure it is a valid deck JSON.'),
+          new Error("Could not parse file. Make sure it is a valid deck JSON."),
         );
       }
     };
-    reader.onerror = () => reject(new Error('Failed to read file.'));
+    reader.onerror = () => reject(new Error("Failed to read file."));
     reader.readAsText(file);
   });
 }
 
 function isValidDeck(obj: unknown): boolean {
-  if (typeof obj !== 'object' || obj === null) return false;
+  if (typeof obj !== "object" || obj === null) return false;
   const d = obj as Record<string, unknown>;
   return (
-    typeof d.id === 'string' &&
-    typeof d.name === 'string' &&
-    typeof d.createdAt === 'string' &&
-    typeof d.updatedAt === 'string' &&
+    typeof d.id === "string" &&
+    typeof d.name === "string" &&
+    typeof d.createdAt === "string" &&
+    typeof d.updatedAt === "string" &&
     Array.isArray(d.entries)
   );
 }
