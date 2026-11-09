@@ -11,6 +11,7 @@ import {
   Heart,
   ArrowLeftRight,
   X,
+  Plus,
 } from "lucide-react";
 
 // Stores
@@ -329,7 +330,10 @@ export default function DeckDetailPage() {
     }
   };
 
-  const handleSwapOutPicked = (removeCardName: string, removeCardId: string) => {
+  const handleSwapOutPicked = (
+    removeCardName: string,
+    removeCardId: string,
+  ) => {
     if (!swapInCard) return;
     const addCard = swapInCard;
     setPendingSwaps((prev) => [
@@ -490,7 +494,6 @@ export default function DeckDetailPage() {
                   / 100 cards
                 </span>
               </div>
-              {/* Native DaisyUI Progress Bar */}
               <progress
                 className={`progress w-48 ${cardCount === 100 ? "progress-primary" : "progress-neutral"}`}
                 value={cardCount}
@@ -726,7 +729,7 @@ export default function DeckDetailPage() {
                   activeDeck.id,
                 );
                 return (
-                  <>
+                  <div className="flex flex-col w-full gap-2">
                     <button
                       type="button"
                       onClick={() => handleWishlistSuggestion(card)}
@@ -748,7 +751,18 @@ export default function DeckDetailPage() {
                       <ArrowLeftRight size={14} className="shrink-0" />
                       <span className="truncate">Swap in</span>
                     </button>
-                  </>
+                    {cardCount < 100 && (
+                      <button
+                        type="button"
+                        onClick={() => window.alert("AHHH")}
+                        aria-label={`Add ${card.name} to the deck`}
+                        className="btn btn-sm btn-primary flex-1 min-w-0 px-2"
+                      >
+                        <Plus size={14} className="shrink-0" />
+                        <span className="truncate">Add to deck</span>
+                      </button>
+                    )}
+                  </div>
                 );
               }}
             />
@@ -760,14 +774,19 @@ export default function DeckDetailPage() {
             incoming={swapInCard}
             entries={displayDeck.entries}
             swappedOutIds={new Set(pendingSwaps.map((s) => s.removeCardId))}
-            onPick={(entry) => handleSwapOutPicked(entry.card.name, entry.card.id)}
+            onPick={(entry) =>
+              handleSwapOutPicked(entry.card.name, entry.card.id)
+            }
             onClose={() => setSwapInCard(null)}
           />
         )}
 
         {swapNotice && (
           <div className="toast toast-center toast-bottom z-50 w-full max-w-md px-4">
-            <div role="status" className="alert alert-success shadow-lg flex flex-wrap">
+            <div
+              role="status"
+              className="alert alert-success shadow-lg flex flex-wrap"
+            >
               <span className="text-sm flex-1 min-w-0">{swapNotice}</span>
               <button
                 type="button"
