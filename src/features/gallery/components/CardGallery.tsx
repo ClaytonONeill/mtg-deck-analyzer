@@ -37,9 +37,12 @@ import FilterSection, {
   type ActiveFilters,
 } from "@/components/FilterSection/FilterSection";
 import {
+  CARD_ROLES,
+  detectCardRoles,
+} from "@/features/recommendations/utils/deckSignals";
+import {
   UNTAGGED,
   matchesColors,
-  type ColorMode,
 } from "@/components/FilterSection/filterConstants";
 import ThenBySelect from "@/components/ThenBySelect/ThenBySelect";
 
@@ -92,7 +95,10 @@ const EMPTY_GALLERY_FILTERS: GalleryFilters = {
   types: [],
   objectives: [],
   cmc: { min: null, max: null },
+  roles: [],
 };
+
+const ROLE_NAME = Object.fromEntries(CARD_ROLES.map((r) => [r.id, r.name]));
 
 /** Lowercased name + type line + rules text, both faces of DFCs included. */
 function searchText(card: ScryfallCard): string {
@@ -147,10 +153,6 @@ export default function CardGallery({
     NATURAL_DIRECTION.type,
   );
   const [query, setQuery] = useLocalStorage(`gallery-query:${deckId}`, "", "session");
-  const [colorMode, setColorMode] = useLocalStorage<ColorMode>(
-    "gallery-color-mode",
-    "any",
-  );
   const [filters, setFilters] = useLocalStorage(
     `gallery-filters:${deckId}`,
     EMPTY_GALLERY_FILTERS,
@@ -194,7 +196,38 @@ export default function CardGallery({
     );
   }, [entries]);
 
+  // Card Roles are derived from rules text, once per card.
+  const rolesByCard = useMemo(
+    () => new Map(galleryEntries.map((e) => [e.card.id, detectCardRoles(e.card)])),
+    [galleryEntries],
+  );
+
+  // Only roles/objectives that actually occur in this deck are offered as
+  // filters, each with its card count.
+  const roleOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const roles of rolesByCard.values())
+      for (const r of roles) counts.set(r, (counts.get(r) ?? 0) + 1);
+    return CARD_ROLES.filter((r) => counts.has(r.id)).map((r) => ({
+      ...r,
+      count: counts.get(r.id)!,
+    }));
+  }, [rolesByCard]);
+
+  const objectiveCounts = useMemo(() => {
+    const counts: Record<string, number> = { [UNTAGGED]: 0 };
+    for (const e of galleryEntries) {
+      const ids = e.objectiveIds ?? [];
+      if (ids.length === 0) counts[UNTAGGED]++;
+      for (const id of ids) counts[id] = (counts[id] ?? 0) + 1;
+    }
+    return counts;
+  }, [galleryEntries]);
+
+  const activeRoles = useMemo(() => filters.roles ?? [], [filters.roles]);
+
   const filterCount =
+    activeRoles.length +
     filters.colors.length +
     filters.types.length +
     filters.objectives.length +
@@ -204,7 +237,12 @@ export default function CardGallery({
     const q = query.trim().toLowerCase();
     const result = galleryEntries.filter((e) => {
       if (q && !searchText(e.card).includes(q)) return false;
-      if (!matchesColors(e.card.color_identity ?? [], filters.colors, colorMode))
+      if (!matchesColors(e.card.color_identity ?? [], filters.colors))
+        return false;
+      if (
+        activeRoles.length &&
+        !(rolesByCard.get(e.card.id) ?? []).some((r) => activeRoles.includes(r))
+      )
         return false;
       if (filters.types.length && !filters.types.includes(e.category))
         return false;
@@ -221,7 +259,7 @@ export default function CardGallery({
       return true;
     });
     return sortCards(result, sort, thenBy, sortDir, livePrices);
-  }, [galleryEntries, query, filters, colorMode, sort, thenBy, sortDir, livePrices]);
+  }, [galleryEntries, rolesByCard, activeRoles, query, filters, sort, thenBy, sortDir, livePrices]);
 
   const clearAll = () => {
     setFilters(EMPTY_GALLERY_FILTERS);
@@ -395,11 +433,11 @@ export default function CardGallery({
           isOpen={showFilters}
           onToggle={setShowFilters}
           colorIdentity={[...colorIdentity, "C"]}
-          colorMode={colorMode}
-          onColorModeChange={setColorMode}
           cardCategories={CATEGORY_ORDER}
           objectives={objectives}
           allowUntagged
+          objectiveCounts={objectiveCounts}
+          roles={roleOptions}
           cmc={filters.cmc}
           draft={{ ...filters, decks: [] }}
           onChange={(f) =>
@@ -408,6 +446,7 @@ export default function CardGallery({
               types: f.types,
               objectives: f.objectives,
               cmc: f.cmc,
+              roles: f.roles ?? [],
             })
           }
           onClear={() => setFilters(EMPTY_GALLERY_FILTERS)}
@@ -505,6 +544,21 @@ export default function CardGallery({
                     </span>
                   )}
                 </div>
+
+                {/* Card Roles: auto-detected, neutral so they read as facts
+                    about the card, distinct from the user's colored objectives */}
+                {(rolesByCard.get(entry.card.id) ?? []).length > 0 && (
+                  <div className={`${dense ? "hidden sm:flex" : "flex"} flex-wrap gap-1`} aria-label="Card roles">
+                    {rolesByCard.get(entry.card.id)!.map((id) => (
+                      <span
+                        key={id}
+                        className="rounded-md border border-base-content/15 bg-base-200 px-1.5 py-0.5 text-xs md:text-sm text-base-content/70"
+                      >
+                        {ROLE_NAME[id]}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 <div className="flex flex-wrap items-center gap-1.5 min-h-[32px]">
                   {!isSwapped ? (

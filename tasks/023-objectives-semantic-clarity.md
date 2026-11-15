@@ -82,3 +82,18 @@ No files changed until model is decided. Potential scope after decision:
 
 **Implementation approach:** Straight to code, no separate sketch-then-build step — the change was small enough (repurpose an existing dead field + one new UI affordance + one panel relabel) that a design doc would have cost more than it saved.
 
+
+## Amendment (2026-11-15): Card Roles are automatic, Objectives are the user's
+
+Product-owner feedback: hand-tagging generic roles (ramp, draw, removal) through Objectives blurred them with the deck's real themes ("Aristocrats", "Reanimation") and with notes like "Need to Buy". The model is now **three** distinct things:
+
+| Concept | What it is | Where it lives | Who sets it |
+|---|---|---|---|
+| **Strategy** | The deck's 1–2 core plans | `Deck.objectives` | User, on the deck detail page (unchanged) |
+| **Objectives** | User's own per-card tags: themes, notes | `DeckEntry.objectiveIds` → `objectives` table | User, by hand (unchanged data) |
+| **Card Roles** | Premade "what this card does" labels | Derived, never stored | Automatic, from rules text |
+
+- Card Roles = `CARD_ROLES` / `detectCardRoles()` in `features/recommendations/utils/deckSignals.ts`: the four recommendation roles (ramp, draw, removal, wipes — same detection as the builder's stats panel and Suggestions gaps) plus display-only Tutor, Counterspell, Recursion, Protection. Detection is regex over oracle text, so it can miss or over-match; there's no manual override yet (would be a new field on `DeckEntry` inside the existing `entries` jsonb — no schema change — if it's ever wanted).
+- Gallery: roles show as neutral badges on each tile; objectives stay colored pills. The filter panel has separate **Card Roles** and **Objectives** chip groups, each listing only what occurs in this deck, with counts (+ "Untagged").
+- Copy aligned: the simulator panel is "Objectives Encountered" (it tracks `objectiveIds`); the Objectives page explains roles are automatic; the assign menu says "Tag with Objective".
+- No data migration. Existing objectives named like roles ("Ramp") keep working; the user can delete them when they no longer want them.

@@ -1,8 +1,8 @@
 // Types
+import type { ReactNode } from "react";
 import type { CardCategory, Objective } from "@/types";
 
 // Components
-import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 import ManaSymbol from "@/components/ManaSymbol/ManaSymbol";
 
 // Utils
@@ -10,7 +10,6 @@ import {
   MV_BUCKETS,
   MV_TOP,
   UNTAGGED,
-  type ColorMode,
 } from "@/components/FilterSection/filterConstants";
 
 // Icons
@@ -22,19 +21,25 @@ export interface ActiveFilters {
   objectives: string[];
   decks: string[];
   cmc: { min: number | null; max: number | null };
+  /** Card Role ids (see CARD_ROLES). Optional: only the gallery uses it. */
+  roles?: string[];
 }
 
 interface FilterSectionProps {
   isOpen: boolean;
   onToggle: (open: boolean) => void;
   colorIdentity?: string[];
-  /** When given, shows an Any/All toggle for the color filter. */
-  colorMode?: ColorMode;
-  onColorModeChange?: (mode: ColorMode) => void;
   cardCategories?: CardCategory[];
   objectives?: Objective[];
   /** Adds an "Untagged" option (id `UNTAGGED`) to the objectives list. */
   allowUntagged?: boolean;
+  /**
+   * Cards per objective id (and `UNTAGGED`). When given, objectives with no
+   * cards are hidden and each chip shows its count.
+   */
+  objectiveCounts?: Record<string, number>;
+  /** Card Roles present in the cards being filtered, with counts. */
+  roles?: { id: string; name: string; count: number }[];
   decks?: { id: string; name: string }[];
   /** Pass to show the mana value range picker. */
   cmc?: { min: number | null; max: number | null };
@@ -42,6 +47,52 @@ interface FilterSectionProps {
   onChange: (draft: ActiveFilters) => void;
   onClear: () => void;
   filterCount: number;
+}
+
+/**
+ * A toggleable filter chip. `color` (an objective's hex color) tints it the
+ * same way ObjectivePill does; without one it uses theme tokens.
+ */
+function Chip({
+  on,
+  color,
+  count,
+  onClick,
+  children,
+}: {
+  on: boolean;
+  color?: string;
+  count?: number;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  const style = color
+    ? on
+      ? { backgroundColor: color, borderColor: color, color: "#fff" }
+      : { backgroundColor: `${color}1f`, borderColor: `${color}55`, color }
+    : undefined;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      style={style}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold transition-all ${
+        color
+          ? on
+            ? "shadow-sm"
+            : "hover:brightness-125"
+          : on
+            ? "bg-primary text-primary-content border-primary"
+            : "bg-base-200 border-base-300 text-base-content/80 hover:border-primary/50"
+      }`}
+    >
+      {children}
+      {count !== undefined && (
+        <span className="font-mono text-xs md:text-sm opacity-70">{count}</span>
+      )}
+    </button>
+  );
 }
 
 function toggle<T>(arr: T[], val: T): T[] {
@@ -76,11 +127,11 @@ export default function FilterSection({
   isOpen,
   onToggle,
   colorIdentity,
-  colorMode,
-  onColorModeChange,
   cardCategories,
   objectives,
   allowUntagged,
+  objectiveCounts,
+  roles,
   decks,
   cmc,
   draft,
@@ -115,25 +166,14 @@ export default function FilterSection({
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <span className={LABEL}>Color Identity</span>
-                {colorMode && onColorModeChange && (
-                  <div className="join" role="group" aria-label="Color match mode">
-                    {(["any", "all"] as const).map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => onColorModeChange(m)}
-                        aria-pressed={colorMode === m}
-                        title={
-                          m === "any"
-                            ? "Cards with any selected color"
-                            : "Cards with every selected color"
-                        }
-                        className={`join-item btn btn-xs text-xs md:btn-sm md:text-sm capitalize ${colorMode === m ? "btn-primary" : "btn-ghost bg-base-200"}`}
-                      >
-                        {m}
-                      </button>
-                    ))}
-                  </div>
+                {draft.colors.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onChange({ ...draft, colors: [] })}
+                    className="link link-hover text-xs md:text-sm opacity-70"
+                  >
+                    Clear
+                  </button>
                 )}
               </div>
               <div className="flex gap-2 flex-wrap">
@@ -212,46 +252,81 @@ export default function FilterSection({
             </div>
           )}
 
-          {/* Objectives Checklist */}
+          {/* Card Roles: premade, auto-detected */}
+          {roles && roles.length > 0 && (
+            <div className="space-y-3 md:col-span-2 lg:col-span-3">
+              <div className="flex items-baseline gap-2">
+                <span className={LABEL}>Card Roles</span>
+                <span className="text-xs md:text-sm opacity-50">
+                  detected from card text
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {roles.map((r) => {
+                  const on = (draft.roles ?? []).includes(r.id);
+                  return (
+                    <Chip
+                      key={r.id}
+                      on={on}
+                      count={r.count}
+                      onClick={() =>
+                        onChange({ ...draft, roles: toggle(draft.roles ?? [], r.id) })
+                      }
+                    >
+                      {r.name}
+                    </Chip>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Objectives: the user's own strategy tags */}
           {objectives && (
-            <div className="space-y-3">
-              <span className={LABEL}>Objectives</span>
-              <div className="max-h-40 overflow-y-auto space-y-1 bg-base-200/50 p-2 rounded-lg border border-base-300 flex flex-col">
+            <div className="space-y-3 md:col-span-2 lg:col-span-3">
+              <div className="flex items-baseline gap-2">
+                <span className={LABEL}>Objectives</span>
+                <span className="text-xs md:text-sm opacity-50">your tags</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {objectives
+                  .filter((o) => !objectiveCounts || (objectiveCounts[o.id] ?? 0) > 0)
+                  .map((o) => {
+                    const on = draft.objectives.includes(o.id);
+                    return (
+                      <Chip
+                        key={o.id}
+                        on={on}
+                        color={o.color}
+                        count={objectiveCounts?.[o.id]}
+                        onClick={() =>
+                          onChange({ ...draft, objectives: toggle(draft.objectives, o.id) })
+                        }
+                      >
+                        {o.label}
+                      </Chip>
+                    );
+                  })}
                 {allowUntagged && (
-                  <label className="label cursor-pointer justify-start gap-3 py-1 hover:bg-base-300 rounded-md transition-colors px-2">
-                    <input
-                      type="checkbox"
-                      checked={draft.objectives.includes(UNTAGGED)}
-                      onChange={() =>
-                        onChange({
-                          ...draft,
-                          objectives: toggle(draft.objectives, UNTAGGED),
-                        })
-                      }
-                      className="checkbox checkbox-xs checkbox-primary"
-                    />
-                    <span className="text-sm italic opacity-70">Untagged</span>
-                  </label>
-                )}
-                {objectives.map((o) => (
-                  <label
-                    key={o.id}
-                    className="label cursor-pointer justify-start gap-3 py-1 hover:bg-base-300 rounded-md transition-colors px-2"
+                  <Chip
+                    on={draft.objectives.includes(UNTAGGED)}
+                    count={objectiveCounts?.[UNTAGGED]}
+                    onClick={() =>
+                      onChange({
+                        ...draft,
+                        objectives: toggle(draft.objectives, UNTAGGED),
+                      })
+                    }
                   >
-                    <input
-                      type="checkbox"
-                      checked={draft.objectives.includes(o.id)}
-                      onChange={() =>
-                        onChange({
-                          ...draft,
-                          objectives: toggle(draft.objectives, o.id),
-                        })
-                      }
-                      className="checkbox checkbox-xs checkbox-primary"
-                    />
-                    <ObjectivePill objective={o} size="sm" />
-                  </label>
-                ))}
+                    <span className="italic">Untagged</span>
+                  </Chip>
+                )}
+                {objectiveCounts &&
+                  !objectives.some((o) => (objectiveCounts[o.id] ?? 0) > 0) && (
+                    <span className="text-sm opacity-50 italic self-center">
+                      No cards tagged yet.
+                    </span>
+                  )}
               </div>
             </div>
           )}

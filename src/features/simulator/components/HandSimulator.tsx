@@ -550,7 +550,7 @@ export default function HandSimulator({
           <div className="stats bg-transparent p-0">
             <div className="stat pb-0 pt-0">
               <div className="stat-title text-xs uppercase tracking-widest">
-                Card Roles Encountered
+                Objectives Encountered
               </div>
               <div className="stat-desc text-sm text-info">Turn {sim.turn}</div>
             </div>

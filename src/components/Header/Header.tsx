@@ -20,7 +20,7 @@ import { Menu, Sparkles, X } from "lucide-react";
 // Turns one position on hover.
 const WHEEL = ["W", "U", "B", "R", "G"].map((c, i) => {
   const a = ((-90 + 72 * i) * Math.PI) / 180;
-  return { c, x: 16 + 9.4 * Math.cos(a), y: 16 + 9.4 * Math.sin(a) };
+  return { c, x: 16 + 8.6 * Math.cos(a), y: 16 + 8.6 * Math.sin(a) };
 });
 
 function BrandMark() {
@@ -36,7 +36,7 @@ function BrandMark() {
           key={c}
           cx={x}
           cy={y}
-          r="5"
+          r="4.4"
           fill={MANA_HEX[c]}
           stroke="black"
           strokeOpacity="0.35"
