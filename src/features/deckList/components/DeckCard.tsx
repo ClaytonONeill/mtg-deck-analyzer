@@ -3,6 +3,7 @@ import { getDeckCardCount } from '@/store/deckStore';
 
 // Components
 import ColorPip from '@/components/ManaSymbol/ColorPip';
+import ObjectivePill from '@/features/objectives/components/ObjectivePill';
 
 // Types
 import type { Deck, ScryfallCard } from '@/types';
@@ -10,6 +11,7 @@ import type { Deck, ScryfallCard } from '@/types';
 // Utils
 import { getCardImageUris } from '@/utils/cardImage';
 import { manaGradient } from '@/utils/manaColors';
+import { approxDeckValue, timeAgo } from '@/features/deckList/utils/deckLibrary';
 
 // Icons
 import { X } from 'lucide-react';
@@ -36,6 +38,7 @@ export default function DeckCard({
 }: DeckCardProps) {
   const cardCount = getDeckCardCount(deck);
   const complete = cardCount === 100;
+  const value = approxDeckValue(deck);
 
   const art = [deck.commander, deck.partner]
     .map((c) => (c ? { name: c.name, src: bannerImage(c) } : null))
@@ -115,6 +118,32 @@ export default function DeckCard({
             {cardCount}/100
           </span>
         </div>
+
+        {/* Strategy */}
+        {deck.objectives?.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {deck.objectives.map((o) => (
+              <ObjectivePill key={o.id} objective={o} />
+            ))}
+          </div>
+        )}
+
+        {/* Meta */}
+        <p className="text-xs md:text-sm text-base-content/50 flex flex-wrap gap-x-2">
+          <span title={new Date(deck.updatedAt).toLocaleString()}>
+            Edited {timeAgo(deck.updatedAt)}
+          </span>
+          {deck.versions?.length > 0 && (
+            <span>
+              · {deck.versions.length} {deck.versions.length === 1 ? 'version' : 'versions'}
+            </span>
+          )}
+          {value > 0 && (
+            <span title="Approximate, from prices saved when cards were added">
+              · ~${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </span>
+          )}
+        </p>
 
         {/* Actions */}
         <div className="card-actions flex-nowrap mt-auto pt-3">
