@@ -138,7 +138,7 @@ export default function HomePage() {
               </label>
 
               <div className="flex items-center justify-between md:justify-start gap-3 md:contents">
-                <div className="flex items-center gap-1" role="group" aria-label="Filter by color">
+                <div className="flex items-center gap-1.5 md:gap-2.5" role="group" aria-label="Filter by color">
                   {FILTER_COLORS.map((c) => {
                     const on = colors.includes(c);
                     return (
@@ -148,7 +148,7 @@ export default function HomePage() {
                         onClick={() => toggleColor(c)}
                         aria-pressed={on}
                         aria-label={`${c === 'C' ? 'Colorless' : c} decks`}
-                        className={`rounded-full p-0.5 md:p-1 transition-all ${on ? 'bg-primary/25 ring-2 ring-primary scale-110' : 'opacity-40 hover:opacity-90 grayscale-[60%] hover:grayscale-0'}`}
+                        className={`rounded-full p-0.5 md:p-1 transition-all ${on ? 'bg-primary/25 ring-2 ring-primary md:scale-110' : 'opacity-40 hover:opacity-90 grayscale-[60%] hover:grayscale-0'}`}
                       >
                         <ManaSymbol symbol={c} size={20} />
                       </button>
