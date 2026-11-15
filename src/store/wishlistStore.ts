@@ -57,7 +57,7 @@ export const wishlistStore = {
 
     const { error } = await supabase.from("wishlist_entries").insert(entry);
 
-    if (error) console.error("wishlistStore.add error:", error);
+    if (error) throw new Error(`wishlistStore.add: ${error.message}`, { cause: error });
 
     return {
       id: entry.id,
@@ -75,7 +75,7 @@ export const wishlistStore = {
       .delete()
       .eq("id", entryId);
 
-    if (error) console.error("wishlistStore.remove error:", error);
+    if (error) throw new Error(`wishlistStore.remove: ${error.message}`, { cause: error });
   },
 
   async tagDeck(entryId: string, deckId: string): Promise<void> {
@@ -85,7 +85,8 @@ export const wishlistStore = {
       .eq("id", entryId)
       .single();
 
-    if (fetchError || !data) return;
+    if (fetchError) throw new Error(`wishlistStore: ${fetchError.message}`, { cause: fetchError });
+    if (!data) return;
 
     const current = (data.deck_ids as string[]) ?? [];
     if (current.includes(deckId)) return;
@@ -95,7 +96,7 @@ export const wishlistStore = {
       .update({ deck_ids: [...current, deckId] })
       .eq("id", entryId);
 
-    if (error) console.error("wishlistStore.tagDeck error:", error);
+    if (error) throw new Error(`wishlistStore.tagDeck: ${error.message}`, { cause: error });
   },
 
   async untagDeck(entryId: string, deckId: string): Promise<void> {
@@ -105,7 +106,8 @@ export const wishlistStore = {
       .eq("id", entryId)
       .single();
 
-    if (fetchError || !data) return;
+    if (fetchError) throw new Error(`wishlistStore: ${fetchError.message}`, { cause: fetchError });
+    if (!data) return;
 
     const current = (data.deck_ids as string[]) ?? [];
 
@@ -114,7 +116,7 @@ export const wishlistStore = {
       .update({ deck_ids: current.filter((id) => id !== deckId) })
       .eq("id", entryId);
 
-    if (error) console.error("wishlistStore.untagDeck error:", error);
+    if (error) throw new Error(`wishlistStore.untagDeck: ${error.message}`, { cause: error });
   },
 
   async updateNote(entryId: string, note: string): Promise<void> {
@@ -123,7 +125,7 @@ export const wishlistStore = {
       .update({ note })
       .eq("id", entryId);
 
-    if (error) console.error("wishlistStore.updateNote error:", error);
+    if (error) throw new Error(`wishlistStore.updateNote: ${error.message}`, { cause: error });
   },
 
   async updateObjectives(
@@ -135,7 +137,7 @@ export const wishlistStore = {
       .update({ objectives })
       .eq("id", entryId);
 
-    if (error) console.error("wishlistStore.updateObjectives error:", error);
+    if (error) throw new Error(`wishlistStore.updateObjectives: ${error.message}`, { cause: error });
   },
 
   async addObjective(entryId: string, objective: Objective): Promise<void> {
@@ -145,7 +147,8 @@ export const wishlistStore = {
       .eq("id", entryId)
       .single();
 
-    if (fetchError || !data) return;
+    if (fetchError) throw new Error(`wishlistStore: ${fetchError.message}`, { cause: fetchError });
+    if (!data) return;
 
     const current = (data.objectives as Objective[]) ?? [];
     if (current.find((o) => o.id === objective.id)) return;
@@ -155,7 +158,7 @@ export const wishlistStore = {
       .update({ objectives: [...current, objective] })
       .eq("id", entryId);
 
-    if (error) console.error("wishlistStore.addObjective error:", error);
+    if (error) throw new Error(`wishlistStore.addObjective: ${error.message}`, { cause: error });
   },
 
   async removeObjective(entryId: string, objectiveId: string): Promise<void> {
@@ -165,7 +168,8 @@ export const wishlistStore = {
       .eq("id", entryId)
       .single();
 
-    if (fetchError || !data) return;
+    if (fetchError) throw new Error(`wishlistStore: ${fetchError.message}`, { cause: fetchError });
+    if (!data) return;
 
     const current = (data.objectives as Objective[]) ?? [];
 
@@ -174,7 +178,7 @@ export const wishlistStore = {
       .update({ objectives: current.filter((o) => o.id !== objectiveId) })
       .eq("id", entryId);
 
-    if (error) console.error("wishlistStore.removeObjective error:", error);
+    if (error) throw new Error(`wishlistStore.removeObjective: ${error.message}`, { cause: error });
   },
 
   async getForDeck(deckId: string): Promise<WishlistEntry[]> {

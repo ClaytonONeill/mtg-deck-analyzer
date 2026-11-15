@@ -12,7 +12,7 @@ interface ThemeDropdownProps {
 const ThemePips = ({ theme }: { theme: string }) => (
   <div
     data-theme={theme}
-    className="grid grid-cols-2 gap-1 bg-base p-1 border border-base-content/20 rounded-md"
+    className="grid grid-cols-2 gap-1 shrink-0 bg-base-100 p-1 border border-base-content/20 rounded-md"
   >
     {["bg-primary", "bg-secondary", "bg-accent", "bg-neutral"].map((color) => (
       <div key={color} className={`${color} w-2 h-2 rounded-full`} />
@@ -24,7 +24,10 @@ export default function ThemeDropdown({
   theme,
   onThemeChange,
 }: ThemeDropdownProps) {
+  // The two signature themes (defined in index.css) lead the list.
   const THEMES = [
+    "arcane",
+    "grimoire",
     "dark",
     "light",
     "emerald",
@@ -44,14 +47,14 @@ export default function ThemeDropdown({
   ];
 
   return (
-    <div className="dropdown dropdown-end ml-1">
-      <div tabIndex={0} role="button" className="btn btn-md btn-ghost gap-2">
+    <div className="dropdown dropdown-end shrink-0">
+      <div tabIndex={0} role="button" aria-label="Choose theme" className="btn btn-sm md:btn-md btn-ghost gap-2 px-2 md:px-3 flex-nowrap">
         <ThemePips theme={theme} />
-        <ChevronDown className="hidden md:flex" />
+        <ChevronDown className="hidden md:block shrink-0" size={16} />
       </div>
       <ul
         tabIndex={-1}
-        className="dropdown-content bg-base-300 rounded-box z-50 w-52 p-2 shadow-2xl max-h-80 overflow-y-auto"
+        className="dropdown-content bg-base-300 rounded-box w-52 max-w-[calc(100vw-2rem)] p-2 shadow-2xl max-h-80 overflow-y-auto"
       >
         {THEMES.map((t) => (
           <li key={t}>

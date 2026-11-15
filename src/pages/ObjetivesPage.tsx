@@ -18,7 +18,7 @@ export default function ObjectivesPage() {
             Objectives
           </h1>
           <p className="text-base-content/60 font-medium">
-            Define and track the strategic pillars of your deck.
+            Your own tags for what a card does in your plan: themes like Aristocrats or Reanimation, or notes like Need to Buy. Generic roles (Ramp, Card Draw, Removal…) are detected automatically, so you don't need objectives for those.
           </p>
         </div>
       </div>

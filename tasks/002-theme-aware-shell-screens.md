@@ -26,10 +26,10 @@ Note: `App.tsx`'s loading screen renders *before* `ThemeProvider` mounts (auth l
 
 ## Acceptance Criteria
 
-- [ ] `App.tsx`'s loading screen uses daisyUI tokens (e.g. `bg-base-100`/`text-base-content`) instead of hardcoded slate colors.
-- [ ] `ErrorBoundary`'s fallback screen uses daisyUI tokens throughout (background, text, borders, the "Take me home" button as `btn btn-primary`, the "Try again" button as `btn btn-outline` or similar).
+- [x] `App.tsx`'s loading screen uses daisyUI tokens (e.g. `bg-base-100`/`text-base-content`) instead of hardcoded slate colors.
+- [x] `ErrorBoundary`'s fallback screen uses daisyUI tokens throughout (background, text, borders, the "Take me home" button as `btn btn-primary`, the "Try again" button as `btn btn-outline` or similar).
 - [ ] Confirm in the browser, with at least two different themes selected (e.g. `dark` and `light` or `forest`), that both screens visually match the rest of the app in that theme. (Trigger the error boundary manually, e.g. by temporarily throwing in a component, to check it — don't ship a permanent way to trigger it.)
-- [ ] No visual regression to `App.tsx`'s loading screen appearing correctly before a theme is established (first-ever visit, no `localStorage` value yet).
+- [x] No visual regression to `App.tsx`'s loading screen appearing correctly before a theme is established (first-ever visit, no `localStorage` value yet).
 
 ## Files / Areas Touched
 
@@ -40,3 +40,7 @@ Note: `App.tsx`'s loading screen renders *before* `ThemeProvider` mounts (auth l
 
 - Wiring `ErrorBoundary` up to an external logger (there's already a `// Safe to wire up to an external logger here later e.g. Sentry` comment — that's a separate, deliberate future task, not part of this one).
 - Any other screen — this task is scoped to just these two.
+
+## Status (2026-11-15)
+
+Code-complete; in-browser check across two themes still open. Resolved the "renders before ThemeProvider" question by applying the saved theme from an inline pre-paint script in `index.html` (mirrors `resolveInitialTheme()` in `ThemeContext.tsx`), so the auth-loading screen *and* `LoginPage` are themed on first paint. Landed alongside the Arcane/Grimoire signature themes.

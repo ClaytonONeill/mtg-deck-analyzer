@@ -11,6 +11,9 @@ export interface ScryfallImageUris {
   small: string;
   normal: string;
   large: string;
+  // Artwork only, no frame (626x457). Present on Scryfall data; optional so
+  // hand-built cards (basic lands) needn't supply it.
+  art_crop?: string;
 }
 
 // One face of a multi-faced card (transform, modal DFC, flip, split, adventure).
@@ -118,6 +121,8 @@ export interface PendingSwap {
 }
 
 export type Theme =
+  | "arcane"
+  | "grimoire"
   | "dark"
   | "light"
   | "emerald"

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 
 // Hooks
 import { useCardSearch } from '@/features/deckBuilder/hooks/useCardSearch';
+import { useCardHoverPreview } from '@/hooks/useCardHoverPreview';
 
 // Components
 import CardPrice from '@/components/CardPrice/CardPrice';
@@ -35,11 +36,15 @@ export default function CardSearchPanel({
   const listRef = useRef<HTMLUListElement>(null);
 
   const { results, loading, error, search, searchNow, clear } = useCardSearch();
+  const { previewProps, hidePreview, preview } = useCardHoverPreview();
 
+  // Rows unmount without firing mouseleave, so any path that empties the
+  // results list must drop the preview itself.
   const closeDropdown = useCallback(() => {
     clear();
+    hidePreview();
     setActiveIndex(-1);
-  }, [clear]);
+  }, [clear, hidePreview]);
 
   // Click Outside
   useEffect(() => {
@@ -84,11 +89,10 @@ export default function CardSearchPanel({
     (card: ScryfallCard) => {
       onSelectCard(card);
       setQuery('');
-      setActiveIndex(-1);
-      clear();
+      closeDropdown();
       inputRef.current?.focus();
     },
-    [onSelectCard, clear],
+    [onSelectCard, closeDropdown],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -155,7 +159,7 @@ export default function CardSearchPanel({
           className="absolute left-0 right-0 z-100 mt-1 flex flex-col flex-nowrap max-h-100 overflow-y-auto overflow-x-hidden menu bg-base-100 rounded-box border border-base-300 shadow-2xl p-2 w-full"
         >
           {results.map((card, index) => (
-            <li key={card.id} className="w-full block">
+            <li key={card.id} className="w-full block" {...previewProps(card)}>
               <button
                 type="button"
                 onClick={() => handleSelect(card)}
@@ -201,6 +205,7 @@ export default function CardSearchPanel({
           ))}
         </ul>
       )}
+      {preview}
     </div>
   );
 }

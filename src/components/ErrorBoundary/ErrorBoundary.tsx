@@ -38,10 +38,12 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-base-100 flex items-center justify-center px-6">
+        <div className="min-h-screen bg-base-100 page-glow text-base-content flex items-center justify-center px-6">
           <div className="flex flex-col items-center gap-6 text-center max-w-md">
             <div className="flex flex-col gap-2">
-              <h1 className="text-2xl font-bold">Something went wrong</h1>
+              <h1 className="font-display text-2xl font-bold tracking-wide">
+                The spell fizzled
+              </h1>
               <p className="text-sm leading-relaxed">
                 The page ran into an unexpected error and could not recover.
                 Your decks are safe — this is a display issue only.
@@ -50,10 +52,10 @@ export default class ErrorBoundary extends Component<Props, State> {
 
             {this.state.errorMessage && (
               <details className="w-full text-left">
-                <summary className="text-xs cursor-pointer hover:text-base-content transition-colors">
+                <summary className="text-xs md:text-sm cursor-pointer text-base-content/60 hover:text-base-content transition-colors">
                   Error details
                 </summary>
-                <p className="mt-2 text-xs text-error bg-base-100 border border-base-800 rounded-lg px-3 py-2 font-mono break-all">
+                <p className="mt-2 text-xs md:text-sm text-error bg-base-200 border border-base-300 rounded-lg px-3 py-2 font-mono break-all">
                   {this.state.errorMessage}
                 </p>
               </details>
@@ -72,7 +74,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                   this.handleReset();
                   window.location.reload();
                 }}
-                className="btn btn-md btn-secondary font-semibold"
+                className="btn btn-md btn-outline font-semibold"
               >
                 Try again
               </button>

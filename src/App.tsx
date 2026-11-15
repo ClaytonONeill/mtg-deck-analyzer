@@ -22,8 +22,13 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <p className="text-slate-400">Loading...</p>
+      // Rendered above ThemeProvider, but index.html applies the saved theme
+      // before first paint, so these tokens are already themed.
+      <div className="min-h-screen bg-base-100 page-glow flex flex-col gap-4 items-center justify-center">
+        <span className="loading loading-ring loading-lg text-primary" />
+        <p className="text-base-content/60 text-sm font-medium tracking-widest uppercase">
+          Shuffling up...
+        </p>
       </div>
     );
   }

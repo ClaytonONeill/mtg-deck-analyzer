@@ -288,19 +288,7 @@ function detect(input: RecInput): Detected {
     fromCommander: pattern.test.test(commanderText),
   }));
 
-  // Roles count only the 99 (not commanders), and ramp ignores lands.
-  const roles = ROLES.map((pattern) => ({
-    pattern,
-    count: input.entries.reduce(
-      (sum, e) =>
-        sum +
-        (pattern.test.test(cardText(e.card)) &&
-        !(pattern.id === "ramp" && isLand(e.card))
-          ? e.quantity
-          : 0),
-      0,
-    ),
-  }));
+  const roles = countRoles(input.entries);
 
   const typeCounts = new Map<string, number>();
   let creatureCount = 0;
@@ -453,6 +441,78 @@ const PRIMARY_TYPES = [
 export function primaryType(card: ScryfallCard): string | undefined {
   const line = frontTypeLine(card);
   return PRIMARY_TYPES.find((t) => line.includes(t));
+}
+
+// Roles count only the 99 (not commanders), and ramp ignores lands.
+function countRoles(entries: DeckEntry[]) {
+  return ROLES.map((pattern) => ({
+    pattern,
+    count: entries.reduce(
+      (sum, e) =>
+        sum +
+        (pattern.test.test(cardText(e.card)) &&
+        !(pattern.id === "ramp" && isLand(e.card))
+          ? e.quantity
+          : 0),
+      0,
+    ),
+  }));
+}
+
+/**
+ * How many of the 99 fill each staple role, against its rough target. Same
+ * detection the suggestions engine uses for its "gaps", so the deck builder's
+ * stats and the Suggestions tab always agree.
+ */
+export function roleCounts(entries: DeckEntry[]) {
+  return countRoles(entries).map((r) => ({
+    id: r.pattern.id,
+    name: r.pattern.name,
+    count: r.count,
+    target: r.pattern.target,
+  }));
+}
+
+// Extra roles shown to the user (gallery badges and filters) but not used as
+// recommendation targets — useful to know, not something every deck needs a
+// fixed number of.
+const DISPLAY_ONLY_ROLES: { id: string; name: string; test: RegExp }[] = [
+  {
+    id: "tutor",
+    name: "Tutor",
+    // Library searches for anything but lands (land searches are ramp).
+    test: /search your library for (a|an|up to (one|two|three)) (?!(basic )?lands?\b|basic )[^.]*card/,
+  },
+  { id: "counter", name: "Counterspell", test: /counter target [^.]*spell/ },
+  {
+    id: "recursion",
+    name: "Recursion",
+    test: /return [^.]*from (your|a) graveyard to (the battlefield|your hand)/,
+  },
+  {
+    id: "protection",
+    name: "Protection",
+    test: /(creatures|permanents) you control (gain|have) [^.]*(hexproof|indestructible|shroud|protection)|target (creature|permanent) you control gains [^.]*(hexproof|indestructible|shroud|protection)/,
+  },
+];
+
+/**
+ * Card Roles: the premade, automatically detected "what this card does"
+ * labels (ramp, draw, removal…), as opposed to Objectives, which are the
+ * user's own strategy tags. Detected from rules text, so never stored.
+ */
+export const CARD_ROLES: { id: string; name: string }[] = [
+  ...ROLES.map((r) => ({ id: r.id, name: r.name })),
+  ...DISPLAY_ONLY_ROLES.map((r) => ({ id: r.id, name: r.name })),
+];
+
+/** Ids of every Card Role (see `CARD_ROLES`) a card fills. */
+export function detectCardRoles(card: ScryfallCard): string[] {
+  const text = cardText(card);
+  return [
+    ...cardRoles(card),
+    ...DISPLAY_ONLY_ROLES.filter((r) => r.test.test(text)).map((r) => r.id),
+  ];
 }
 
 /** Ids of the staple roles (ramp, draw, removal, wipe) a card fills. */

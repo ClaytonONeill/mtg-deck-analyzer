@@ -4,9 +4,6 @@ import { useCallback, useMemo } from 'react';
 // Types
 import type { Deck, DeckVersion, ScryfallCard } from '@/types';
 
-// Store
-import { deckStore } from '@/store/deckStore';
-
 // Utils
 import { applyVersionToDeck } from '@/features/deckVersions/utils/versionUtils';
 
@@ -15,6 +12,11 @@ interface PendingSwap {
   addCard: ScryfallCard;
 }
 
+/**
+ * Version create/edit/delete/promote. Pure: each mutator builds the updated
+ * deck and hands it to `onDeckChange`, which owns persistence (see
+ * `useGallery` for why the hooks don't save directly).
+ */
 export function useDeckVersions(
   deck: Deck,
   onDeckChange: (deck: Deck) => void,
@@ -54,9 +56,6 @@ export function useDeckVersions(
         updatedAt: new Date().toISOString(),
       };
       onDeckChange(updated);
-      void deckStore.save(updated).catch(() => {
-        onDeckChange(safeDeck);
-      });
       return newVersion.id;
     },
     [safeDeck, onDeckChange],
@@ -69,7 +68,6 @@ export function useDeckVersions(
         versions: safeDeck.versions.filter((v) => v.id !== versionId),
         updatedAt: new Date().toISOString(),
       };
-      deckStore.save(updated);
       onDeckChange(updated);
     },
     [safeDeck, onDeckChange],
@@ -86,7 +84,6 @@ export function useDeckVersions(
         ),
         updatedAt: new Date().toISOString(),
       };
-      deckStore.save(updated);
       onDeckChange(updated);
     },
     [safeDeck, onDeckChange],
@@ -114,7 +111,6 @@ export function useDeckVersions(
         }),
         updatedAt: new Date().toISOString(),
       };
-      deckStore.save(updated);
       onDeckChange(updated);
     },
     [safeDeck, onDeckChange],
@@ -143,7 +139,6 @@ export function useDeckVersions(
         }),
         updatedAt: new Date().toISOString(),
       };
-      deckStore.save(updated);
       onDeckChange(updated);
     },
     [safeDeck, onDeckChange],
@@ -165,9 +160,6 @@ export function useDeckVersions(
         updatedAt: new Date().toISOString(),
       };
       onDeckChange(updated);
-      void deckStore.save(updated).catch(() => {
-        onDeckChange(safeDeck);
-      });
     },
     [safeDeck, onDeckChange],
   );
@@ -187,9 +179,6 @@ export function useDeckVersions(
         updatedAt: new Date().toISOString(),
       };
       onDeckChange(updated);
-      void deckStore.save(updated).catch(() => {
-        onDeckChange(safeDeck);
-      });
     },
     [safeDeck, onDeckChange],
   );
