@@ -1,5 +1,8 @@
 // Modules
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+
+// Hooks
+import { useDeckAutosave } from '@/hooks/useDeckAutosave';
 
 // Store
 import {
@@ -29,6 +32,14 @@ export function useDeckBuilder(deckId?: string) {
   const [colorWarning, setColorWarning] = useState<string | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [partnerWarning, setPartnerWarning] = useState<string | null>(null);
+  const { status: saveStatus, save, retry: retrySave } = useDeckAutosave();
+
+  // Latest committed deck, so card mutations can validate against it and
+  // hand the exact same snapshot to both React state and the autosave.
+  const deckRef = useRef(deck);
+  useEffect(() => {
+    deckRef.current = deck;
+  }, [deck]);
 
   useEffect(() => {
     if (!deckId) return;
@@ -74,33 +85,49 @@ export function useDeckBuilder(deckId?: string) {
     setPartnerWarning(null);
   }, []);
 
-  const addCard = useCallback((card: ScryfallCard) => {
-    setDeck((d) => {
+  /** Applies a card add/remove and autosaves it, so backing out of the
+   * builder never loses cards. An unnamed new deck has nothing to save
+   * under yet; its cards are written once it has a name. */
+  const commitCards = useCallback(
+    (next: Deck) => {
+      deckRef.current = next;
+      setDeck(next);
+      if (next.name.trim()) void save(next);
+    },
+    [save],
+  );
+
+  const addCard = useCallback(
+    (card: ScryfallCard) => {
+      const d = deckRef.current;
       if (!isCardLegalForDeck(d.colorIdentity, card)) {
         setColorWarning(
           `${card.name} is outside your commander's color identity and cannot be added.`,
         );
-        return d;
+        return;
       }
       if (duplicateCardInDeck(d, card)) {
         setDuplicateWarning(`${card.name} is already in your deck.`);
-        return d;
+        return;
       }
       setColorWarning(null);
       setDuplicateWarning(null);
-      return addCardToDeck(d, card);
-    });
-  }, []);
+      commitCards(addCardToDeck(d, card));
+    },
+    [commitCards],
+  );
 
-  const removeCard = useCallback((cardId: string) => {
-    setDeck((d) => removeCardFromDeck(d, cardId));
-  }, []);
+  const removeCard = useCallback(
+    (cardId: string) => {
+      commitCards(removeCardFromDeck(deckRef.current, cardId));
+    },
+    [commitCards],
+  );
 
   const saveDeck = useCallback(async () => {
     if (!deck.name.trim()) return false;
-    await deckStore.save(deck);
-    return true;
-  }, [deck]);
+    return save(deck);
+  }, [deck, save]);
 
   const clearColorWarning = useCallback(() => setColorWarning(null), []);
   const clearPartnerWarning = useCallback(() => setPartnerWarning(null), []);
@@ -123,8 +150,10 @@ export function useDeckBuilder(deckId?: string) {
 
   return {
     deck,
-    setDeck,
+    commitCards,
     loading,
+    saveStatus,
+    retrySave,
     colorWarning,
     partnerWarning,
     commanderHasPartner,

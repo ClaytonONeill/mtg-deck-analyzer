@@ -38,8 +38,10 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
 
   const {
     deck,
-    setDeck,
+    commitCards,
     loading,
+    saveStatus,
+    retrySave,
     colorWarning,
     partnerWarning,
     commanderHasPartner,
@@ -79,7 +81,31 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
     <PageShell tone="recessed">
       {/* Navbar */}
       <header className="navbar bg-base-100 px-6 border-b border-base-content/10 sticky z-5 top-0 shadow-sm">
-        <div className="flex h-min gap-3 justify-end w-full">
+        <div className="flex h-min gap-3 justify-end items-center w-full">
+          <span
+            role="status"
+            className={`text-xs md:text-sm mr-auto ${saveStatus === "error" ? "text-error" : "text-base-content/60"}`}
+          >
+            {!deck.name.trim() && deck.entries.length > 0
+              ? "Name your deck to autosave cards"
+              : saveStatus === "saving"
+                ? "Saving..."
+                : saveStatus === "saved"
+                  ? "All changes saved"
+                  : null}
+            {saveStatus === "error" && (
+              <>
+                Couldn't save your last change.{" "}
+                <button
+                  type="button"
+                  onClick={() => void retrySave()}
+                  className="link font-semibold"
+                >
+                  Retry
+                </button>
+              </>
+            )}
+          </span>
           {!deckId && (
             <ImportDeckButton
               onImported={(deck: Deck) => navigate(`/deck/${deck.id}`)}
@@ -245,7 +271,7 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
 
               <BasicLandsPanel
                 deck={deck}
-                onDeckChange={setDeck}
+                onDeckChange={commitCards}
                 disabled={MAX_CARD_COUNT_REACHED}
               />
             </section>
@@ -303,7 +329,7 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
               )}
 
               <div className="max-h-[60vh] overflow-y-auto custom-scrollbar">
-                <DeckEntryList deck={deck} onDeckChange={setDeck} />
+                <DeckEntryList deck={deck} onDeckChange={commitCards} />
               </div>
             </div>
           </div>
