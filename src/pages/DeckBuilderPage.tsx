@@ -16,6 +16,7 @@ import CardSearchPanel from '@/features/deckBuilder/components/CardSearchPanel';
 import CardPrice from '@/components/CardPrice/CardPrice';
 import BasicLandsPanel from '@/features/deckBuilder/components/BasicLandsPanel';
 import DeckEntryList from '@/features/deckBuilder/components/DeckEntryList';
+import DeckStatsPanel from '@/features/deckBuilder/components/DeckStatsPanel';
 import ColorPip from '@/components/ManaSymbol/ColorPip';
 import ImportDeckButton from '@/components/ImportDeckButton/ImportDeckButton';
 import PageShell from '@/components/PageShell/PageShell';
@@ -291,36 +292,20 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
         </div>
 
         {/* Sidebar Deck List */}
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-24 h-fit">
-          <div className="stats shadow bg-base-100 border border-base-content/10">
-            <div className="stat">
-              <div className="stat-title uppercase text-xs md:text-sm font-black tracking-widest">
-                Deck Capacity
-              </div>
-              <div
-                className={`stat-value text-3xl ${cardCount === 100 ? 'text-primary' : ''}`}
-              >
-                {cardCount}
-                <span className="text-base-content/20 mx-1">/</span>100
-              </div>
-              <div className="stat-desc mt-2">
-                <progress
-                  className={`progress w-full ${cardCount === 100 ? 'progress-primary' : 'progress-secondary'}`}
-                  value={cardCount}
-                  max="100"
-                ></progress>
-              </div>
-            </div>
-          </div>
+        {/* On desktop the sidebar is exactly viewport-high (minus the sticky
+            navbar): the stats panel takes what it needs and the decklist gets
+            the rest, scrolling internally, so nothing is cut off. */}
+        <aside className="flex flex-col gap-4 h-fit lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)]">
+          <DeckStatsPanel deck={deck} />
 
-          <div className="card bg-base-100 border border-base-content/10 overflow-hidden">
+          <div className="card bg-base-100 border border-base-content/10 overflow-hidden lg:flex-1 lg:min-h-0">
             <div className="p-4 bg-base-200/50 border-b border-base-content/5 flex justify-between items-center">
               <h2 className="text-sm font-black uppercase tracking-widest opacity-60">
                 Current Decklist
               </h2>
             </div>
 
-            <div className="p-2 space-y-1">
+            <div className="p-2 space-y-1 lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
               {deck.commander && (
                 <div className="flex flex-col gap-1 mb-4">
                   {[deck.commander, deck.partner].map(
@@ -341,7 +326,7 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
                 </div>
               )}
 
-              <div className="max-h-[60vh] overflow-y-auto custom-scrollbar">
+              <div className="max-h-[60vh] lg:max-h-none lg:flex-1 lg:min-h-0 overflow-y-auto custom-scrollbar">
                 <DeckEntryList deck={deck} onDeckChange={commitCards} />
               </div>
             </div>

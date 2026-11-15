@@ -288,19 +288,7 @@ function detect(input: RecInput): Detected {
     fromCommander: pattern.test.test(commanderText),
   }));
 
-  // Roles count only the 99 (not commanders), and ramp ignores lands.
-  const roles = ROLES.map((pattern) => ({
-    pattern,
-    count: input.entries.reduce(
-      (sum, e) =>
-        sum +
-        (pattern.test.test(cardText(e.card)) &&
-        !(pattern.id === "ramp" && isLand(e.card))
-          ? e.quantity
-          : 0),
-      0,
-    ),
-  }));
+  const roles = countRoles(input.entries);
 
   const typeCounts = new Map<string, number>();
   let creatureCount = 0;
@@ -453,6 +441,36 @@ const PRIMARY_TYPES = [
 export function primaryType(card: ScryfallCard): string | undefined {
   const line = frontTypeLine(card);
   return PRIMARY_TYPES.find((t) => line.includes(t));
+}
+
+// Roles count only the 99 (not commanders), and ramp ignores lands.
+function countRoles(entries: DeckEntry[]) {
+  return ROLES.map((pattern) => ({
+    pattern,
+    count: entries.reduce(
+      (sum, e) =>
+        sum +
+        (pattern.test.test(cardText(e.card)) &&
+        !(pattern.id === "ramp" && isLand(e.card))
+          ? e.quantity
+          : 0),
+      0,
+    ),
+  }));
+}
+
+/**
+ * How many of the 99 fill each staple role, against its rough target. Same
+ * detection the suggestions engine uses for its "gaps", so the deck builder's
+ * stats and the Suggestions tab always agree.
+ */
+export function roleCounts(entries: DeckEntry[]) {
+  return countRoles(entries).map((r) => ({
+    id: r.pattern.id,
+    name: r.pattern.name,
+    count: r.count,
+    target: r.pattern.target,
+  }));
 }
 
 /** Ids of the staple roles (ramp, draw, removal, wipe) a card fills. */
