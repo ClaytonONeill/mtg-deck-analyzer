@@ -125,8 +125,8 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
-        <div className="flex flex-col gap-10">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-8">
+        <div className="flex flex-col gap-10 min-w-0 lg:col-start-1">
           {/* Deck Header Info */}
           <section className="space-y-6">
             <div className="form-control w-full">
@@ -291,47 +291,20 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
           )}
         </div>
 
-        {/* Sidebar Deck List */}
-        {/* On desktop the sidebar is exactly viewport-high (minus the sticky
-            navbar): the stats panel takes what it needs and the decklist gets
-            the rest, scrolling internally, so nothing is cut off. */}
-        <aside className="flex flex-col gap-4 h-fit lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)]">
-          <DeckStatsPanel deck={deck} />
-
-          <div className="card bg-base-100 border border-base-content/10 overflow-hidden lg:flex-1 lg:min-h-0">
-            <div className="p-4 bg-base-200/50 border-b border-base-content/5 flex justify-between items-center">
-              <h2 className="text-sm font-black uppercase tracking-widest opacity-60">
-                Current Decklist
-              </h2>
-            </div>
-
-            <div className="p-2 space-y-1 lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
-              {deck.commander && (
-                <div className="flex flex-col gap-1 mb-4">
-                  {[deck.commander, deck.partner].map(
-                    (cmd) =>
-                      cmd && (
-                        <div
-                          key={cmd.id}
-                          {...previewProps(cmd)}
-                          className="badge badge-primary badge-lg w-full justify-start gap-2 h-auto py-2 rounded-md cursor-default"
-                        >
-                          <span className="text-xs font-black opacity-70">CMD</span>
-                          <span className="text-sm truncate font-bold">
-                            {cmd.name}
-                          </span>
-                        </div>
-                      ),
-                  )}
-                </div>
-              )}
-
-              <div className="max-h-[60vh] lg:max-h-none lg:flex-1 lg:min-h-0 overflow-y-auto custom-scrollbar">
-                <DeckEntryList deck={deck} onDeckChange={commitCards} />
-              </div>
-            </div>
+        {/* Stats: second on phones (above the decklist), a sticky right-hand
+            column spanning both rows on desktop. */}
+        <aside className="lg:col-start-2 lg:row-start-1 lg:row-span-2">
+          <div className="lg:sticky lg:top-24">
+            <DeckStatsPanel deck={deck} />
           </div>
         </aside>
+
+        {/* Decklist: fills the main column under the builder controls. */}
+        {deck.commander && (
+          <div className="min-w-0 lg:col-start-1">
+            <DeckEntryList deck={deck} onDeckChange={commitCards} />
+          </div>
+        )}
       </div>
       {preview}
     </PageShell>

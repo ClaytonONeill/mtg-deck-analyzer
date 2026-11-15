@@ -13,7 +13,7 @@ import { roleCounts } from "@/features/recommendations/utils/deckSignals";
 import { getCardPriceValue } from "@/utils/priceUtils";
 
 // Types
-import type { Deck } from "@/types";
+import type { Deck, ScryfallCard } from "@/types";
 
 // Icons
 import { Check, ChevronDown } from "lucide-react";
@@ -72,9 +72,13 @@ export default function DeckStatsPanel({ deck }: DeckStatsPanelProps) {
   const price = useMemo(() => {
     let total = 0;
     let unpriced = 0;
-    const add = (card: Parameters<typeof getCardPriceValue>[0], qty: number) => {
+    const add = (card: ScryfallCard, qty: number) => {
       const v = getCardPriceValue(card, livePrices);
-      if (v === null) unpriced += qty;
+      // Basic lands are hand-built with no price data and cost next to
+      // nothing, so they don't count as "unpriced".
+      if (v === null) {
+        if (!card.type_line?.startsWith("Basic Land")) unpriced += qty;
+      }
       else total += v * qty;
     };
     if (deck.commander) add(deck.commander, 1);
