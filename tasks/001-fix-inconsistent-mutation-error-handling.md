@@ -48,7 +48,7 @@ The hooks that get this right today — `src/hooks/useWishlist.ts` and `src/hook
 
 ## Subtasks
 
-- [ ] Audit and fix `deckStore.save`, `deckStore.delete` (already throws — keep), `deckStore` is otherwise fine to leave `getAll`/`getById` as-is (read paths already degrade to `[]`/`undefined`, which is an acceptable, separate convention — don't change read-path error handling as part of this task).
+- [x] Audit and fix `deckStore.save`, `deckStore.delete` (done with the suggestions quick-add work: `save` now throws on `{ error }` and on a missing user. Deck-builder card edits, Suggestions quick add, and the detail page's strategy objectives save through `src/hooks/useDeckAutosave.ts`, a serialized queue that keeps local changes and shows Retry on failure. `useGallery`'s and `appendToVersion`'s rollbacks now fire. `useDeckVersions`' uncaught saves now surface as unhandled rejections; the hook items below are still open.) (already throws — keep), `deckStore` is otherwise fine to leave `getAll`/`getById` as-is (read paths already degrade to `[]`/`undefined`, which is an acceptable, separate convention — don't change read-path error handling as part of this task).
 - [ ] Audit and fix all mutating methods in `wishlistStore.ts` to throw on `{ error }`.
 - [ ] Fix `objectivesStore.deleteObjective` to throw like its siblings do.
 - [ ] Fix `useDeckVersions.ts`: `saveAsVersion`, `deleteVersion`, `updateVersion`, `assignObjectiveToVersion`, `unassignObjectiveFromVersion` — add await + rollback matching `appendToVersion`'s existing shape (which will now actually work once `deckStore.save` throws correctly).
