@@ -65,7 +65,7 @@ export const objectivesStore = {
       .delete()
       .eq("id", objectiveId);
 
-    if (error) console.error("Error removing objective from database:", error);
+    if (error) throw new Error(`objectivesStore.deleteObjective: ${error.message}`, { cause: error });
   },
 
   async updateObjective(

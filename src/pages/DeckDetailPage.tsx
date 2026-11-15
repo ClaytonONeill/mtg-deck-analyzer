@@ -1,5 +1,5 @@
 // Modules
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Layers,
@@ -202,9 +202,21 @@ export default function DeckDetailPage() {
 
   const { objectives } = useObjectives();
 
+  // The single way a deck change is applied on this page: update local state
+  // and queue the write. Every whole-deck mutation (tagging, versions, quick
+  // add, strategy) goes through here so saves stay ordered, and a failure
+  // surfaces as the Retry toast instead of vanishing.
+  const commitDeck = useCallback(
+    (updated: Deck) => {
+      setDeck(updated);
+      void autosaveDeck(updated);
+    },
+    [autosaveDeck],
+  );
+
   const { assignObjective, unassignObjective } = useGallery(
     safeDeck,
-    (updated) => setDeck(updated),
+    commitDeck,
   );
 
   const {
@@ -215,7 +227,7 @@ export default function DeckDetailPage() {
     assignObjectiveToVersion,
     unassignObjectiveFromVersion,
     promoteVersionToMain,
-  } = useDeckVersions(safeDeck, (updated) => setDeck(updated));
+  } = useDeckVersions(safeDeck, commitDeck);
 
   const {
     entries: wishlistEntries,
@@ -370,8 +382,7 @@ export default function DeckDetailPage() {
       setRecBasis({ versionId: activeVersionId, entries: displayDeck.entries });
     }
     const updated = addCardToDeck(activeDeck, card);
-    setDeck(updated);
-    void autosaveDeck(updated);
+    commitDeck(updated);
   };
 
   const wishlistEntryFor = (card: ScryfallCard) =>
@@ -421,15 +432,12 @@ export default function DeckDetailPage() {
 
   const handleAssignStrategicObjective = (objective: Objective) => {
     const updated = addStrategicObjective(activeDeck, objective);
-    setDeck(updated);
-    // Same queue as quick add, so two whole-deck writes can't land out of order.
-    void autosaveDeck(updated);
+    commitDeck(updated);
   };
 
   const handleUnassignStrategicObjective = (objectiveId: string) => {
     const updated = removeStrategicObjective(activeDeck, objectiveId);
-    setDeck(updated);
-    void autosaveDeck(updated);
+    commitDeck(updated);
   };
 
   const tabs: { key: Tab; label: string }[] = [
