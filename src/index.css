@@ -3,6 +3,95 @@
   themes: all;
 }
 
+/* ── Signature themes ─────────────────────────────────────────────────────
+   Arcane (dark): midnight-indigo planes, gold "spark" primary, violet
+   secondary. Grimoire (light): parchment pages, oxblood ink, gold leaf.
+   Every surface in the app reads daisyUI tokens, so these restyle the whole
+   app without per-component changes. `arcane` is the default for new users
+   (see index.html's pre-paint script and ThemeContext). */
+@plugin "daisyui/theme" {
+  name: "arcane";
+  color-scheme: dark;
+  --color-base-100: oklch(21% 0.035 282);
+  --color-base-200: oklch(18% 0.032 282);
+  --color-base-300: oklch(15% 0.028 282);
+  --color-base-content: oklch(91% 0.02 85);
+  --color-primary: oklch(79% 0.12 82);
+  --color-primary-content: oklch(22% 0.04 70);
+  --color-secondary: oklch(62% 0.18 300);
+  --color-secondary-content: oklch(97% 0.01 300);
+  --color-accent: oklch(74% 0.11 190);
+  --color-accent-content: oklch(20% 0.03 200);
+  --color-neutral: oklch(29% 0.045 282);
+  --color-neutral-content: oklch(89% 0.02 85);
+  --color-info: oklch(72% 0.12 240);
+  --color-info-content: oklch(20% 0.04 240);
+  --color-success: oklch(72% 0.14 155);
+  --color-success-content: oklch(20% 0.04 155);
+  --color-warning: oklch(80% 0.14 70);
+  --color-warning-content: oklch(22% 0.05 70);
+  --color-error: oklch(65% 0.2 22);
+  --color-error-content: oklch(97% 0.01 22);
+  --radius-selector: 1rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 1;
+}
+
+@plugin "daisyui/theme" {
+  name: "grimoire";
+  color-scheme: light;
+  --color-base-100: oklch(96.5% 0.018 85);
+  --color-base-200: oklch(92.5% 0.028 82);
+  --color-base-300: oklch(87% 0.038 80);
+  --color-base-content: oklch(29% 0.035 50);
+  --color-primary: oklch(44% 0.14 25);
+  --color-primary-content: oklch(96% 0.02 85);
+  --color-secondary: oklch(42% 0.1 260);
+  --color-secondary-content: oklch(96% 0.02 85);
+  --color-accent: oklch(64% 0.12 75);
+  --color-accent-content: oklch(22% 0.04 70);
+  --color-neutral: oklch(36% 0.035 50);
+  --color-neutral-content: oklch(94% 0.02 85);
+  --color-info: oklch(52% 0.12 240);
+  --color-info-content: oklch(97% 0.01 240);
+  --color-success: oklch(50% 0.12 155);
+  --color-success-content: oklch(97% 0.01 155);
+  --color-warning: oklch(70% 0.15 70);
+  --color-warning-content: oklch(22% 0.05 70);
+  --color-error: oklch(52% 0.19 25);
+  --color-error-content: oklch(97% 0.01 25);
+  --radius-selector: 1rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 1;
+}
+
+/* `font-display` → Cinzel, for the logo, page titles and deck names only.
+   Body copy stays on the system stack for legibility at small sizes. */
+@theme {
+  --font-display: "Cinzel", ui-serif, Georgia, serif;
+}
+
+/* Soft glow of the theme's primary color spilling down from the top of every
+   page (applied by PageShell). Uses theme tokens, so it works in all themes. */
+@utility page-glow {
+  background-image: radial-gradient(
+    ellipse 90% 45% at 50% -8%,
+    color-mix(in oklab, var(--color-primary) 11%, transparent),
+    transparent 70%
+  );
+  background-attachment: fixed;
+}
+
 /* Hide the scrollbar on horizontally-scrollable rows (e.g. mobile tab pills)
    while keeping them scrollable by touch/drag. */
 @utility scrollbar-none {

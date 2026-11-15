@@ -1,9 +1,27 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="arcane">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Apply the saved theme before first paint, so the auth-loading screen
+         and LoginPage (both mounted above ThemeProvider) are themed and there's
+         no flash of the default theme. Keep in sync with resolveInitialTheme()
+         in src/context/ThemeContext.tsx. -->
+    <script>
+      try {
+        var t = localStorage.getItem("theme");
+        if (!t || (t === "dark" && !localStorage.getItem("theme-migrated")))
+          t = "arcane";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    </script>
     <title>MTG Deck Analyzer</title>
   </head>
   <body>

@@ -59,8 +59,8 @@ export default function LoginPage() {
         <div className="card-body p-8 gap-6">
           {/* Title */}
           <div className="text-center space-y-1">
-            <h1 className="text-3xl font-black tracking-tighter text-primary italic">
-              MTG <span className="text-base-content">DECK ANALYZER</span>
+            <h1 className="font-display text-3xl font-black tracking-wide text-primary">
+              MTG <span className="text-base-content">Deck Analyzer</span>
             </h1>
             <p className="text-xs uppercase tracking-widest font-bold opacity-40">
               {view === "sign_in" && "Welcome Back"}

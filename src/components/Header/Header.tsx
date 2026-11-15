@@ -10,7 +10,26 @@ import { useTheme } from "@/hooks/useTheme";
 import ThemeDropdown from "@/components/ThemeDropDown/ThemeDropdown";
 
 // Icons
-import { Menu, X } from "lucide-react";
+import { Menu, Sparkles, X } from "lucide-react";
+
+// A five-pointed "spark": one point per color of mana, tinted by the theme's
+// primary. Turns slowly on hover.
+function BrandMark() {
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      className="w-7 h-7 md:w-8 md:h-8 text-primary drop-shadow-[0_0_6px_color-mix(in_oklab,var(--color-primary)_55%,transparent)] transition-transform duration-700 group-hover:rotate-[72deg]"
+      aria-hidden
+    >
+      <circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" strokeOpacity="0.35" />
+      <path
+        fill="currentColor"
+        d="M16 2.5 18.6 12 28.8 11.8 20.6 17.9 23.9 27.6 16 21.6 8.1 27.6 11.4 17.9 3.2 11.8 13.4 12Z"
+      />
+      <circle cx="16" cy="16" r="2.4" className="fill-base-100" />
+    </svg>
+  );
+}
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,13 +53,24 @@ export default function Header() {
   };
 
   return (
-    <header className="relative border-b bg-base-100 border-base-300 px-6 py-4 flex items-center justify-between z-50">
-      <h1
-        className="text-xl md:text-2xl font-black tracking-tighter text-primary italic hover:cursor-pointer"
+    <header className="relative bg-base-100 px-6 py-4 flex items-center justify-between z-50">
+      {/* Gilded rule instead of a flat border */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-primary/60 to-transparent"
+      />
+      <button
+        type="button"
         onClick={() => navTo("/")}
+        className="group flex items-center gap-2.5 text-left"
+        aria-label="Home"
       >
-        MTG <span className="text-base-content">DECK ANALYZER</span>
-      </h1>
+        <BrandMark />
+        <h1 className="font-display text-lg md:text-2xl font-black tracking-wide leading-none">
+          <span className="text-primary">MTG</span>{" "}
+          <span className="text-base-content">Deck Analyzer</span>
+        </h1>
+      </button>
       <div className="flex items-center gap-3">
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-3">
@@ -57,7 +87,7 @@ export default function Header() {
               onClick={() => navTo("/wishlist")}
               className="btn btn-sm btn-outline border-base-300 text-base-content/70 hover:bg-transparent hover:text-base-content hover:border-base-content font-semibold"
             >
-              ✨ Wishlist
+              <Sparkles size={15} /> Wishlist
             </button>
           )}
 
@@ -103,7 +133,7 @@ export default function Header() {
               onClick={() => navTo("/wishlist")}
               className="btn btn-outline border-base-300 justify-start text-base-content/70 w-full"
             >
-              ✨ Wishlist
+              <Sparkles size={15} /> Wishlist
             </button>
           )}
           {!isBuildPage && (

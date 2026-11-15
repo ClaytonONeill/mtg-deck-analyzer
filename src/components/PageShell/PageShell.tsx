@@ -14,7 +14,8 @@ interface PageShellProps {
 }
 
 // Shared outer wrapper for every top-level page, so the page background and
-// min-height don't drift per page.
+// min-height don't drift per page. `page-glow` (index.css) adds the faint
+// primary-colored light from the top of the page.
 export default function PageShell({
   children,
   tone = "base",
@@ -22,7 +23,7 @@ export default function PageShell({
 }: PageShellProps) {
   const bg = tone === "recessed" ? "bg-base-200" : "bg-base-100";
   return (
-    <div className={`min-h-screen ${bg} text-base-content ${className}`}>
+    <div className={`min-h-screen ${bg} page-glow text-base-content ${className}`}>
       {children}
     </div>
   );

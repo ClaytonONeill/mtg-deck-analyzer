@@ -24,7 +24,10 @@ export default function ThemeDropdown({
   theme,
   onThemeChange,
 }: ThemeDropdownProps) {
+  // The two signature themes (defined in index.css) lead the list.
   const THEMES = [
+    "arcane",
+    "grimoire",
     "dark",
     "light",
     "emerald",

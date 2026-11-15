@@ -65,6 +65,7 @@ import ExportDeckModal from "@/features/deckList/components/ExportDeckModal";
 import ConfirmDelete from "@/components/ConfirmDelete/ConfirmDelete";
 import PageShell from "@/components/PageShell/PageShell";
 import RecommendationsPanel from "@/features/recommendations/components/RecommendationsPanel";
+import CommanderBackdrop from "@/features/deckList/components/CommanderBackdrop";
 import SwapOutPicker from "@/features/recommendations/components/SwapOutPicker";
 
 // Types
@@ -458,13 +459,18 @@ export default function DeckDetailPage() {
         </div>
 
         <div
-          className={`mx-auto px-6 py-8 ${activeTab === "simulator" ? "lg:max-w-6xl" : "max-w-5xl"}`}
+          className={`relative mx-auto px-6 py-8 ${activeTab === "simulator" ? "lg:max-w-6xl" : "max-w-5xl"}`}
         >
+          <CommanderBackdrop
+            commander={activeDeck.commander}
+            partner={activeDeck.partner}
+            colorIdentity={activeDeck.colorIdentity}
+          />
           {/* Deck identity block */}
-          <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="relative mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-3">
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-3xl font-black tracking-tight">
+                <h1 className="font-display text-3xl md:text-4xl font-bold tracking-wide drop-shadow-sm">
                   {activeDeck.name}
                 </h1>
                 <div className="flex gap-1">

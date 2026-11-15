@@ -60,7 +60,8 @@ Tailwind v4 (via `@tailwindcss/vite`) + daisyUI v5, driven by semantic tokens (`
 
 Cohesion has drifted in a few concrete, fixable spots — worth knowing about before assuming the whole app is uniformly themed:
 
-- **Two surfaces don't respect the theme at all**: the top-level loading screen in `App.tsx` and `ErrorBoundary`'s fallback UI use hardcoded Tailwind slate/blue classes (`bg-slate-950`, `text-slate-400`, `bg-[#1971c2]`) instead of daisyUI tokens. Switching themes doesn't change them, unlike every other screen.
+- **Theme-aware shell screens (resolved)**: `App.tsx`'s auth-loading screen, `LoginPage`, and `ErrorBoundary` now use daisyUI tokens; `index.html` applies the saved theme before first paint because those render above `ThemeProvider` ([`tasks/002`](tasks/002-theme-aware-shell-screens.md)).
+- **Signature themes**: `arcane` (dark, default) and `grimoire` (light) are custom daisyUI themes defined in `src/index.css`. `font-display` (Cinzel) is for logo/page titles/deck names only, never body copy. `utils/manaColors.ts` holds fixed WUBRG hues for decorative accents that should *not* follow the theme.
 - **Shared page shell (resolved)**: pages now wrap in `components/PageShell` (`tone="base"` → `bg-base-100`, `tone="recessed"` → `bg-base-200` for pages built from raised base-100 cards). Loading states still use per-page spinners (skeletons are `tasks/010`).
 - **Duplicate chrome**: the global `Header` (mounted once in `App.tsx`, above `<Routes>`) already provides top-level nav, but `DeckBuilderPage`, `WishlistPage`, and `DeckDetailPage` each additionally render their own in-page sticky header bar with their own independent "Back" button implementation.
 - **No single icon convention**: `lucide-react` is a dependency and is used in some places (`DeckDetailPage`), but other places hand-roll the equivalent icon as an inline `<svg>` (`DeckBuilderPage`'s back chevron, the warning-triangle alerts) instead of using the matching lucide icon.

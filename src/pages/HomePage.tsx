@@ -52,9 +52,14 @@ export default function HomePage() {
           <EmptyState onBuildDeck={() => navigate('/build')} />
         ) : (
           <>
-            <h2 className="text-sm font-semibold text-base-content/60 uppercase tracking-widest mb-6">
-              Your Decks
-            </h2>
+            <div className="flex items-baseline gap-3 mb-6">
+              <h2 className="font-display text-2xl md:text-3xl font-bold tracking-wide">
+                Your Decks
+              </h2>
+              <span className="text-sm md:text-base text-base-content/50">
+                {decks.length} {decks.length === 1 ? 'deck' : 'decks'}
+              </span>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {decks.map((deck) => (
                 <DeckCard
