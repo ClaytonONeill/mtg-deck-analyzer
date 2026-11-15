@@ -41,6 +41,7 @@ import {
   detectCardRoles,
 } from "@/features/recommendations/utils/deckSignals";
 import {
+  MV_TOP,
   UNTAGGED,
   matchesColors,
 } from "@/components/FilterSection/filterConstants";
@@ -89,12 +90,12 @@ const NATURAL_DIRECTION: Record<SortKey, SortDirection> = {
   price: "desc",
 };
 
-type GalleryFilters = Omit<ActiveFilters, "decks">;
+type GalleryFilters = Omit<ActiveFilters, "decks" | "cmc">;
 const EMPTY_GALLERY_FILTERS: GalleryFilters = {
   colors: [],
   types: [],
   objectives: [],
-  cmc: { min: null, max: null },
+  manaValues: [],
   roles: [],
 };
 
@@ -225,13 +226,17 @@ export default function CardGallery({
   }, [galleryEntries]);
 
   const activeRoles = useMemo(() => filters.roles ?? [], [filters.roles]);
+  const activeManaValues = useMemo(
+    () => filters.manaValues ?? [],
+    [filters.manaValues],
+  );
 
   const filterCount =
     activeRoles.length +
     filters.colors.length +
     filters.types.length +
     filters.objectives.length +
-    (filters.cmc.min !== null || filters.cmc.max !== null ? 1 : 0);
+    activeManaValues.length;
 
   const filteredAndSorted = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -253,13 +258,15 @@ export default function CardGallery({
           (ids.length === 0 && filters.objectives.includes(UNTAGGED));
         if (!hit) return false;
       }
-      const mv = e.card.cmc ?? 0;
-      if (filters.cmc.min !== null && mv < filters.cmc.min) return false;
-      if (filters.cmc.max !== null && mv > filters.cmc.max) return false;
+      if (
+        activeManaValues.length &&
+        !activeManaValues.includes(Math.min(Math.floor(e.card.cmc ?? 0), MV_TOP))
+      )
+        return false;
       return true;
     });
     return sortCards(result, sort, thenBy, sortDir, livePrices);
-  }, [galleryEntries, rolesByCard, activeRoles, query, filters, sort, thenBy, sortDir, livePrices]);
+  }, [galleryEntries, rolesByCard, activeRoles, activeManaValues, query, filters, sort, thenBy, sortDir, livePrices]);
 
   const clearAll = () => {
     setFilters(EMPTY_GALLERY_FILTERS);
@@ -438,14 +445,14 @@ export default function CardGallery({
           allowUntagged
           objectiveCounts={objectiveCounts}
           roles={roleOptions}
-          cmc={filters.cmc}
-          draft={{ ...filters, decks: [] }}
+          showManaValue
+          draft={{ ...filters, decks: [], cmc: { min: null, max: null } }}
           onChange={(f) =>
             setFilters({
               colors: f.colors,
               types: f.types,
               objectives: f.objectives,
-              cmc: f.cmc,
+              manaValues: f.manaValues ?? [],
               roles: f.roles ?? [],
             })
           }

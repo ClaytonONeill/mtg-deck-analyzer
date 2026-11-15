@@ -23,6 +23,8 @@ export interface ActiveFilters {
   cmc: { min: number | null; max: number | null };
   /** Card Role ids (see CARD_ROLES). Optional: only the gallery uses it. */
   roles?: string[];
+  /** Selected mana value buckets (0–7, where 7 means 7+). Gallery only. */
+  manaValues?: number[];
 }
 
 interface FilterSectionProps {
@@ -41,8 +43,8 @@ interface FilterSectionProps {
   /** Card Roles present in the cards being filtered, with counts. */
   roles?: { id: string; name: string; count: number }[];
   decks?: { id: string; name: string }[];
-  /** Pass to show the mana value range picker. */
-  cmc?: { min: number | null; max: number | null };
+  /** Shows the mana value toggles (driven by `draft.manaValues`). */
+  showManaValue?: boolean;
   draft: ActiveFilters;
   onChange: (draft: ActiveFilters) => void;
   onClear: () => void;
@@ -101,28 +103,6 @@ function toggle<T>(arr: T[], val: T): T[] {
 
 const LABEL = "text-xs md:text-sm font-black opacity-50 uppercase tracking-widest";
 
-/**
- * Mana value range as tappable buckets. Tap one value to filter to it; tap a
- * second to extend to a range; tap a lone selected value (or any value when a
- * range is already set) to start over. "7+" is open-ended.
- */
-function nextMvRange(
-  current: { min: number | null; max: number | null },
-  b: number,
-): { min: number | null; max: number | null } {
-  const active = current.min !== null || current.max !== null;
-  const lo = current.min ?? 0;
-  const hi = current.max ?? MV_TOP;
-  const single = active && lo === hi;
-  const toFilter = (a: number, z: number) => ({
-    min: a,
-    max: z >= MV_TOP ? null : z,
-  });
-  if (!active || !single) return toFilter(b, b);
-  if (b === lo) return { min: null, max: null };
-  return toFilter(Math.min(lo, b), Math.max(lo, b));
-}
-
 export default function FilterSection({
   isOpen,
   onToggle,
@@ -133,15 +113,13 @@ export default function FilterSection({
   objectiveCounts,
   roles,
   decks,
-  cmc,
+  showManaValue,
   draft,
   onChange,
   onClear,
   filterCount,
 }: FilterSectionProps) {
-  const mvActive = draft.cmc.min !== null || draft.cmc.max !== null;
-  const mvLo = draft.cmc.min ?? 0;
-  const mvHi = draft.cmc.max ?? MV_TOP;
+  const manaValues = draft.manaValues ?? [];
 
   return (
     <div className="w-full">
@@ -199,18 +177,18 @@ export default function FilterSection({
           )}
 
           {/* Mana value */}
-          {cmc && (
+          {showManaValue && (
             <div className="space-y-3">
               <span className={LABEL}>Mana Value</span>
-              <div className="grid grid-cols-8 gap-1" role="group" aria-label="Mana value range">
+              <div className="grid grid-cols-8 gap-1" role="group" aria-label="Mana value">
                 {MV_BUCKETS.map((b) => {
-                  const on = mvActive && b >= mvLo && b <= mvHi;
+                  const on = manaValues.includes(b);
                   return (
                     <button
                       key={b}
                       type="button"
                       onClick={() =>
-                        onChange({ ...draft, cmc: nextMvRange(draft.cmc, b) })
+                        onChange({ ...draft, manaValues: toggle(manaValues, b) })
                       }
                       aria-pressed={on}
                       className={`btn btn-sm px-0 text-sm font-mono ${on ? "btn-primary" : "btn-ghost bg-base-200"}`}
@@ -220,9 +198,6 @@ export default function FilterSection({
                   );
                 })}
               </div>
-              <p className="text-xs md:text-sm opacity-50">
-                Tap two values for a range.
-              </p>
             </div>
           )}
 
