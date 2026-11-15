@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useRef } from "react";
 
 // Types
 import type {
-  CardCategory,
   DeckEntry,
   Objective,
   ScryfallCard,
@@ -34,11 +33,18 @@ import {
 } from "@/utils/sortCards";
 import SwapSidebar from "@/features/gallery/components/SwapSidebar";
 import SwapBanner from "@/features/gallery/components/SwapBanner";
-import FilterSection from "@/components/FilterSection/FilterSection";
+import FilterSection, {
+  type ActiveFilters,
+} from "@/components/FilterSection/FilterSection";
+import {
+  UNTAGGED,
+  matchesColors,
+  type ColorMode,
+} from "@/components/FilterSection/filterConstants";
 import ThenBySelect from "@/components/ThenBySelect/ThenBySelect";
 
 // Icons
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 interface CardGalleryProps {
   deckId: string;
@@ -71,6 +77,37 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "price", label: "Price" },
 ];
 
+// The direction each sort reads most naturally in when first picked.
+const NATURAL_DIRECTION: Record<SortKey, SortDirection> = {
+  type: "asc",
+  color: "asc",
+  cmc: "asc",
+  name: "asc",
+  price: "desc",
+};
+
+type GalleryFilters = Omit<ActiveFilters, "decks">;
+const EMPTY_GALLERY_FILTERS: GalleryFilters = {
+  colors: [],
+  types: [],
+  objectives: [],
+  cmc: { min: null, max: null },
+};
+
+/** Lowercased name + type line + rules text, both faces of DFCs included. */
+function searchText(card: ScryfallCard): string {
+  const faces = card.card_faces ?? [];
+  return [
+    card.name,
+    card.type_line,
+    card.oracle_text,
+    ...faces.flatMap((f) => [f.type_line, f.oracle_text]),
+  ]
+    .filter(Boolean)
+    .join("\n")
+    .toLowerCase();
+}
+
 // Mobile-only cards-per-row setting; sm+ keeps the responsive 2/3/4 columns.
 type MobileColumns = 1 | 2 | 3;
 const MOBILE_GRID_COLS: Record<MobileColumns, string> = {
@@ -97,8 +134,28 @@ export default function CardGallery({
   onSaveAsVersion,
   onUndoSwap,
 }: CardGalleryProps) {
-  const [sort, setSort] = useState<SortKey>("type");
-  const [thenBy, setThenBy] = useState<CardSortKey | null>(null);
+  // Sort preferences persist across visits; filters/search only for this
+  // browser session (and per deck), so they survive switching tabs but can't
+  // silently hide cards days later.
+  const [sort, setSort] = useLocalStorage<SortKey>("gallery-sort", "type");
+  const [thenBy, setThenBy] = useLocalStorage<CardSortKey | null>(
+    "gallery-then-by",
+    null,
+  );
+  const [sortDir, setSortDir] = useLocalStorage<SortDirection>(
+    "gallery-sort-dir",
+    NATURAL_DIRECTION.type,
+  );
+  const [query, setQuery] = useLocalStorage(`gallery-query:${deckId}`, "", "session");
+  const [colorMode, setColorMode] = useLocalStorage<ColorMode>(
+    "gallery-color-mode",
+    "any",
+  );
+  const [filters, setFilters] = useLocalStorage(
+    `gallery-filters:${deckId}`,
+    EMPTY_GALLERY_FILTERS,
+    "session",
+  );
   const [storedMobileCols, setMobileCols] = useLocalStorage<number>(
     "gallery-mobile-columns",
     1,
@@ -109,7 +166,6 @@ export default function CardGallery({
   // Denser mobile grids need compact tile controls to fit.
   const dense = mobileCols > 1;
   const touchStart = useRef<{ x: number; y: number } | null>(null);
-  const [sortDir, setSortDir] = useState<SortDirection>("desc");
   const [expandedCard, setExpandedCard] = useState<ScryfallCard | null>(null);
   // Which face each double-faced card is showing, shared by the tile and the
   // enlarged view so opening a flipped tile keeps it flipped.
@@ -123,50 +179,60 @@ export default function CardGallery({
   const [swapping, setSwapping] = useState<ScryfallCard | null>(null);
   const [swappedEntries, setSwappedEntries] = useState<ScryfallCard[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    colors: [] as string[],
-    types: [] as CardCategory[],
-    objectives: [] as string[],
-    cmc: { min: null as number | null, max: null as number | null },
-  });
 
   const { getForDeck } = useWishlist();
   const deckWishlist = getForDeck(deckId);
   const swappedOutIds = new Set(pendingSwaps.map((s) => s.removeCardId));
   const livePrices = useCardPrices();
 
-  // Logic: Filters & Sorting (Type Safe)
-  const filteredAndSorted = useMemo(() => {
-    const blackList = BASIC_LANDS.map((b) => b.type_line);
-    let result = (entries ?? []).filter(
-      (e) => !blackList.includes(e.card.type_line ?? ""),
+  // Basic lands never show in the gallery, so they're excluded from the
+  // "x / y" total too — otherwise the counter never adds up with no filters.
+  const galleryEntries = useMemo(() => {
+    const basics = BASIC_LANDS.map((b) => b.type_line);
+    return (entries ?? []).filter(
+      (e) => !basics.includes(e.card.type_line ?? ""),
     );
+  }, [entries]);
 
-    if (filters.colors.length > 0) {
-      result = result.filter((e) => {
-        const cids = e.card.color_identity ?? [];
-        return (
-          cids.some((c) => filters.colors.includes(c)) ||
-          (cids.length === 0 && filters.colors.includes("C"))
-        );
-      });
-    }
-    if (filters.types.length > 0)
-      result = result.filter((e) => filters.types.includes(e.category));
-    if (filters.objectives.length > 0)
-      result = result.filter((e) =>
-        (e.objectiveIds ?? []).some((id) => filters.objectives.includes(id)),
-      );
-    if (filters.cmc.min !== null)
-      result = result.filter((e) => e.card.cmc >= (filters.cmc.min as number));
-    if (filters.cmc.max !== null)
-      result = result.filter((e) => e.card.cmc <= (filters.cmc.max as number));
+  const filterCount =
+    filters.colors.length +
+    filters.types.length +
+    filters.objectives.length +
+    (filters.cmc.min !== null || filters.cmc.max !== null ? 1 : 0);
 
+  const filteredAndSorted = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const result = galleryEntries.filter((e) => {
+      if (q && !searchText(e.card).includes(q)) return false;
+      if (!matchesColors(e.card.color_identity ?? [], filters.colors, colorMode))
+        return false;
+      if (filters.types.length && !filters.types.includes(e.category))
+        return false;
+      if (filters.objectives.length) {
+        const ids = e.objectiveIds ?? [];
+        const hit =
+          ids.some((id) => filters.objectives.includes(id)) ||
+          (ids.length === 0 && filters.objectives.includes(UNTAGGED));
+        if (!hit) return false;
+      }
+      const mv = e.card.cmc ?? 0;
+      if (filters.cmc.min !== null && mv < filters.cmc.min) return false;
+      if (filters.cmc.max !== null && mv > filters.cmc.max) return false;
+      return true;
+    });
     return sortCards(result, sort, thenBy, sortDir, livePrices);
-  }, [entries, filters, sort, thenBy, sortDir, livePrices]);
+  }, [galleryEntries, query, filters, colorMode, sort, thenBy, sortDir, livePrices]);
 
+  const clearAll = () => {
+    setFilters(EMPTY_GALLERY_FILTERS);
+    setQuery("");
+  };
+
+  // Each sort starts in its natural direction (A–Z, cheap→expensive, type
+  // order); the Asc/Desc button still flips it.
   const selectSort = (key: SortKey) => {
     setSort(key);
+    setSortDir(NATURAL_DIRECTION[key]);
     if (thenBy === key) setThenBy(null);
   };
 
@@ -249,6 +315,19 @@ export default function CardGallery({
         onUndo={onUndoSwap}
       />
 
+      {/* Search: name, type line and rules text */}
+      <label className="input input-sm md:input-md flex items-center gap-2 w-full md:max-w-md bg-base-100">
+        <Search size={16} className="opacity-50 shrink-0" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder='Search cards — "Sol Ring", "flying", "draw a card"'
+          className="grow min-w-0"
+          aria-label="Search cards in this deck"
+        />
+      </label>
+
       {/* --- DASHBOARD STYLE CONTROLS --- */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-base-200/50 p-4 rounded-2xl border border-base-300 backdrop-blur-md">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -305,7 +384,7 @@ export default function CardGallery({
               Inventory
             </span>
             <span className="text-sm font-bold">
-              {filteredAndSorted.length} / {entries.length}
+              {filteredAndSorted.length} / {galleryEntries.length}
             </span>
           </div>
         </div>
@@ -315,9 +394,13 @@ export default function CardGallery({
         <FilterSection
           isOpen={showFilters}
           onToggle={setShowFilters}
-          colorIdentity={colorIdentity}
+          colorIdentity={[...colorIdentity, "C"]}
+          colorMode={colorMode}
+          onColorModeChange={setColorMode}
           cardCategories={CATEGORY_ORDER}
           objectives={objectives}
+          allowUntagged
+          cmc={filters.cmc}
           draft={{ ...filters, decks: [] }}
           onChange={(f) =>
             setFilters({
@@ -327,15 +410,8 @@ export default function CardGallery({
               cmc: f.cmc,
             })
           }
-          onClear={() =>
-            setFilters({
-              colors: [],
-              types: [],
-              objectives: [],
-              cmc: { min: null, max: null },
-            })
-          }
-          filterCount={0}
+          onClear={() => setFilters(EMPTY_GALLERY_FILTERS)}
+          filterCount={filterCount}
         />
 
         {(commander || partner) && (
@@ -356,6 +432,17 @@ export default function CardGallery({
         >
           {commander && renderCommanderTile(commander)}
           {partner && renderCommanderTile(partner)}
+        </div>
+      )}
+
+      {filteredAndSorted.length === 0 && galleryEntries.length > 0 && (
+        <div className="text-center py-12 space-y-3">
+          <p className="text-base md:text-lg text-base-content/60">
+            No cards match your search and filters.
+          </p>
+          <button type="button" onClick={clearAll} className="btn btn-sm btn-ghost text-sm">
+            Clear search & filters
+          </button>
         </div>
       )}
 
