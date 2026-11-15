@@ -9,27 +9,44 @@ import { useTheme } from "@/hooks/useTheme";
 // Components
 import ThemeDropdown from "@/components/ThemeDropDown/ThemeDropdown";
 
+// Utils
+import { MANA_HEX } from "@/utils/manaColors";
+
 // Icons
 import { Menu, Sparkles, X } from "lucide-react";
 
-// A five-pointed "spark": one point per color of mana, tinted by the theme's
-// primary. Turns slowly on hover.
+// The five-color mana wheel from the back of a Magic card: W at the top, then
+// U, B, R, G clockwise. Same fixed hues as the deck tiles' identity strips.
+// Turns one position on hover.
+const WHEEL = ["W", "U", "B", "R", "G"].map((c, i) => {
+  const a = ((-90 + 72 * i) * Math.PI) / 180;
+  return { c, x: 16 + 9.4 * Math.cos(a), y: 16 + 9.4 * Math.sin(a) };
+});
+
 function BrandMark() {
   return (
     <svg
       viewBox="0 0 32 32"
-      className="w-7 h-7 md:w-8 md:h-8 shrink-0 text-primary drop-shadow-[0_0_6px_color-mix(in_oklab,var(--color-primary)_55%,transparent)] transition-transform duration-700 group-hover:rotate-[72deg]"
+      className="w-7 h-7 md:w-8 md:h-8 shrink-0 text-primary drop-shadow-[0_0_5px_color-mix(in_oklab,var(--color-primary)_45%,transparent)] transition-transform duration-700 group-hover:rotate-[72deg]"
       aria-hidden
     >
-      <circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" strokeOpacity="0.35" />
-      <path
-        fill="currentColor"
-        d="M16 2.5 18.6 12 28.8 11.8 20.6 17.9 23.9 27.6 16 21.6 8.1 27.6 11.4 17.9 3.2 11.8 13.4 12Z"
-      />
-      <circle cx="16" cy="16" r="2.4" className="fill-base-100" />
+      <circle cx="16" cy="16" r="15" fill="none" stroke="currentColor" strokeOpacity="0.45" />
+      {WHEEL.map(({ c, x, y }) => (
+        <circle
+          key={c}
+          cx={x}
+          cy={y}
+          r="5"
+          fill={MANA_HEX[c]}
+          stroke="black"
+          strokeOpacity="0.35"
+          strokeWidth="0.75"
+        />
+      ))}
     </svg>
   );
 }
+
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);

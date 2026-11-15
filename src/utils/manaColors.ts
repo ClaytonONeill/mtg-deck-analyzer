@@ -1,7 +1,7 @@
 // Fixed WUBRG hues for decorative accents (deck tile strips, banners). These
 // are deliberately *not* theme tokens: a mono-red deck should read red in
 // every theme, the same way the mana symbols themselves do.
-const MANA_HEX: Record<string, string> = {
+export const MANA_HEX: Record<string, string> = {
   W: "#f3e7b8",
   U: "#3b82c4",
   B: "#7a6a86",
