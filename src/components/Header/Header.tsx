@@ -18,7 +18,7 @@ function BrandMark() {
   return (
     <svg
       viewBox="0 0 32 32"
-      className="w-7 h-7 md:w-8 md:h-8 text-primary drop-shadow-[0_0_6px_color-mix(in_oklab,var(--color-primary)_55%,transparent)] transition-transform duration-700 group-hover:rotate-[72deg]"
+      className="w-7 h-7 md:w-8 md:h-8 shrink-0 text-primary drop-shadow-[0_0_6px_color-mix(in_oklab,var(--color-primary)_55%,transparent)] transition-transform duration-700 group-hover:rotate-[72deg]"
       aria-hidden
     >
       <circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" strokeOpacity="0.35" />
@@ -53,7 +53,7 @@ export default function Header() {
   };
 
   return (
-    <header className="relative bg-base-100 px-6 py-4 flex items-center justify-between z-50">
+    <header className="relative bg-base-100 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between gap-3 z-50">
       {/* Gilded rule instead of a flat border */}
       <div
         aria-hidden
@@ -62,16 +62,18 @@ export default function Header() {
       <button
         type="button"
         onClick={() => navTo("/")}
-        className="group flex items-center gap-2.5 text-left"
+        className="group flex items-center gap-2 md:gap-2.5 text-left min-w-0"
         aria-label="Home"
       >
         <BrandMark />
-        <h1 className="font-display text-lg md:text-2xl font-black tracking-wide leading-none">
+        {/* min-w-0 + leading-tight: on narrow phones the wordmark wraps to two
+            lines instead of squeezing the controls on the right. */}
+        <h1 className="min-w-0 font-display text-base sm:text-lg md:text-2xl font-black tracking-wide leading-tight md:leading-none">
           <span className="text-primary">MTG</span>{" "}
           <span className="text-base-content">Deck Analyzer</span>
         </h1>
       </button>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1 md:gap-3 shrink-0">
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-3">
           {!isObjectivesPage && (
