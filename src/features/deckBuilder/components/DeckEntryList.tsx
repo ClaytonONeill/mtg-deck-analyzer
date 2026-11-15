@@ -1,6 +1,9 @@
 // Store
 import { removeCardFromDeck } from "@/store/deckStore";
 
+// Hooks
+import { useCardHoverPreview } from "@/hooks/useCardHoverPreview";
+
 // Components
 import CardPrice from "@/components/CardPrice/CardPrice";
 import ManaCost from "@/components/ManaSymbol/ManaCost";
@@ -39,7 +42,10 @@ export default function DeckEntryList({
     return acc;
   }, {});
 
+  const { previewProps, hidePreview, preview } = useCardHoverPreview();
+
   const handleRemove = (cardId: string) => {
+    hidePreview();
     onDeckChange(removeCardFromDeck(deck, cardId));
   };
 
@@ -66,7 +72,11 @@ export default function DeckEntryList({
             {/* Normalized List */}
             <ul className="bg-base-100 rounded-lg border border-base-content/5 overflow-hidden divide-y divide-base-content/5">
               {entries.map((entry) => (
-                <li key={entry.card.id} className="group transition-colors">
+                <li
+                  key={entry.card.id}
+                  {...previewProps(entry.card)}
+                  className="group transition-colors hover:bg-base-200/60"
+                >
                   <div className="grid grid-cols-[3rem_1fr_auto_2rem] items-center py-2 px-3 gap-2">
                     <span className="text-xs font-mono font-bold opacity-40">
                       {entry.quantity}x
@@ -98,6 +108,7 @@ export default function DeckEntryList({
           </div>
         );
       })}
+      {preview}
     </div>
   );
 }

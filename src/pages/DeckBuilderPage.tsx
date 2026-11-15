@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 // Hooks
 import { useDeckBuilder } from '@/features/deckBuilder/hooks/useDeckBuilder';
+import { useCardHoverPreview } from '@/hooks/useCardHoverPreview';
 
 // Store
 import { getDeckCardCount, getAllCardIdsInDeck } from '@/store/deckStore';
@@ -57,6 +58,8 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
     clearPartnerWarning,
     clearDuplicateWarning,
   } = useDeckBuilder(deckId);
+
+  const { previewProps, hidePreview, preview } = useCardHoverPreview();
 
   const cardCount = getDeckCardCount(deck);
   const MAX_CARD_COUNT_REACHED = cardCount >= 100;
@@ -150,7 +153,10 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
               />
 
               {deck.commander && (
-                <div className="card card-side bg-base-100 border-2 border-primary/30 shadow-xl overflow-hidden">
+                <div
+                  {...previewProps(deck.commander)}
+                  className="card card-side bg-base-100 border-2 border-primary/30 shadow-xl overflow-hidden"
+                >
                   <div className="card-body p-4 flex-row items-center justify-between">
                     <div>
                       <h3 className="card-title text-md">
@@ -203,7 +209,10 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
                 )}
 
                 {deck.partner && (
-                  <div className="card card-side bg-base-100 border-2 border-primary/30 shadow-xl overflow-hidden">
+                  <div
+                    {...previewProps(deck.partner)}
+                    className="card card-side bg-base-100 border-2 border-primary/30 shadow-xl overflow-hidden"
+                  >
                     <div className="card-body p-4 flex-row items-center justify-between">
                       <div>
                         <h3 className="card-title text-md">
@@ -221,7 +230,10 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
                           ))}
                         </div>
                         <button
-                          onClick={removePartner}
+                          onClick={() => {
+                            hidePreview();
+                            removePartner();
+                          }}
                           className="btn btn-circle btn-ghost btn-xs text-error"
                         >
                           ✕
@@ -282,7 +294,7 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
         <aside className="flex flex-col gap-4 lg:sticky lg:top-24 h-fit">
           <div className="stats shadow bg-base-100 border border-base-content/10">
             <div className="stat">
-              <div className="stat-title uppercase text-[10px] font-black tracking-widest">
+              <div className="stat-title uppercase text-xs md:text-sm font-black tracking-widest">
                 Deck Capacity
               </div>
               <div
@@ -311,19 +323,20 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
             <div className="p-2 space-y-1">
               {deck.commander && (
                 <div className="flex flex-col gap-1 mb-4">
-                  <div className="badge badge-primary badge-lg w-full justify-start gap-2 h-auto py-2 rounded-md">
-                    <span className="text-xs font-black opacity-70">CMD</span>
-                    <span className="text-sm truncate font-bold">
-                      {deck.commander.name}
-                    </span>
-                  </div>
-                  {deck.partner && (
-                    <div className="badge badge-primary badge-lg w-full justify-start gap-2 h-auto py-2 rounded-md">
-                      <span className="text-xs font-black opacity-70">CMD</span>
-                      <span className="text-sm truncate font-bold">
-                        {deck.partner.name}
-                      </span>
-                    </div>
+                  {[deck.commander, deck.partner].map(
+                    (cmd) =>
+                      cmd && (
+                        <div
+                          key={cmd.id}
+                          {...previewProps(cmd)}
+                          className="badge badge-primary badge-lg w-full justify-start gap-2 h-auto py-2 rounded-md cursor-default"
+                        >
+                          <span className="text-xs font-black opacity-70">CMD</span>
+                          <span className="text-sm truncate font-bold">
+                            {cmd.name}
+                          </span>
+                        </div>
+                      ),
                   )}
                 </div>
               )}
@@ -335,6 +348,7 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
           </div>
         </aside>
       </div>
+      {preview}
     </PageShell>
     </CardPriceProvider>
   );
