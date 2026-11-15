@@ -32,7 +32,7 @@ export default function ObjectiveAssignMenu({
         className="dropdown-content menu flex-nowrap max-h-80 overflow-y-auto p-2 shadow-2xl bg-base-200 rounded-box w-56 max-w-[calc(100vw-2rem)] border border-base-300 mb-2"
       >
         <li className="menu-title text-xs text-secondary uppercase tracking-widest">
-          Assign Objective
+          Tag with Objective
         </li>
         {objectives.map((o) => (
           <li key={o.id}>

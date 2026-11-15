@@ -70,7 +70,7 @@ That eyebrow-label pattern (small, uppercase, bold, wide tracking, muted) is a r
 | `z-60` | `SwapSidebar.tsx` backdrop | |
 | `z-70` | `SwapSidebar.tsx` panel | |
 | `z-100` | `CardSearchPanel.tsx` dropdown, `SwapSidebar.tsx` fullscreen image zoom, `HandSimulator.tsx` bottom toast | Three unrelated overlays sharing one value by coincidence. |
-| `z-[9999]` | `CardImageTooltip.tsx` (portaled to `document.body` via `usePortal`) | Arbitrary "go nuclear" value. |
+| `z-[1000]` | `CardImageTooltip.tsx` (portaled to `document.body`) | Always-on-top tier — reconciled from `z-[9999]` 2026-11-15. |
 
 **The `z-[1]`/`z-[20]` cases are a real, likely-live bug, not just a style nit.** daisyUI's own `dropdown-content` class already carries `z-index: 999` from its component CSS (confirmed in `node_modules/daisyui/components/dropdown.css`). Adding a smaller custom `z-[1]`/`z-[20]` utility on top of it fights that default and can push the dropdown menu *underneath* nearby content instead of above it. Don't put a custom z-index utility on `dropdown-content` at all — let daisyUI handle it.
 
@@ -95,7 +95,7 @@ Four tiers for anything *not* a daisyUI-managed component (dropdown/modal/drawer
 | Overlay | `z-50` | 50 | Any custom (non-daisyUI) full-viewport overlay: backdrop *and* its panel/drawer/lightbox share this **one** tier — don't hand-pick separate numbers for backdrop vs. panel (e.g. `SwapSidebar`'s current 60/70 split). Render the backdrop element before the panel element in JSX and DOM order alone guarantees correct stacking between the two. |
 | Always-on-top | `z-[1000]` | 1000 | Reserved for the rare case that must outrank even an open daisyUI modal/dropdown (999) — a global toast/notification layer, or a portaled element like `CardImageTooltip` that must never be occluded. Use sparingly and say why in a comment when you do. |
 
-`CardImageTooltip.tsx`'s current `z-[9999]` should come down to `z-[1000]` under this scale — it's a portaled, must-never-be-occluded element, which is exactly the "Always-on-top" tier, just at a saner number with headroom documented instead of an arbitrary max-value guess.
+`CardImageTooltip.tsx` now uses `z-[1000]` (was `z-[9999]`), the reference example for this tier.
 
 ---
 

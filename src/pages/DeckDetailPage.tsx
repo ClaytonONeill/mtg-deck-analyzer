@@ -1,5 +1,5 @@
 // Modules
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Layers,
@@ -65,6 +65,7 @@ import ExportDeckModal from "@/features/deckList/components/ExportDeckModal";
 import ConfirmDelete from "@/components/ConfirmDelete/ConfirmDelete";
 import PageShell from "@/components/PageShell/PageShell";
 import RecommendationsPanel from "@/features/recommendations/components/RecommendationsPanel";
+import CommanderBackdrop from "@/features/deckList/components/CommanderBackdrop";
 import SwapOutPicker from "@/features/recommendations/components/SwapOutPicker";
 
 // Types
@@ -201,9 +202,21 @@ export default function DeckDetailPage() {
 
   const { objectives } = useObjectives();
 
+  // The single way a deck change is applied on this page: update local state
+  // and queue the write. Every whole-deck mutation (tagging, versions, quick
+  // add, strategy) goes through here so saves stay ordered, and a failure
+  // surfaces as the Retry toast instead of vanishing.
+  const commitDeck = useCallback(
+    (updated: Deck) => {
+      setDeck(updated);
+      void autosaveDeck(updated);
+    },
+    [autosaveDeck],
+  );
+
   const { assignObjective, unassignObjective } = useGallery(
     safeDeck,
-    (updated) => setDeck(updated),
+    commitDeck,
   );
 
   const {
@@ -214,7 +227,7 @@ export default function DeckDetailPage() {
     assignObjectiveToVersion,
     unassignObjectiveFromVersion,
     promoteVersionToMain,
-  } = useDeckVersions(safeDeck, (updated) => setDeck(updated));
+  } = useDeckVersions(safeDeck, commitDeck);
 
   const {
     entries: wishlistEntries,
@@ -369,8 +382,7 @@ export default function DeckDetailPage() {
       setRecBasis({ versionId: activeVersionId, entries: displayDeck.entries });
     }
     const updated = addCardToDeck(activeDeck, card);
-    setDeck(updated);
-    void autosaveDeck(updated);
+    commitDeck(updated);
   };
 
   const wishlistEntryFor = (card: ScryfallCard) =>
@@ -420,15 +432,12 @@ export default function DeckDetailPage() {
 
   const handleAssignStrategicObjective = (objective: Objective) => {
     const updated = addStrategicObjective(activeDeck, objective);
-    setDeck(updated);
-    // Same queue as quick add, so two whole-deck writes can't land out of order.
-    void autosaveDeck(updated);
+    commitDeck(updated);
   };
 
   const handleUnassignStrategicObjective = (objectiveId: string) => {
     const updated = removeStrategicObjective(activeDeck, objectiveId);
-    setDeck(updated);
-    void autosaveDeck(updated);
+    commitDeck(updated);
   };
 
   const tabs: { key: Tab; label: string }[] = [
@@ -458,13 +467,18 @@ export default function DeckDetailPage() {
         </div>
 
         <div
-          className={`mx-auto px-6 py-8 ${activeTab === "simulator" ? "lg:max-w-6xl" : "max-w-5xl"}`}
+          className={`relative mx-auto px-6 py-8 ${activeTab === "simulator" ? "lg:max-w-6xl" : "max-w-5xl"}`}
         >
+          <CommanderBackdrop
+            commander={activeDeck.commander}
+            partner={activeDeck.partner}
+            colorIdentity={activeDeck.colorIdentity}
+          />
           {/* Deck identity block */}
-          <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="relative mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-3">
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-3xl font-black tracking-tight">
+                <h1 className="font-display text-3xl md:text-4xl font-bold tracking-wide drop-shadow-sm">
                   {activeDeck.name}
                 </h1>
                 <div className="flex gap-1">

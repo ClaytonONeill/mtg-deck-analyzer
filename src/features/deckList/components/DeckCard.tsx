@@ -3,12 +3,15 @@ import { getDeckCardCount } from '@/store/deckStore';
 
 // Components
 import ColorPip from '@/components/ManaSymbol/ColorPip';
+import ObjectivePill from '@/features/objectives/components/ObjectivePill';
 
 // Types
-import type { Deck } from '@/types';
+import type { Deck, ScryfallCard } from '@/types';
 
 // Utils
 import { getCardImageUris } from '@/utils/cardImage';
+import { manaGradient } from '@/utils/manaColors';
+import { approxDeckValue, timeAgo } from '@/features/deckList/utils/deckLibrary';
 
 // Icons
 import { X } from 'lucide-react';
@@ -20,6 +23,13 @@ interface DeckCardProps {
   onDelete: (deck: Deck) => void;
 }
 
+// Art-only crop reads far better as a banner than the full card's top third;
+// fall back to the full card image for data without one.
+function bannerImage(card: ScryfallCard | null | undefined) {
+  const uris = getCardImageUris(card);
+  return uris?.art_crop ?? uris?.normal;
+}
+
 export default function DeckCard({
   deck,
   onOpen,
@@ -27,101 +37,131 @@ export default function DeckCard({
   onDelete,
 }: DeckCardProps) {
   const cardCount = getDeckCardCount(deck);
+  const complete = cardCount === 100;
+  const value = approxDeckValue(deck);
 
-  const commanderImage = getCardImageUris(deck.commander)?.normal;
-  const partnerImage = getCardImageUris(deck.partner)?.normal;
-  const hasPartner = Boolean(deck.partner && partnerImage);
+  const art = [deck.commander, deck.partner]
+    .map((c) => (c ? { name: c.name, src: bannerImage(c) } : null))
+    .filter((a): a is { name: string; src: string } => !!a?.src);
 
   return (
-    <div className="card card-compact bg-base-200 border border-base-300 shadow-sm transition-colors rounded-t-3xl">
-      {/* Image header  */}
-      <figure className="relative h-52 w-full overflow-hidden shrink-0 m-0">
-        {hasPartner ? (
-          <div className="flex w-full h-full">
-            {/* Commander */}
-            <div className="relative w-1/2 h-full overflow-hidden">
-              <img
-                src={commanderImage}
-                alt={deck.commander?.name}
-                className="w-full h-full object-cover object-top scale-105"
-              />
-            </div>
+    <div className="group card card-compact bg-base-200 border border-base-300 shadow-sm overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_12px_32px_-12px_color-mix(in_oklab,var(--color-primary)_45%,transparent)]">
+      {/* Color identity strip */}
+      <div
+        aria-hidden
+        className="h-1.5 w-full shrink-0"
+        style={{ background: manaGradient(deck.colorIdentity) }}
+      />
 
-            {/* Partner */}
-            <div className="relative w-1/2 h-full overflow-hidden">
+      {/* Commander art */}
+      <figure
+        className="relative h-44 w-full overflow-hidden shrink-0 m-0 cursor-pointer bg-base-300"
+        onClick={onOpen}
+      >
+        {art.length > 0 ? (
+          <div className="flex w-full h-full">
+            {art.map((a) => (
               <img
-                src={partnerImage}
-                alt={deck.partner?.name}
-                className="w-full h-full object-cover object-top scale-105"
+                key={a.name}
+                src={a.src}
+                alt={a.name}
+                loading="lazy"
+                className="min-w-0 flex-1 h-full object-cover object-[center_30%] transition-transform duration-700 group-hover:scale-105"
               />
-            </div>
+            ))}
           </div>
         ) : (
           <img
-            src={commanderImage}
-            alt={deck.commander?.name}
-            className="w-full h-full object-cover object-top"
+            src="/mtg-card-image-back.jpeg"
+            alt=""
+            className="w-full h-full object-cover opacity-40"
           />
         )}
-        {/* Theme-aware gradient overlay matching the bg-base-200 card background */}
-        <div className="absolute inset-0 bg-linear-to-b from-transparent via-base-200/30 to-base-200" />
+        {/* Theme-aware fade into the card body */}
+        <div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-base-200" />
       </figure>
 
       {/* Content */}
-      <div className="card-body">
-        {/* Top row */}
+      <div className="card-body pt-1">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="card-title text-base-content text-lg leading-tight">
+          <h3 className="card-title font-display font-bold tracking-wide text-base-content text-lg leading-tight">
             {deck.name}
           </h3>
-          <div className="flex gap-1 shrink-0">
+          <div className="flex gap-1 shrink-0 pt-0.5">
             {deck.colorIdentity.map((c) => (
               <ColorPip key={c} color={c} size={18} />
             ))}
           </div>
         </div>
 
-        {/* Meta */}
-        <div className="text-sm text-base-content/70 space-y-1">
-          <p>
-            <span className="opacity-70">Commander: </span>
-            {deck.commander ? (
-              deck.commander.name
-            ) : (
-              <span className="italic">None set</span>
-            )}
-          </p>
-
-          {deck.partner && (
-            <p>
-              <span className="opacity-70">Partner: </span>
-              {deck.partner.name}
-            </p>
+        <p className="text-sm text-base-content/70 italic leading-snug">
+          {deck.commander ? (
+            <>
+              {deck.commander.name}
+              {deck.partner && <> &amp; {deck.partner.name}</>}
+            </>
+          ) : (
+            'No commander chosen'
           )}
+        </p>
 
-          <p>
-            <span className="opacity-70">Cards: </span>
-            {cardCount} / 100
-          </p>
+        {/* Progress toward 100 */}
+        <div className="flex items-center gap-2 mt-1">
+          <progress
+            className={`progress h-1.5 flex-1 ${complete ? 'progress-primary' : 'progress-secondary'}`}
+            value={cardCount}
+            max={100}
+          />
+          <span
+            className={`text-xs md:text-sm font-mono tabular-nums ${complete ? 'text-primary font-bold' : 'text-base-content/60'}`}
+          >
+            {cardCount}/100
+          </span>
         </div>
 
+        {/* Strategy */}
+        {deck.objectives?.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {deck.objectives.map((o) => (
+              <ObjectivePill key={o.id} objective={o} />
+            ))}
+          </div>
+        )}
+
+        {/* Meta */}
+        <p className="text-xs md:text-sm text-base-content/50 flex flex-wrap gap-x-2">
+          <span title={new Date(deck.updatedAt).toLocaleString()}>
+            Edited {timeAgo(deck.updatedAt)}
+          </span>
+          {deck.versions?.length > 0 && (
+            <span>
+              · {deck.versions.length} {deck.versions.length === 1 ? 'version' : 'versions'}
+            </span>
+          )}
+          {value > 0 && (
+            <span title="Approximate, from prices saved when cards were added">
+              · ~${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </span>
+          )}
+        </p>
+
         {/* Actions */}
-        <div className="card-actions flex-nowrap mt-auto pt-4">
+        <div className="card-actions flex-nowrap mt-auto pt-3">
           <button
             onClick={onOpen}
-            className="btn btn-sm btn-neutral flex-1 hover:border-primary/50"
+            className="btn btn-sm btn-primary flex-1"
           >
             View
           </button>
           <button
             onClick={onEdit}
-            className="btn btn-sm btn-neutral flex-1 hover:border-primary/50"
+            className="btn btn-sm btn-neutral flex-1"
           >
             Edit
           </button>
           <button
             onClick={() => onDelete(deck)}
-            className="btn btn-sm btn-outline btn-error px-3"
+            className="btn btn-sm btn-ghost text-base-content/50 hover:text-error hover:bg-error/10 px-3"
             aria-label="Delete Deck"
           >
             <X size={15} />
