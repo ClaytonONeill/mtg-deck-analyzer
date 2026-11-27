@@ -1,23 +1,22 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. It holds the **rules**; the narrative docs live under [`docs/`](docs/README.md) (Diátaxis layout: tutorials, how-to, reference, explanation). When this file and the code disagree, the code wins, so fix this file.
 
 ## What this app is
 
-MTG Deck Analyzer is a personal Commander/EDH deck-building tool for a handful of users (not a public product). It fronts two external services:
+MTG Deck Analyzer is a personal Commander/EDH deck-building tool for a handful of users (not a public product). It is a browser-only SPA with no server of its own. It talks directly to:
 
-- **Supabase** (Postgres + Auth) — the only backend; the browser talks to it directly via `@supabase/supabase-js`. There is no custom server/API layer.
-- **Scryfall's public REST API** (`api.scryfall.com`) — card data/search/images, called directly from the browser, unauthenticated.
+- **Supabase** (Postgres + Auth), the only backend, via `@supabase/supabase-js`.
+- **Scryfall's public REST API** (`api.scryfall.com`) for card data, search, images and prices. It's unauthenticated.
+- **EDHREC's static JSON** (`json.edhrec.com`) for card suggestions. It's unofficial and undocumented, and isolated in `features/recommendations/utils/edhrecClient.ts`.
 
-Card suggestions also read **EDHREC's static JSON** (`json.edhrec.com`), straight from the browser. It's unofficial and undocumented, and it's isolated in `features/recommendations/utils/edhrecClient.ts`. See [`docs/plans/card-recommendations-v2.md`](docs/plans/card-recommendations-v2.md).
+Users can build a Commander deck (commander + partner + up to 99 cards, color-identity legal, singleton), save named **versions** as card-swap diffs and compare them, tag cards with **objectives**, keep a cross-deck **wishlist**, view metrics charts, get suggestions, and run a hand simulator. Feature walkthroughs are in [`docs/README.md`](docs/README.md).
 
-Core things a user can do: build a Commander deck (search for a commander + up to 99 other cards, respecting color-identity legality and partner-commander rules), save multiple named **versions** of a deck as sets of card swaps and compare them, tag cards with user-defined **objectives** (freeform strategic tags), maintain a cross-deck **wishlist**, view deck composition charts (card types, mana curve), and run a hand-simulator.
+`IDEAS.md` at the repo root is the product owner's running backlog. It goes stale in both directions: items can already be partly or fully built. For example, "Confirm Delete Modal" is done: the shared `ConfirmDelete` covers deck deletion on `HomePage` and version delete/promote on `DeckDetailPage`. Some fixes also exist without the backlog line being removed, such as `duplicateCardInDeck()`, which is enforced on builder add. Don't trust an IDEAS.md line at face value; grep for the feature before assuming it's unbuilt.
 
-`IDEAS.md` at the repo root is the product owner's running backlog/notes — check it for context on what's intentionally unfinished vs. what's a bug. Note it can go stale in both directions: a request can already be partially built (IDEAS.md still asks for a "Confirm Delete Modal"; a shared `ConfirmDelete` component already exists and is wired into `HomePage`'s deck-deletion flow, but not into `DeckDetailPage`'s deck-**version** deletion, so the idea is half-done, not untouched), or a fix can exist without the backlog item being removed (`deckStore.duplicateCardInDeck()` is already enforced in `useDeckBuilder`'s add-card path, which may substantially close "BUG: Duplicate Cards can be Added to the Deck" — unverified for the version-swap path). Don't trust an IDEAS.md line at face value; grep for the feature before assuming it's unbuilt.
+**`/tasks/` is a granular engineering audit.** `001`–`009` are architecture-level findings, `010`–`022` map IDEAS.md items, and `023`+ are later design issues. Check `tasks/README.md`'s index before re-diagnosing an issue or assuming an IDEAS.md item is unscoped. Keep task checkboxes and the index current as work lands, since multiple agents may pick these up independently.
 
-**`/tasks/` already contains a granular, up-to-date engineering audit.** `001`–`009` cover architecture-level findings (error handling, theming, page-shell/header/icon drift, dead code, deck-version editing gaps, redundant refetching, a testing foundation) from the same pass that produced this file; `010`–`022` were added later, one per `IDEAS.md` backlog item that had no task file yet — each notes where the codebase already diverges from that IDEAS.md entry's description. Check `tasks/README.md`'s index before re-diagnosing an issue this file describes only at a summary level, or before assuming an IDEAS.md item is unscoped. Keep task checkboxes and the index current as work lands, since multiple agents may pick these up independently.
-
-**Database is off-limits by default.** Do not read from or write to the live Supabase project (tables, RLS policies, storage, auth users) unless the current task explicitly scopes that work. Treat `.env.local` / Supabase credentials as sensitive — don't print or log their values.
+**Database is off-limits by default.** Do not read from or write to the live Supabase project (tables, RLS policies, storage, auth users) unless the current task explicitly scopes that work. Treat `.env.local` / Supabase credentials as sensitive, and don't print or log their values.
 
 ## Commands
 
@@ -28,69 +27,68 @@ npm run lint      # eslint . (flat config, eslint.config.js)
 npm run preview   # preview a production build
 ```
 
-There is no test runner configured (no vitest/jest in `package.json`) — don't assume `npm test` exists. Standing up one is scoped as [`tasks/009`](tasks/009-testing-foundation-unit-and-acceptance.md) (multi-phase); don't add ad hoc test tooling outside that plan.
+There is no test runner configured (no vitest/jest in `package.json`), so don't assume `npm test` exists. Standing one up is scoped as [`tasks/009`](tasks/009-testing-foundation-unit-and-acceptance.md) (multi-phase); don't add ad hoc test tooling outside that plan.
 
-A husky `pre-commit` hook runs `npx lint-staged`, which on staged `.ts`/`.tsx` files runs `eslint --max-warnings=0` and `tsc -p tsconfig.app.json --noEmit`. Both must pass to commit.
+A husky `pre-commit` hook runs `npx lint-staged`. On staged `.ts`/`.tsx` files it runs `eslint --max-warnings=0` and `tsc -p tsconfig.app.json --noEmit`, and both must pass to commit.
 
-Path alias: `@/*` → `src/*` (configured in both `vite.config.ts` and `tsconfig.app.json`).
+Path alias: `@/*` → `src/*` (configured in both `vite.config.ts` and `tsconfig.app.json`). Env vars, deploy (manual, Vercel) and the full gate details are in [`docs/reference/configuration-and-commands.md`](docs/reference/configuration-and-commands.md).
 
 ## Architecture
 
-### Auth and app shell
+The full explanation, with a diagram and the reasons behind each choice, is in [`docs/explanation/architecture.md`](docs/explanation/architecture.md). Tables and store APIs are in [`docs/reference/data-model.md`](docs/reference/data-model.md), and every external call is in [`docs/reference/external-services.md`](docs/reference/external-services.md). The short version:
 
-`main.tsx` wraps everything in `AuthProvider` (`src/context/AuthContext.tsx`), which owns the Supabase session via `supabase.auth.getSession()` + `onAuthStateChange`. `App.tsx` is a single global gate: while `loading` it shows a spinner, if there's no `user` it renders `LoginPage` full-stop, otherwise it mounts `ThemeProvider` + `BrowserRouter` + the global `Header` + `Routes`. There is no per-route auth logic — auth is all-or-nothing at the top of the tree, and there are only 6 flat routes (no nesting, no lazy-loading).
+- **Auth is one gate.** `AuthProvider` (`src/context/AuthContext.tsx`) owns the Supabase session, and `App.tsx` shows a spinner, then `LoginPage`, then the app shell (`ThemeProvider` + `BrowserRouter` + `ErrorBoundary` + `Header` + 6 flat routes). There is no per-route auth logic.
+- **`src/store/*.ts` are data-access modules, not client state.** They are plain objects of async Supabase CRUD functions with hand-written row↔domain mapping. `deckStore.ts` also carries pure deck rules (`addCardToDeck`, `setCommander`, `isCardLegalForDeck`, import/export), so treat it as two things stapled together.
+- **State lives in per-feature hooks, with no global store or cache.** Each page composes hooks (`useDeckBuilder`, `useDeckVersions`, `useGallery`, `useWishlist`, `useObjectives`, `useRecommendations`, `useCardSearch`…) that fetch on mount. Navigating re-fetches, and `deckStore.getAll()` runs independently on three pages ([`tasks/008`](tasks/008-reduce-redundant-deck-refetching.md)).
 
-### Data layer: `src/store/*.ts`
+**Mutation conventions: follow these when adding a write** (step-by-step guide: [`docs/how-to/dev/add-a-data-write.md`](docs/how-to/dev/add-a-data-write.md)). Store mutations throw on any Supabase error; read paths (`getAll`/`getById`/`getForDeck`) degrade to `[]`/`undefined` instead. There are two patterns, chosen by what's being written:
 
-Despite the name, these are **not** client-state stores (no Redux/Zustand/Jotai anywhere in the app) — they're thin data-access modules: plain objects of `async` functions that map directly to Supabase table CRUD (`deckStore`, `wishlistStore`, `objectivesStore`), each with its own hand-written row↔domain-type mapping. `deckStore.ts` additionally carries pure domain-logic helpers (`addCardToDeck`, `setCommander`, `isCardLegalForDeck`, deck import/export) — treat that file as two things stapled together: Supabase I/O and deck business rules.
+- **Whole-deck writes go through `useDeckAutosave`.** It serializes full-deck upserts so they can't land out of order, keeps local state on failure, and exposes a `status` for a Retry UI. `DeckDetailPage` funnels every deck mutation through `commitDeck`, and `useDeckBuilder` uses the same autosave on the builder. `useGallery` and `useDeckVersions` are pure and never call `deckStore.save` themselves. Never add a second, independent `deckStore.save` call on a page that already autosaves. The one existing exception is `ImportDeckButton`, which only renders when no saved deck is open.
+- **Row-level writes (wishlist, objectives, deck delete) are optimistic.** Apply the local change, await, then reconcile or roll back on failure (`useWishlist`, `useObjectives`, `HomePage`'s delete). See [`tasks/001`](tasks/001-fix-inconsistent-mutation-error-handling.md).
 
-### State management: per-feature hooks, no global store
-
-Each feature has a hook in `hooks/` or `features/<name>/hooks/` that owns a slice of `useState`, fetches via a `store` in `useEffect` on mount, and exposes mutator callbacks (`useWishlist`, `useObjectives`, `useDeckBuilder`, `useDeckVersions`, `useGallery`, `useCardSearch`). Pages compose several of these directly as props-drilling sources — `DeckDetailPage` alone wires up five (`useObjectives`, `useGallery`, `useDeckVersions`, `useWishlist`, `useChartSelection`). There's no shared cache/query layer, so navigating between pages re-fetches from Supabase every time (e.g. `deckStore.getAll()` is called independently in `HomePage`, `WishlistPage`, and `DeckDetailPage`).
-
-**Mutation conventions — follow these when adding a write.** Store mutations throw on any Supabase error; read paths (`getAll`/`getById`/`getForDeck`) degrade to `[]`/`undefined` instead. There are two patterns, chosen by what's being written:
-
-- **Whole-deck writes go through `useDeckAutosave`**, which serializes full-deck upserts so they can't land out of order, keeps local state on failure, and exposes a `status` for a Retry UI. On `DeckDetailPage`, every deck mutation (gallery tagging, versions, quick add, strategy objectives) funnels through its `commitDeck`; `useGallery` and `useDeckVersions` are pure and never call `deckStore.save` themselves. Never add a second, independent `deckStore.save` call on a page that already autosaves.
-- **Row-level writes (wishlist, objectives, deck delete)** are optimistic: apply local change → await → reconcile or roll back on failure (`useWishlist`, `useObjectives`, `HomePage`'s delete). See [`tasks/001`](tasks/001-fix-inconsistent-mutation-error-handling.md).
-
-
-### Scryfall integration
-
-Called from three independent places with no shared client: `features/recommendations/utils/scryfallRecs.ts` (the card-suggestions engine, with session caches and one shared 550ms request schedule, because Scryfall's hard limit for `/cards/search` and `/cards/collection` is 2 requests per second), `features/deckBuilder/hooks/useCardSearch.ts` (debounced search with `AbortController` + a request-id guard against out-of-order responses — this is the one place with real race-condition handling) and `utils/utils.ts`'s `configureBasicLandEndpoint` (basic land image URLs). Outside the recommendations engine: no caching, no shared fetch wrapper, no rate-limit handling.
+**Scryfall rate limit: 2 req/s on `/cards/search` and `/cards/collection`.** New calls to those endpoints belong inside `features/recommendations/utils/scryfallRecs.ts`, on its shared 550ms schedule and session caches. Two existing callers are *not* on that schedule: `useCardSearch`, which uses a debounce plus `AbortController`/request-id, and `context/CardPriceContext.tsx`, which sends its own `/cards/collection` batches with a 500ms gap. See [`docs/how-to/dev/call-scryfall.md`](docs/how-to/dev/call-scryfall.md).
 
 ## Styling
 
-Tailwind v4 (via `@tailwindcss/vite`) + daisyUI v5, driven by semantic tokens (`base-100/200/300`, `base-content`, `primary`, `error`, etc.) rather than raw Tailwind palette classes almost everywhere. `ThemeContext` (`src/context/ThemeContext.tsx`) stores the active daisyUI theme name in `localStorage` and sets `data-theme` on `<html>`; the theme `<select>` in `Header.tsx` hardcodes the list of ~16 daisyUI theme names inline.
+Tailwind v4 (via `@tailwindcss/vite`) + daisyUI v5. Use semantic tokens (`base-100/200/300`, `base-content`, `primary`, `error`, etc.), not raw Tailwind palette classes. `ThemeContext` stores the theme name in `localStorage` and sets `data-theme` on `<html>`. The picker's list is the `THEMES` array in `components/ThemeDropDown/ThemeDropdown.tsx` (18 themes), which must stay in sync with the `Theme` union in `src/types/index.ts` ([`docs/how-to/dev/add-a-theme.md`](docs/how-to/dev/add-a-theme.md)). `index.html` applies the saved theme before first paint, because the loading screen, `LoginPage` and `ErrorBoundary` render above `ThemeProvider`.
 
-Cohesion has drifted in a few concrete, fixable spots — worth knowing about before assuming the whole app is uniformly themed:
+- **Signature themes**: `arcane` (dark, default) and `grimoire` (light), defined in `src/index.css`. `font-display` (Cinzel) is for the logo, page titles and deck names only, never body copy. `utils/manaColors.ts` holds fixed WUBRG hues for decorative accents that should *not* follow the theme.
+- **Page shell**: pages wrap in `components/PageShell` (`tone="base"` → `bg-base-100`, `tone="recessed"` → `bg-base-200`). Loading states still use per-page spinners (skeletons are `tasks/010`).
+- **Icons**: use `lucide-react`. A few hand-rolled inline `<svg>` icons remain (`SwapSidebar`, `ObjectiveManager`, `HandSimulator`, `WishlistDeckFilter`); don't add more ([`tasks/005`](tasks/005-unify-icon-system.md)).
+- **Duplicate chrome**: `WishlistPage` and `DeckDetailPage` still render their own in-page sticky bar with a separate "Back" button on top of the global `Header` ([`tasks/004`](tasks/004-deduplicate-page-header-chrome.md)).
+- **Cohesion fixes are scoped small.** They are tasks [`002`](tasks/002-theme-aware-shell-screens.md)–[`005`](tasks/005-unify-icon-system.md). Pick one up rather than re-scoping, and don't propose styled-components or a new design-token system; that's over-engineering at this size.
 
-- **Theme-aware shell screens (resolved)**: `App.tsx`'s auth-loading screen, `LoginPage`, and `ErrorBoundary` now use daisyUI tokens; `index.html` applies the saved theme before first paint because those render above `ThemeProvider` ([`tasks/002`](tasks/002-theme-aware-shell-screens.md)).
-- **Signature themes**: `arcane` (dark, default) and `grimoire` (light) are custom daisyUI themes defined in `src/index.css`. `font-display` (Cinzel) is for logo/page titles/deck names only, never body copy. `utils/manaColors.ts` holds fixed WUBRG hues for decorative accents that should *not* follow the theme.
-- **Shared page shell (resolved)**: pages now wrap in `components/PageShell` (`tone="base"` → `bg-base-100`, `tone="recessed"` → `bg-base-200` for pages built from raised base-100 cards). Loading states still use per-page spinners (skeletons are `tasks/010`).
-- **Duplicate chrome**: the global `Header` (mounted once in `App.tsx`, above `<Routes>`) already provides top-level nav, but `DeckBuilderPage`, `WishlistPage`, and `DeckDetailPage` each additionally render their own in-page sticky header bar with their own independent "Back" button implementation.
-- **No single icon convention**: `lucide-react` is a dependency and is used in some places (`DeckDetailPage`), but other places hand-roll the equivalent icon as an inline `<svg>` (`DeckBuilderPage`'s back chevron, the warning-triangle alerts) instead of using the matching lucide icon.
+**Objectives-tagging UI exists in more than one divergent implementation** ([`tasks/018`](tasks/018-shared-objectives-assignment-component.md)). Check for the existing ones before adding another tagging surface. A new one-off makes the consolidation harder.
 
-If asked to improve stylistic cohesion, the lowest-effort fix is: migrate `App.tsx`'s loading screen and `ErrorBoundary` to daisyUI tokens, standardize on one page background token, extract a shared page-shell + spinner component, and settle on lucide-react as the single icon source — not a rewrite into styled-components or a new design-token system, which would be over-engineering for an app this size. These four items are individually scoped as [`tasks/002`](tasks/002-theme-aware-shell-screens.md)–[`005`](tasks/005-unify-icon-system.md) — pick one up rather than re-scoping from scratch.
+**Strategy vs. Objectives vs. Card Roles** (see [`tasks/023`](tasks/023-objectives-semantic-clarity.md)'s amendment and [`docs/explanation/strategy-objectives-and-card-roles.md`](docs/explanation/strategy-objectives-and-card-roles.md)):
+- *Strategy* is `Deck.objectives`, the deck's 1–2 plans.
+- *Objectives* are the user's hand-applied per-card tags (`DeckEntry.objectiveIds`).
+- *Card Roles* (ramp, draw, removal, tutor…) are detected from rules text by `detectCardRoles()` and never stored.
 
-Separately, `IDEAS.md` notes the objectives-tagging UI ("Objectives Menu Should be a Standardized Shared Component") exists as two or three divergent implementations rather than one shared component. Check for this before adding yet another objectives-tagging surface — a fourth one-off implementation would make the eventual consolidation harder, not easier.
+Don't ask users to hand-tag something a Card Role already detects, and don't call objectives "roles" in UI copy.
 
-**Strategy vs. Objectives vs. Card Roles** (see [`tasks/023`](tasks/023-objectives-semantic-clarity.md)'s amendment): *Strategy* is `Deck.objectives` (the deck's 1–2 plans); *Objectives* are the user's hand-applied per-card tags (`DeckEntry.objectiveIds`); *Card Roles* (ramp, draw, removal, tutor…) are detected from rules text by `detectCardRoles()` and never stored. Don't ask users to hand-tag something a Card Role already detects, and don't call objectives "roles" in UI copy.
+**Breakpoints, minimum type sizes, and the z-index scale are defined in [`docs/reference/design-tokens.md`](docs/reference/design-tokens.md).** Read it before touching layout, typography, or anything `fixed`/`sticky`/`absolute`. It also documents known current violations (arbitrary sub-12px text, ad hoc z-index values, custom z-index utilities fighting daisyUI's `dropdown-content` stacking).
 
-**Breakpoints, minimum type sizes, and the z-index scale are defined in [`docs/reference/design-tokens.md`](docs/reference/design-tokens.md)** — read it before touching layout, typography, or anything `fixed`/`sticky`/`absolute`. It also documents known current violations (e.g. arbitrary sub-12px text, ad hoc z-index values, a likely-live bug where custom z-index utilities fight daisyUI's built-in `dropdown-content` stacking).
+**Text size on desktop: new UI keeps shipping too small, so check this on every change.**
+- Any `text-xs` (12px) text must step up on desktop, as `text-xs md:text-sm`.
+- Never go below `text-xs`, and never use `text-[10px]`-style arbitrary sizes.
+- daisyUI size modifiers shrink text too: `btn-xs` and `badge-sm`/`badge-xs` render about 10–11px. Pair them with explicit text classes (`btn btn-xs text-xs md:btn-sm md:text-sm`), or use one size up on desktop.
+- Body copy is `text-sm md:text-base`.
 
-**Text size on desktop: new UI keeps shipping too small, so check this on every change.** Any `text-xs` (12px) text must step up on desktop, as `text-xs md:text-sm`. Never go below `text-xs`, and never use `text-[10px]`-style arbitrary sizes. daisyUI size modifiers shrink text too: `btn-xs` and `badge-sm`/`badge-xs` render about 10–11px. So pair them with explicit text classes (`btn btn-xs text-xs md:btn-sm md:text-sm`), or use one size up on desktop. Body copy is `text-sm md:text-base`. The full scale is in `docs/reference/design-tokens.md` §2.
+The full scale is in `docs/reference/design-tokens.md` §2.
 
 ## Scale-appropriate scope
 
-This is a small app for a handful of users — weigh new abstractions against that. A few things already lean past what the app needs or haven't paid for their complexity yet:
+This is a small app for a handful of users, so weigh new abstractions against that. The reasoning is in the "Deliberate scale limits" section of [`docs/explanation/architecture.md`](docs/explanation/architecture.md).
 
-- The deck-**versions** subsystem (separate hooks/utils/compare UI, per-version objective overrides, swap tracking) is the most elaborate part of the codebase. `IDEAS.md` flags "can't edit a saved version without creating a new one" as clunky, but that's only half true today: appending new swaps to an existing version already works end-to-end (`SaveVersionModal`'s "Update Existing" path → `useDeckVersions.appendToVersion`). What's actually still missing — renaming/editing a version's note (the hook function `updateVersion` already exists but nothing in the UI calls it) and removing an individual swap from an already-saved version — is scoped precisely in [`tasks/007`](tasks/007-deck-version-editing-gaps.md), including a note to get product-owner sign-off before building. Don't add more machinery here without checking that task first.
-- `hooks/useLocalStorage.ts` was dead code but is now used by `CardGallery`'s mobile cards-per-row setting. `tasks/006`'s other one-file cleanups (e.g. `src/pages/ObjetivesPage.tsx`'s missing "c") are still open.
-- Conversely, don't over-index on the request-id/`AbortController` race-guarding in `useCardSearch` as "the house style" — it's the only fetch in the app with that rigor; `HomePage`/`WishlistPage`/`DeckDetailPage` all do plain fetch-on-mount with a `mounted` boolean flag instead (redundantly — all three independently re-fetch `deckStore.getAll()`, which [`tasks/008`](tasks/008-reduce-redundant-deck-refetching.md) proposes consolidating into one shared hook). That's fine for their use case (single fetch, not a fast-typing search box) — don't port the heavier `useCardSearch` pattern in unless a spot actually has the same race condition.
+- **Deck versions are the most elaborate subsystem.** They have their own hooks, utils and compare UI, plus per-version objective overrides. Appending swaps to an existing version already works (`SaveVersionModal`'s `Update "<version>"` toggle → `useDeckVersions.appendToVersion`). What's still missing is renaming a version or editing its note (`updateVersion` exists, but no UI calls it) and removing a single saved swap. Both are scoped in [`tasks/007`](tasks/007-deck-version-editing-gaps.md), which needs product-owner sign-off. `VersionBuilder.tsx` and `VersionCard.tsx` aren't imported anywhere. Don't add more machinery here without checking that task first. Background: [`docs/explanation/how-deck-versions-work.md`](docs/explanation/how-deck-versions-work.md).
+- `tasks/006`'s one-file cleanups (e.g. `src/pages/ObjetivesPage.tsx`'s missing "c") are still open.
+- **Don't treat race-guarding as the house style.** The request-id/`AbortController` pattern belongs only where a real race exists: `useCardSearch` (fast typing) and `useRecommendations`. `HomePage`/`WishlistPage`/`DeckDetailPage` do plain fetch-on-mount with a `mounted` flag, which is fine for a single fetch.
 
-## Where to put planning/working docs
+## Where docs go
 
-- `/tasks/` — granular, GitHub-issue-style write-ups of well-scoped engineering work (one file per issue, see `tasks/README.md` for the index/template). Pick one of these up when asked to work on a specific, boundaried piece of the codebase.
-- `docs/plans/` — freeform multi-step implementation plans or audit notes that don't fit the issue format above (create it if it doesn't exist).
+- `docs/`: user and contributor documentation, organized by Diátaxis; [`docs/README.md`](docs/README.md) is the index. Add every new page to that index in the same commit, and update the affected page when behavior changes. Conventions are in [`docs/contributing/conventions.md`](docs/contributing/conventions.md).
+- `/tasks/`: granular, GitHub-issue-style write-ups of well-scoped engineering work. There's one file per issue; see `tasks/README.md` for the index and template.
+- `docs/plans/`: freeform multi-step implementation plans or audit notes that don't fit the issue format. These are working docs, not documentation of current behavior.
 
-Keep `IDEAS.md` as the product owner's single backlog of feature/bug notes — don't let engineering scratch work leak into it.
+Keep `IDEAS.md` as the product owner's single backlog of feature/bug notes. Don't let engineering scratch work leak into it.
