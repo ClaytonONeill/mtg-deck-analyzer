@@ -4,7 +4,7 @@ This page specifies the three deck export formats (JSON, Excel, and text) and th
 
 For the steps to import or export a deck, see [Import and export a deck](../how-to/import-and-export-a-deck.md). For how decks are stored, see [Data model](data-model.md).
 
-Source: `src/store/deckStore.ts` (`defaultExportFilename`, `buildDeckTextExport`, `buildDeckExportBlob`, `buildDeckXlsxBlob`, `importDeckFromFile`, `isValidDeck`, `findDuplicateCardNames`) and `src/types/index.ts`.
+Source: `src/store/deckStore.ts` (`defaultExportFilename`, `buildDeckTextExport`, `buildDeckExportBlob`, `buildDeckXlsxBlob`, `importDeckFromFile`, `isValidDeck`), `src/features/formats/formats.ts` (`getDeckViolations`, `maxCopies`) and `src/types/index.ts`.
 
 ## Format summary
 
@@ -47,10 +47,12 @@ The JSON export is the full `Deck` object, written with `JSON.stringify(deck, nu
 | --- | --- | --- | --- |
 | `id` | string | Yes | Deck identifier. Used to detect an existing deck on import. |
 | `name` | string | Yes | Deck name. |
+| `format` | string | Normalized | One of `commander`, `standard`, `pioneer`, `modern`, `legacy`, `vintage`, `pauper`. A missing or unknown value imports as `commander`, so files exported before formats existed import as Commander decks. |
 | `commander` | `ScryfallCard` or `null` | No | The commander. |
 | `partner` | `ScryfallCard` or `null` | No | The partner commander. |
-| `colorIdentity` | string[] | No | Combined color identity, letters from `W`, `U`, `B`, `R`, `G`. |
-| `entries` | `DeckEntry[]` | Yes (must be an array) | The cards in the deck, excluding commander and partner. |
+| `colorIdentity` | string[] | No | Combined color identity, letters from `W`, `U`, `B`, `R`, `G`. Recalculated from the cards on import for non-Commander decks. |
+| `entries` | `DeckEntry[]` | Yes (must be an array) | The main deck, excluding commander and partner. |
+| `sideboard` | `DeckEntry[]` | Normalized | The sideboard. Missing imports as `[]`. |
 | `createdAt` | string | Yes | ISO 8601 timestamp. |
 | `updatedAt` | string | Yes | ISO 8601 timestamp. Replaced with the current time when the deck is saved. |
 | `objectives` | `Objective[]` | No | The deck's Strategy (its 1–2 core plans). |
@@ -117,26 +119,15 @@ Cards are stored as a subset of the Scryfall card object.
 | File cannot be read | `Failed to read file.` |
 | Contents are not valid JSON | `Could not parse file. Make sure it is a valid deck JSON.` |
 | Top level is not an object, or `id`, `name`, `createdAt`, `updatedAt` is not a string, or `entries` is not an array | `Invalid deck file — missing required fields.` |
-| A card name appears more than once (see below) | `Invalid deck file — Commander decks can only contain one copy of: <names>.` |
+| A card is over its format's copy limit (see below) | Commander: `Invalid deck file — Commander decks can only contain one copy of: <names>.` Other formats: `Invalid deck file — too many copies for <format> of: <names>.` |
 
-No other fields are validated. Nested objects (`DeckEntry`, `DeckVersion`, `Objective`, `ScryfallCard`) are not type-checked, and the parsed object is used as-is.
+Before the copy-limit check, the deck is normalized: `format`, `sideboard`, `commander`, `partner`, `colorIdentity`, `objectives`, and `versions` get defaults when missing, and `entries` and `sideboard` items without a `card.name` are dropped. Nested objects are not otherwise type-checked.
 
-#### Duplicate-card rejection
+#### Copy-limit rejection
 
-`findDuplicateCardNames` counts copies by card `name` (not Scryfall `id`) across:
+Copies are counted by card `name` (not Scryfall `id`) across `commander`, `partner`, `entries`, and `sideboard`, using each entry's `quantity`. `versions[].swaps` are not counted. The limit per card is `maxCopies` for the deck's format: 1 in Commander and 4 elsewhere, 1 for a card restricted in Vintage, unlimited for basic lands and "any number of cards named" cards, and the printed number for "up to seven/nine cards named" cards. See [Deck rules](deck-rules.md#copy-limits).
 
-- `commander` (1 copy)
-- `partner` (1 copy)
-- each `entries[i].card`, counting `entries[i].quantity` copies (1 if `quantity` is missing)
-
-A name with a total above 1 is a duplicate. One entry with `quantity` greater than 1 is a duplicate. `versions[].swaps` are not counted.
-
-These cards are exempt and never counted:
-
-- cards whose `type_line` contains the word `Basic`
-- cards whose `oracle_text` contains `a deck can have any number of cards named` (case-insensitive)
-
-Entries with no `card` or no `card.name` are skipped.
+Banned cards, cards outside the color identity, and size problems don't reject the file. They import and are flagged in the deck builder.
 
 #### After validation
 
@@ -208,7 +199,18 @@ Deck
 - One blank line separates the sections.
 - The `Deck` header is followed by one line per `entries` item, in `entries` order.
 
-When the deck has neither commander nor partner, there are no headers or blank line. The output is only the `<quantity> <card name>` lines.
+When the deck has a sideboard, a blank line and a `Sideboard` header follow the main deck, then one line per `sideboard` item. A deck with a sideboard but no commander starts with the `Deck` header:
+
+```text
+Deck
+4 Lightning Bolt
+20 Mountain
+
+Sideboard
+2 Pyroblast
+```
+
+When the deck has no commander, partner, or sideboard, there are no headers or blank lines. The output is only the `<quantity> <card name>` lines.
 
 Each card line is the entry's `quantity`, one space, and `card.name`. Set codes, collector numbers, categories, and Objectives are not included.
 
@@ -238,6 +240,7 @@ Deck
 1. Commander, if set
 2. Partner, if set
 3. Each `entries` item, in `entries` order
+4. Each `sideboard` item, in `sideboard` order
 
 ### Columns
 
@@ -245,7 +248,7 @@ Deck
 | --- | --- |
 | `Quantity` | `1` for commander and partner, otherwise the entry's `quantity` |
 | `Name` | `card.name` |
-| `Category` | `Commander` for commander and partner, otherwise the entry's `category` |
+| `Category` | `Commander` for commander and partner, `Sideboard` for sideboard cards, otherwise the entry's `category` |
 | `Type Line` | `card.type_line` |
 | `Mana Cost` | `card.mana_cost`, in Scryfall notation (for example `{2}{G}{U}`) |
 | `CMC` | `card.cmc` |

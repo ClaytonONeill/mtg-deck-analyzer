@@ -78,7 +78,7 @@ Now try adding a card in a color Ezuri doesn't have. Search for `Lightning Bolt`
 
 > Lightning Bolt is outside your commander's color identity and cannot be added.
 
-Your commander's color identity is green, so red cards aren't legal in this deck. Close the warning with its **X** button. The full rules are in [Commander deck rules](../reference/deck-rules.md).
+Your commander's color identity is green, so red cards aren't legal in this deck. Close the warning with its **X** button. The full rules are in [Deck rules](../reference/deck-rules.md).
 
 ## Step 5: Add basic lands
 
@@ -120,5 +120,5 @@ To keep building, go back to the home page and click **Edit** on the deck card, 
 
 - Keep going with [Tune a deck with objectives and versions](tune-a-deck-with-versions.md). It picks up with this deck.
 - Already have a decklist somewhere else? See [Import and export a deck](../how-to/import-and-export-a-deck.md).
-- For the exact legality rules (color identity, singleton, partners, card count), see [Commander deck rules](../reference/deck-rules.md).
+- For the exact legality rules (color identity, singleton, partners, card count), see [Deck rules](../reference/deck-rules.md).
 - For every screen and tab in the app, see [Screens and tabs](../reference/screens-and-tabs.md).

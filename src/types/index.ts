@@ -82,13 +82,34 @@ export interface DeckVersion {
   createdAt: string;
 }
 
+/** Formats a deck can be built for. Values are Scryfall `legalities` keys.
+ * Rules for each live in `src/features/formats/formats.ts`. */
+export type DeckFormat =
+  | "commander"
+  | "standard"
+  | "pioneer"
+  | "modern"
+  | "legacy"
+  | "vintage"
+  | "pauper";
+
+/** Where a card sits: the main deck or the sideboard. */
+export type DeckZone = "main" | "side";
+
 export interface Deck {
   id: string;
   name: string;
+  /** Missing on decks saved before formats existed; read as "commander". */
+  format: DeckFormat;
   commander: ScryfallCard | null;
   partner: ScryfallCard | null;
+  /** Commander: the commander(s)' identity. Other formats: derived from the
+   * cards in the deck (see `withDerivedColors`). */
   colorIdentity: string[];
+  /** Main deck, excluding commander/partner. */
   entries: DeckEntry[];
+  /** Up to 15 cards in 60-card formats; empty in a legal Commander deck. */
+  sideboard: DeckEntry[];
   createdAt: string;
   updatedAt: string;
   /** Deck-level strategic objectives (1-2 core themes), distinct from each

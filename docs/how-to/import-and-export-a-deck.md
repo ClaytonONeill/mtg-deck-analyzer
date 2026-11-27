@@ -14,7 +14,7 @@ Use this guide to back up a deck, share it, paste its list into another deckbuil
 4. Under **Format**, choose one:
    - **JSON**: the full deck record. This is the only format the app can import again, so use it for backups and moving decks between accounts.
    - **Excel (.xlsx)**: one row per card, with quantity, name, category, type line, mana cost, mana value, and color identity. Use it for spreadsheets and printing.
-   - **Text List**: `quantity card name` lines, with commanders under a `Commander` header and the rest under `Deck`. Use it to paste the list into other deckbuilding sites.
+   - **Text List**: `quantity card name` lines, with commanders under a `Commander` header, the main deck under `Deck`, and any sideboard under `Sideboard`. Use it to paste the list into other deckbuilding sites.
 5. Optional: edit **File name**. It defaults to the deck name with spaces replaced by underscores, and the extension follows the format you pick.
 6. Optional: under **Save to**, select **Browse** to pick a folder. The **Browse** button appears only in browsers that support choosing a folder. Otherwise the file goes to your default downloads folder.
 7. Select **Export**.
@@ -46,7 +46,7 @@ The error appears in red under **Import Deck**. The most common messages are:
 - **"Could not parse file. Make sure it is a valid deck JSON."** The file is not valid JSON. This happens, for example, when you choose an `.xlsx` or Text List export.
 - **"Invalid deck file — missing required fields."** The file is JSON but lacks a string `id`, `name`, `createdAt` or `updatedAt`, or an `entries` array.
 
-The app can also reject a file with "Invalid deck file — Commander decks can only contain one copy of: …" when the file lists a card more than once that isn't exempt from the singleton rule. It shows "Failed to save imported deck." when saving fails after you choose an option in the **Deck Already Exists** dialog.
+The app can also reject a file that has more copies of a card than its format allows: "Invalid deck file — Commander decks can only contain one copy of: …" for a Commander deck, or "Invalid deck file — too many copies for &lt;format&gt; of: …" for other formats. Other rule problems, such as a card that has since been banned, don't stop the import; the deck builder flags those cards. A file exported before formats existed imports as a Commander deck. It shows "Failed to save imported deck." when saving fails after you choose an option in the **Deck Already Exists** dialog.
 
 For other causes and fixes, see [Troubleshooting](../troubleshooting.md).
 

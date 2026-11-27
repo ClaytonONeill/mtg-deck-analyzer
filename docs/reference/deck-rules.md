@@ -1,97 +1,162 @@
-# Commander deck rules
+# Deck rules
 
-This page lists the Commander deck-construction rules the app enforces, the functions that implement them, and the places where each rule is and is not checked.
+This page lists the deck-construction rules the app enforces for each format, the functions that implement them, and the places where each rule is and is not checked.
 
-All rule helpers live in [`src/store/deckStore.ts`](../../src/store/deckStore.ts), except the partner rules, which live in [`src/features/deckBuilder/utils/partnerUtils.ts`](../../src/features/deckBuilder/utils/partnerUtils.ts).
+Every format rule lives in [`src/features/formats/formats.ts`](../../src/features/formats/formats.ts). The exceptions are the partner rules, which live in [`src/features/deckBuilder/utils/partnerUtils.ts`](../../src/features/deckBuilder/utils/partnerUtils.ts). [`src/store/deckStore.ts`](../../src/store/deckStore.ts) keeps thin wrappers (`isCardLegalForDeck`, `duplicateCardInDeck`, `isDuplicateCard`) for older callers.
 
-## Summary
+For why the rules are built this way, see [Formats and legality](../explanation/formats-and-legality.md).
 
-| Rule | Function | Enforced on |
-| --- | --- | --- |
-| 100-card limit | `getDeckCardCount` | Builder card search, builder Basic Lands panel, Suggestions quick add |
-| Color identity | `isCardLegalForDeck` | Builder add, Basic Lands panel (by filtering), version swap, Suggestions |
-| Singleton | `isDuplicateCard`, `duplicateCardInDeck`, `findDuplicateCardNames` | Builder add, version swap, Suggestions, import |
-| Singleton exemptions | `isSingletonExempt` | Every singleton check |
-| Partner pairing | `getPartnerInfo`, `isValidPartner` | Builder partner selection |
-| Commander eligibility | Scryfall query `is:commander format:commander` | Builder Commander and partner search |
+## Formats
 
-## Card count
+A deck's format is `Deck.format`. A deck saved before formats existed has no `format` and is read as `commander` (`getFormat`).
 
-`getDeckCardCount(deck)` returns:
+| Format | `DeckFormat` | Main deck | Sideboard | Copies of a card | Commander | Color identity |
+| --- | --- | --- | --- | --- | --- | --- |
+| Commander | `commander` | Exactly 100, commander(s) included | None | 1 | Required | Enforced |
+| Standard | `standard` | At least 60, no maximum | Up to 15 | 4 | None | Not enforced |
+| Pioneer | `pioneer` | At least 60, no maximum | Up to 15 | 4 | None | Not enforced |
+| Modern | `modern` | At least 60, no maximum | Up to 15 | 4 | None | Not enforced |
+| Legacy | `legacy` | At least 60, no maximum | Up to 15 | 4 | None | Not enforced |
+| Vintage | `vintage` | At least 60, no maximum | Up to 15 | 4, or 1 if restricted | None | Not enforced |
+| Pauper | `pauper` | At least 60, no maximum | Up to 15 | 4 | None | Not enforced |
 
-```text
-sum of entries[].quantity + 1 (if commander is set) + 1 (if partner is set)
-```
+The table is `FORMATS`, in the order given by `FORMAT_ORDER`. Each `DeckFormat` value is also the card's Scryfall `legalities` key.
 
-- The commander and partner each count as one card. A deck with a commander, a partner, and 98 entries counts as 100.
-- A complete deck is exactly 100. The card-count progress bars on the deck list (`DeckCard`), the builder stats panel (`DeckStatsPanel`), and the deck detail page all use `cardCount === 100` as "complete".
-- There is no minimum. A deck can be saved with any count.
+## Card legality
 
-### Where the limit applies
+`cardLegality(card, format, live?)` returns `legal`, `restricted`, `banned`, or `not_legal`:
 
-| Location | Behavior at 100 or more cards |
+- Any card whose `type_line` contains the whole word `Basic` is `legal` in every format.
+- Otherwise the value comes from `card.legalities[format]`. A value from `live` replaces the saved one when `live` has the card's id. Missing or unknown values count as `not_legal`.
+
+A card can be played when it is `legal` or `restricted`.
+
+### Saved vs. live legalities
+
+Cards are saved whole, so each saved card holds the `legalities` Scryfall reported when the card was added. Ban lists change after that.
+
+| Where | Legalities used |
 | --- | --- |
-| Deck builder, "The 99" search (`DeckBuilderPage`) | The search input is disabled and its label reads "MAX CARD LIMIT REACHED". |
-| Deck builder, Basic Lands panel | The `+` buttons are disabled. The `-` buttons stay enabled. |
-| Deck detail page, Suggestions "Add to deck" | `handleQuickAdd` does nothing. The button is hidden unless the card is already in the deck. |
-| Version swaps | No check. A swap removes one card and adds one, so it does not change the count. |
-| Import | No check. An imported deck can have any count. |
+| Deck builder decklist, deck detail page, gallery swap checks | Live, from `useCardLegalities()`. `CardPriceProvider` fetches them in the same `/cards/collection` requests as live prices, so they cost no extra calls. The saved values are used until the response arrives. |
+| Builder card search add | The card returned by the search, which is current. |
+| Home deck cards, import | Saved values only. |
+
+## Copy limits
+
+Copies are counted **by card name**, across the commander, partner, main deck, and sideboard together (`countByName`). A different printing counts as the same card.
+
+`maxCopies(format, card, live?)` returns:
+
+| Card | Limit |
+| --- | --- |
+| `type_line` contains `Basic` | Unlimited |
+| Not playable in the format | 0 |
+| `restricted` in the format | 1 |
+| Oracle text contains `a deck can have any number of cards named` (case-insensitive) | Unlimited |
+| Oracle text matches `a deck can have up to <number> cards named` | That number (for example 7 for Seven Dwarves, 9 for Nazgûl) |
+| Anything else | The format's copy limit: 1 for Commander, 4 otherwise |
+
+`isSingletonExempt(card)` is true for basic lands and for both oracle-text cases above.
+
+## Adding a card: `checkCardAdd`
+
+`checkCardAdd(deck, card, zone = "main", { live, ignoreSize })` returns `{ ok: true }` or `{ ok: false, kind, reason }`. It checks these in order and stops at the first failure:
+
+| Order | `kind` | Fails when | `reason` |
+| --- | --- | --- | --- |
+| 1 | `illegal` | The card isn't playable in the deck's format. | "&lt;name&gt; is banned in &lt;format&gt;." or "&lt;name&gt; is not legal in &lt;format&gt;." |
+| 2 | `color` | Commander only, once a commander is set: the card's color identity isn't within the deck's. | "&lt;name&gt; is outside your commander's color identity and cannot be added." |
+| 3 | `copies` | One more copy would go over `maxCopies`. | "&lt;name&gt; is already in your deck." (limit 1), "&lt;name&gt; is restricted in Vintage: only one copy allowed.", or "&lt;format&gt; allows at most &lt;n&gt; copies of &lt;name&gt;." |
+| 4 | `size` | Skipped with `ignoreSize`. Adding to the sideboard when it is at the format's maximum, or to the main deck when it is at the maximum (Commander: 100). | "The sideboard is full (15 cards).", "Commander decks don't use a sideboard.", or "The deck is full (100 cards)." |
+
+`addCardToDeck` itself does not validate. Callers check `checkCardAdd` first.
+
+### Where `checkCardAdd` is called
+
+| Location | Zone | Options | Result on failure |
+| --- | --- | --- | --- |
+| Deck builder card search (`useDeckBuilder.addCard`) | The **Main deck** / **Sideboard** toggle | — | The card isn't added. An alert shows `reason`: red for `illegal`, blue for `copies`, amber otherwise. |
+| Deck builder decklist **+** button (`DeckEntryList`) | The row's zone | Live legalities | The button is disabled and its tooltip shows `reason`. It is hidden on cards that can never have a second copy, such as Commander singletons. |
+| Deck builder Basic Lands panel | Main | None (basics always pass) | The **+** buttons are disabled when the main deck is at its maximum (Commander: 100). |
+| Gallery swap sidebar (`CardGallery` → `SwapSidebar`) | Main | `ignoreSize`, live legalities | The deck is checked with every pending swap applied and one copy of the outgoing card removed. A failure blocks selection. Search shows `reason` in a red alert, except `copies`, which is blue. Wishlist tiles show **IN DECK** for `copies`, and otherwise **ILLEGAL** with "Outside color identity" or "Not legal in this format". |
+| Deck detail Suggestions **Add to deck** (`handleQuickAdd`) | Main | — | Nothing happens. Suggestions appear only for Commander decks. |
+
+`duplicateCardInDeck(deck, card)` is `checkCardAdd` with `ignoreSize`, returning true only for a `copies` failure. The Suggestions tab uses it for "Already in deck".
+
+## Search filtering
+
+`useCardSearch(format)` adds a format filter to every Scryfall query:
+
+| Search | Query suffix |
+| --- | --- |
+| Commander and partner pickers | `is:commander f:commander` |
+| Builder card search, gallery swap search | `f:<format>`. Scryfall's `f:` matches both legal and restricted cards. |
+| Wishlist add panel | None. The wishlist is shared by decks of every format, so legality is checked when a card is swapped into a deck. |
+
+Search filtering is a convenience. `checkCardAdd` is the rule.
+
+## Deck size
+
+| Function | Returns |
+| --- | --- |
+| `getMainCount(deck)` / `getDeckCardCount(deck)` | The sum of `entries[].quantity`, plus 1 if a commander is set and 1 if a partner is set. The sideboard isn't counted. |
+| `getSideboardCount(deck)` | The sum of `sideboard[].quantity`. |
+| `mainTarget(deck)` | The format's minimum: 100 or 60. |
+| `isMainComplete(deck)` | Commander: exactly 100. Other formats: 60 or more. |
+
+Progress bars on Home (`DeckCard`), in the builder stats panel (`DeckStatsPanel`), and on the deck detail page show `count / mainTarget`. Constructed formats show the target as "60+" and also show the sideboard as "Sideboard n/15". There is no minimum to save: a deck can be saved at any size.
+
+## Rule breaks in an existing deck
+
+`getDeckViolations(deck, live?)` lists what breaks the deck's own format. Each entry has `cardName` (or `null` for a deck-level problem), `kind`, and `reason`:
+
+| `kind` | Per card or deck | `reason` |
+| --- | --- | --- |
+| `illegal` | Card | "Banned in &lt;format&gt;" or "Not legal in &lt;format&gt;" |
+| `color` | Card | "Outside the commander's color identity" (only once a commander is set) |
+| `copies` | Card | "&lt;n&gt; copies; &lt;format&gt; allows &lt;limit&gt;" |
+| `commander` | Deck | "No commander chosen" (Commander) |
+| `size` | Deck | Sideboard over its maximum ("Commander decks don't use a sideboard" in Commander), or main deck over its maximum |
+
+Short decks are not violations. The deck builder's decklist shows a red summary alert when the list isn't empty, and flags each card with a warning icon and its reason. In stacks view, the card gets a red ring and a reason badge.
+
+## Legal in other formats: `getLegalFormats`
+
+`getLegalFormats(deck, live?)` runs the violation check for every format and returns each one's `status`:
+
+| `status` | Meaning |
+| --- | --- |
+| `illegal` | At least one violation in that format. `reasons` lists up to three cards that aren't legal there, plus any other violations. |
+| `incomplete` | No violations, but the main deck is below that format's minimum (Commander: not exactly 100). |
+| `legal` | No violations, and the size is right. |
+
+A Commander deck is checked against the other formats with its commander and partner counted as main-deck cards. A deck without a commander is always `illegal` in Commander.
+
+| Where | Shows |
+| --- | --- |
+| Home deck card (`LegalFormats`, compact) | "Also legal in" followed by the other formats that are `legal` (solid badge) or `incomplete` (outlined badge). Hidden for an empty deck. |
+| Deck detail page, **Format legality** panel | Every format with its status and reasons. The deck's own format is highlighted. |
+
+## Changing a deck's format
+
+`changeDeckFormat(deck, format)` never removes a card:
+
+- Commander → another format moves the commander and partner into the main deck.
+- Another format → Commander leaves the commander slot empty and clears `colorIdentity`. The deck builder then shows the commander picker. The sideboard is kept and flagged (`size`); each sideboard row has a move-to-main button.
+- Cards that break the new format's rules stay and are flagged by `getDeckViolations`. Switching back clears the flags.
+
+In the builder, changing the format of a deck that has any cards opens a confirmation dialog that says how many cards will be flagged. The change is autosaved.
 
 ## Color identity
 
-`isCardLegalForDeck(colorIdentity, card)` returns `true` when every color in `card.color_identity` is in the deck's `colorIdentity`. Colorless cards (empty `color_identity`) are always legal.
-
-### How the deck's color identity is set
-
-| Function | Resulting `deck.colorIdentity` |
+| Format | `deck.colorIdentity` |
 | --- | --- |
-| `setCommander(deck, card)` | The commander's `color_identity`. Also clears `partner`. |
-| `setPartner(deck, card)` | The union of the commander's and partner's color identities, in WUBRG order (`mergeColorIdentities`). |
-| `removePartner(deck)` | The commander's `color_identity`, or `[]` if there is no commander. |
+| Commander | Set by `setCommander` (the commander's identity, and clears `partner`), `setPartner` (union with the partner's, in WUBRG order), and `removePartner` (the commander's, or `[]`). |
+| Other formats | Derived by `withDerivedColors`: the union of every main-deck and sideboard card's `color_identity`, in WUBRG order. It's recalculated on every add, remove, move, format change, and import. |
 
-Changing the commander or removing the partner does not remove cards already in the deck. Entries outside the new color identity stay in the deck.
+In Commander, changing the commander or removing the partner leaves cards outside the new identity in the deck. Those cards are now flagged as `color` violations.
 
-### Where the rule applies
-
-| Location | Check | Result when the card is outside the identity |
-| --- | --- | --- |
-| Deck builder, "The 99" search (`useDeckBuilder.addCard`) | `isCardLegalForDeck` | Card is not added. Warning: "&lt;name&gt; is outside your commander's color identity and cannot be added." |
-| Deck builder, Basic Lands panel | Filter, not a check | Only basic lands whose color is in the deck's identity are listed (Plains, Island, Swamp, Mountain, Forest). The panel appears only after a commander is set. It does not call `isCardLegalForDeck`. |
-| Gallery swap sidebar (`SwapSidebar.handleSelect`) | `isCardLegalForDeck` | Card is not selected. Error: "&lt;name&gt; is outside this deck's color identity." |
-| Deck detail page, Suggestions | `isCardLegalForDeck` | Suggestions exclude illegal cards (`useRecommendations`). `handleQuickAdd` also rejects them. |
-| Import | None | Off-identity cards are imported as-is. |
-
-## Singleton rule
-
-A deck can hold only one copy of each card, by **card name**. A different printing (different Scryfall `id`) of a card already in the deck counts as a duplicate.
-
-| Function | Behavior |
-| --- | --- |
-| `isDuplicateCard(existingCards, card)` | `false` if `card` is singleton-exempt. Otherwise `true` if any card in `existingCards` has the same `name`. |
-| `duplicateCardInDeck(deck, card)` | `isDuplicateCard` against the commander, the partner, and every entry's card. |
-| `findDuplicateCardNames(deck)` | Names of non-exempt cards that appear more than once across the commander, partner, and entries. An entry with `quantity` above 1 counts as more than once. Skips malformed entries that have no card name. |
-
-### Singleton exemptions
-
-`isSingletonExempt(card)` returns `true` when either of these holds:
-
-- `type_line` contains the word `Basic` (case-sensitive, whole word). This covers basic lands, including snow basics.
-- `oracle_text` contains `a deck can have any number of cards named` (case-insensitive). This covers cards such as Relentless Rats.
-
-No other cards are exempt.
-
-### Where the rule applies
-
-| Location | Check | Result for a duplicate |
-| --- | --- | --- |
-| Deck builder, "The 99" search (`useDeckBuilder.addCard`) | `duplicateCardInDeck` | Card is not added. Message: "&lt;name&gt; is already in your deck." |
-| Deck builder, Basic Lands panel | None | Calls `addCardToDeck` directly. Only basic lands are offered, which are exempt. |
-| Gallery swap sidebar (`SwapSidebar.handleSelect`) | `isDuplicateCard` against commander, partner, current entries, and cards added by pending swaps (`CardGallery`'s `deckCards`) | Card is not selected. Error: "&lt;name&gt; is already in this deck." |
-| Deck detail page, Suggestions | `duplicateCardInDeck` against the displayed version and the main deck (`isInDeck`) | Suggestions exclude duplicates. "Swap in" and "Add to deck" are disabled, and the button reads "Already in deck". |
-| Import (`importDeckFromFile`) | `findDuplicateCardNames` | The whole import is rejected and nothing is saved. Error: "Invalid deck file — Commander decks can only contain one copy of: &lt;names&gt;." |
-| Partner selection | None | `setPartner` does not check whether the partner duplicates the commander. |
-
-`addCardToDeck` itself does not enforce singleton. Adding a card whose Scryfall `id` is already in `entries` increments that entry's `quantity`. Callers must check first.
+The Basic Lands panel lists only the basics within the commander's identity in Commander (after a commander is set), and all five basics in other formats.
 
 ## Partner commanders
 
@@ -103,7 +168,7 @@ No other cards are exempt.
 | `generic` | Oracle text contains the whole word `partner` (case-insensitive) and is not `specific`. | `null` |
 | `none` | Neither of the above. | `null` |
 
-Detection is a text match only. Any card whose oracle text contains the word "partner" is treated as `generic`. Other two-commander mechanics that don't use the word "partner" (for example "Choose a Background") are classified as `none`.
+Detection is a text match only. Any card whose oracle text contains the word "partner" is treated as `generic`. Two-commander mechanics that don't use the word "partner" (for example "Choose a Background") are classified as `none`.
 
 `isValidPartner(commander, candidate)` returns `{ valid, reason }`:
 
@@ -115,34 +180,21 @@ Detection is a text match only. Any card whose oracle text contains the word "pa
 | `generic` | Type `generic` or `specific` | Valid | `null` |
 | `generic` | Type `none` | Invalid | "&lt;candidate&gt; does not have the Partner keyword and cannot pair with &lt;commander&gt;." |
 
-### Where the rule applies
-
-- The deck builder shows the partner search only when the commander's type is not `none`. Its label is "Required Partner: &lt;name&gt;" for a `specific` commander and "Partner Commander" for a `generic` one.
-- `useDeckBuilder.setPartner` calls `isValidPartner`. An invalid pick is not applied, and `reason` is shown as an error alert.
-- `setPartner` does nothing if no commander is set.
-- Setting a new commander clears the partner.
-- Import does not check partner validity.
-
-For the steps to add or remove a partner, see [Set up partner commanders](../how-to/set-up-partner-commanders.md).
-
-## Commander eligibility
-
-The app has no local check that a card can be a commander. The deck builder's "Commander" and partner searches add `is:commander format:commander` to the Scryfall query, so only cards Scryfall reports as commander-eligible appear. The "The 99" search adds `format:commander`, so only Commander-legal cards appear. Imported decks are not checked.
+The commander and partner pickers appear only for Commander decks. The partner search appears only when the commander's type is not `none`. `useDeckBuilder.setPartner` applies `isValidPartner` and shows `reason` as an error alert. Setting a new commander clears the partner. For the steps, see [Set up partner commanders](../how-to/set-up-partner-commanders.md).
 
 ## Import
 
-`importDeckFromFile` checks only:
+`importDeckFromFile` checks:
 
 1. The file parses as JSON.
 2. `isValidDeck`: `id`, `name`, `createdAt`, and `updatedAt` are strings, and `entries` is an array.
-3. `findDuplicateCardNames` returns no names (singleton rule above).
+3. After normalizing (a missing or unknown `format` becomes `commander`, a missing `sideboard` becomes `[]`, and entries without a card name are dropped), no card breaks its format's copy limit. Otherwise the import is rejected with "Invalid deck file — Commander decks can only contain one copy of: &lt;names&gt;." or "Invalid deck file — too many copies for &lt;format&gt; of: &lt;names&gt;."
 
-It does not check card count, color identity, partner validity, or commander eligibility. For the file structure, see [Deck file formats](deck-file-formats.md).
+Import does not reject banned cards, cards outside the color identity, partner problems, or size problems. Those import and are flagged. For the file structure, see [Deck file formats](deck-file-formats.md).
 
 ## Known gaps
 
-- No rule is checked on import except singleton.
-- Changing the commander, or removing the partner, leaves cards outside the new color identity in the deck.
-- Partner selection does not check against the commander's own name.
-- Partner detection is a word match on oracle text, not a keyword lookup.
-- [tasks/021](../../tasks/021-enforce-duplicate-card-check-everywhere.md) added the singleton check to import and version swap. Its last item, a manual regression note for both paths, is still open.
+- Version swaps work on the main deck only. Sideboard changes are made directly in the builder and aren't versioned.
+- Home's "Also legal in" uses the legalities saved with each card when it was added, so it misses later bans. The deck detail page's **Format legality** panel uses live legalities.
+- Partner selection doesn't check against the commander's own name, and partner detection is a word match on oracle text, not a keyword lookup.
+- Commander variants (Brawl, Pauper Commander, Oathbreaker) and a companion slot aren't supported.

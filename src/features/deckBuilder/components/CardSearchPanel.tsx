@@ -10,22 +10,29 @@ import ManaCost from '@/components/ManaSymbol/ManaCost';
 import ColorPip from '@/components/ManaSymbol/ColorPip';
 
 // Types
-import type { ScryfallCard } from '@/types';
+import type { DeckFormat, ScryfallCard } from '@/types';
 
 interface CardSearchPanelProps {
   commanderOnly?: boolean;
+  /** Only cards legal in this format are searched. Default Commander;
+   * null searches every card. */
+  format?: DeckFormat | null;
   onSelectCard: (card: ScryfallCard) => void;
   label: string;
   placeholder?: string;
   disabled?: boolean;
+  /** Label shown while disabled. */
+  disabledLabel?: string;
 }
 
 export default function CardSearchPanel({
   commanderOnly = false,
+  format = 'commander',
   onSelectCard,
   label,
   placeholder = 'Search cards...',
   disabled,
+  disabledLabel = 'MAX CARD LIMIT REACHED',
 }: CardSearchPanelProps) {
   const [query, setQuery] = useState('');
 
@@ -35,7 +42,7 @@ export default function CardSearchPanel({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const { results, loading, error, search, searchNow, clear } = useCardSearch();
+  const { results, loading, error, search, searchNow, clear } = useCardSearch(format);
   const { previewProps, hidePreview, preview } = useCardHoverPreview();
 
   // Rows unmount without firing mouseleave, so any path that empties the
@@ -125,7 +132,7 @@ export default function CardSearchPanel({
         <span
           className={`label-text font-bold tracking-wide ${disabled ? 'text-neutral-content/40' : 'opacity-70'}`}
         >
-          {disabled ? 'MAX CARD LIMIT REACHED' : label.toUpperCase()}
+          {disabled ? disabledLabel.toUpperCase() : label.toUpperCase()}
         </span>
       </label>
 
