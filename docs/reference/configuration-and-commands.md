@@ -170,3 +170,9 @@ Every request path is served `index.html`, so client-side routes from `react-rou
 | Test runner | None. `package.json` has no `test` script and no Vitest or Jest dependency. The planned setup is [tasks/009](../../tasks/009-testing-foundation-unit-and-acceptance.md). |
 | `.env.example` | None. The variable names are listed in [Environment variables](#environment-variables). |
 | CI workflow | None. Commit checks run only in the local pre-commit hook. |
+
+## Related
+
+- [Development setup](../contributing/development-setup.md): first-time setup using these commands
+- [Troubleshooting](../troubleshooting.md): missing env vars and pre-commit failures
+- [External services](external-services.md): what the Supabase variables connect to

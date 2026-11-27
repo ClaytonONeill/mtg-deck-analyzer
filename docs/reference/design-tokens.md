@@ -102,3 +102,10 @@ Four tiers for anything *not* a daisyUI-managed component (dropdown/modal/drawer
 ## Enforcement
 
 This doc is not wired into anything yet — it's the reference to write new code against and to reconcile toward when you're already in a file that violates it. It is **not** a mandate to sweep the whole app in one PR. Turning the known violations above into an actual cleanup, and/or backing the type-scale and z-index rules with an ESLint rule so drift can't silently reappear, is a good candidate for a follow-up `/tasks` entry — ask before starting one.
+
+---
+
+## Related
+
+- [Conventions and workflow](../contributing/conventions.md): the other styling and code rules
+- [Add a daisyUI theme](../how-to/dev/add-a-theme.md)

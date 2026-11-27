@@ -138,7 +138,7 @@ The weak spot is that some cross-cutting concerns never got a shared home. Scryf
 
 The app uses Tailwind v4 with daisyUI v5. Components are styled with daisyUI's **semantic tokens** (`base-100`, `base-200`, `base-300`, `base-content`, `primary`, `error`, and so on) rather than raw palette colors. This is what makes themes work: a theme only redefines what the tokens mean, so one component looks right in every theme without any per-theme code.
 
-The theme is a single attribute. `ThemeProvider` (`src/context/ThemeContext.tsx`) stores the theme name in `localStorage` and sets `data-theme` on `<html>`. The theme picker in the header (`components/ThemeDropDown/ThemeDropdown.tsx`) offers a fixed list of themes.
+The theme is a single attribute. `ThemeProvider` (`src/context/ThemeContext.tsx`) stores the theme name in `localStorage` and sets `data-theme` on `<html>`. The theme picker in the header (`components/ThemeDropDown/ThemeDropdown.tsx`) offers a fixed list of themes. To add one, see [Add a daisyUI theme](../how-to/dev/add-a-theme.md).
 
 Two custom **signature themes** are defined in `src/index.css`: `arcane` (dark, and the default) and `grimoire` (light). They lead the picker list. The display font, Cinzel (`font-display`), is reserved for the logo, page titles, and deck names. Keeping it off body copy keeps it reading as an accent.
 

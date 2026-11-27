@@ -104,3 +104,9 @@ The UI heading of the first group is literally "Core roles". The objectives in i
 - Objectives count toward suggestions in two cases:
   - Every Strategy objective (`Deck.objectives`) counts.
   - A card-level objective (`DeckEntry.objectiveIds`) counts once it is tagged on at least 3 cards in the deck.
+
+## Related
+
+- [Strategy, Objectives, and Card Roles](../explanation/strategy-objectives-and-card-roles.md): why roles are detected instead of tagged
+- [Tag cards and set a deck strategy](../how-to/tag-cards-and-set-strategy.md): filter the Gallery by Card Role
+- [Get card suggestions](../how-to/get-card-suggestions.md): where role gaps become suggestion reasons

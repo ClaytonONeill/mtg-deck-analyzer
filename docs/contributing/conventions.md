@@ -24,6 +24,7 @@ The reasons behind the two write patterns are in [Architecture overview](../expl
 |---|---|
 | Color | Use daisyUI semantic tokens (`base-100`/`200`/`300`, `base-content`, `primary`, `error`, and so on), not raw Tailwind palette classes. |
 | Fixed accents | Decorative WUBRG hues that must not follow the theme come from `src/utils/manaColors.ts`. |
+| Themes | Add a theme to the picker by following [Add a daisyUI theme](../how-to/dev/add-a-theme.md). |
 | Display font | `font-display` (Cinzel) is for the logo, page titles, and deck names only. It is never used for body copy. |
 | Page wrapper | Pages wrap in `components/PageShell`: `tone="base"` gives `bg-base-100`, `tone="recessed"` gives `bg-base-200`. |
 | Icons | Use `lucide-react`. Do not add new hand-rolled inline `<svg>` icons. Some inline SVGs remain in `src/`; replacing them is tracked in [`tasks/005`](../../tasks/005-unify-icon-system.md). |

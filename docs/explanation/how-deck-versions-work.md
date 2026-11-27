@@ -82,3 +82,9 @@ The task notes that the product owner should confirm the scope before either gap
 - `src/features/deckVersions/hooks/useDeckVersions.ts`: create, append, delete, rename, override, and promote. These are pure functions. Each builds the updated deck and passes it to the deck page's autosave (`commitDeck`), which saves it. The hook never calls `deckStore.save` itself.
 - `src/pages/DeckDetailPage.tsx`: chooses main or a version for display, sends tag edits to the right place, and runs the confirm dialogs
 - `src/features/deckVersions/components/SaveVersionModal.tsx` and `VersionCompare.tsx`: the save dialog and the compare view
+
+## Related
+
+- [Manage deck versions](../how-to/manage-deck-versions.md): the steps for saving, comparing, promoting, and deleting versions
+- [Tune a deck with objectives and versions](../tutorials/tune-a-deck-with-versions.md): a guided first pass through versions
+- [Strategy, Objectives, and Card Roles](strategy-objectives-and-card-roles.md): how version overrides interact with objectives
