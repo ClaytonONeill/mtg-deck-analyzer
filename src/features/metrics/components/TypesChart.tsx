@@ -26,6 +26,9 @@ import type { TypeDataPoint } from "@/features/metrics/types/metrics.types";
 
 interface TypesChartProps {
   data: TypeDataPoint[];
+  /** Fixed y-axis top, so side-by-side charts share one scale. Applies to
+   * the stacked view only (individual bars are much shorter). */
+  yMax?: number;
 }
 
 function getAllColorKeys(data: TypeDataPoint[]): string[] {
@@ -58,7 +61,7 @@ function flattenPoint(
   return flat;
 }
 
-export default function TypesChart({ data }: TypesChartProps) {
+export default function TypesChart({ data, yMax }: TypesChartProps) {
   const { isStacked } = useChartSelection();
   const {
     isTouch,
@@ -112,6 +115,7 @@ export default function TypesChart({ data }: TypesChartProps) {
           />
           <YAxis
             allowDecimals={false}
+            domain={isStacked && yMax ? [0, yMax] : [0, "auto"]}
             tick={{ fill: "#94a3b8", fontSize: 12 }}
             axisLine={false}
             tickLine={false}

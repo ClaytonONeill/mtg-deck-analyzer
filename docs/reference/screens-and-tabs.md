@@ -167,7 +167,13 @@ On desktop (`md` and up), tabs show as a bordered tab bar. Below `md`, they show
 
 **Types** and **Mana Curve** show a "Card Types" or "Mana Curve" bar chart and a **Color Demand** grid (pip share per color). Clicking a bar opens a card list for that category ("*n* Cards Found", closed with **Close Inspector**). On touch devices (`hover: none`), the first tap selects a bar and shows "View *category* cards" and a "Clear selection" button. The hint text "Tap a bar for its color breakdown." appears there.
 
-**Compare** shows two selectors, **Comparison Base** (default Main) and **Target Version** (defaults to the selected version). Below them are the Removed and Added card lists, or "Versions are functionally identical." The compare view has its own **By Type** / **By CMC** toggle and an **Include Lands** toggle.
+**Compare** (`src/features/deckVersions/components/VersionCompare.tsx`) shows two selectors, **Base** (default Main) and **Target** (defaults to the selected version, else the first version), with a ⇄ button that flips them. With no saved versions it shows a prompt to save one instead; with both sides the same, "Pick two different versions to compare." Otherwise it shows four summary tiles (Cards changed, Price change, Avg mana value, Lands) and three sub-tabs:
+
+| Sub-tab | Contents |
+|---|---|
+| Swaps (default) | Out→in card pairs grouped by card type, paired by the main-deck card each replaces. Unpaired changes show "Nothing added" / "Nothing removed". Clicking a pair opens both cards full size; desktop hover shows a card preview. |
+| Charts | **By Type** / **By Mana Value** toggle and **Include Lands** toggle. A head-to-head bar chart (Base muted, Target in the primary color), then each side's color-stacked chart on a shared y-axis. |
+| Stats | Base / Target / Change tables: Overview, Card types, Card roles, Color demand, Objective tags. Empty sections are hidden. |
 
 ### Gallery tab
 

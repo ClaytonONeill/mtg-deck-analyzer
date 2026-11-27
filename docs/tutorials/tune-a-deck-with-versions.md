@@ -100,9 +100,9 @@ Every tab follows this drop-down. The Metrics charts, the Simulator, and Suggest
 
 1. Set **Viewing** to **More Mana**.
 2. Click the **Metrics** tab, then click **Compare**.
-3. Check the two drop-downs: **Comparison Base** should show **Main — Ezuri Elves**, and **Target Version** should show **More Mana**.
+3. Check the two drop-downs: **Base** should show **Main deck — Ezuri Elves**, and **Target** should show **More Mana**.
 
-Under them, a "Changelog" box lists Elvish Visionary under **Removed** and Mind Stone under **Added**. Below that, side-by-side **By Type** charts show both lists: More Mana has one creature fewer and one artifact more than main. Click **By CMC** to compare the mana curves too.
+The **Cards changed** tile reads 1. On the **Swaps** sub-tab, under **Creature**, one row shows Elvish Visionary going out and Mind Stone coming in. Click **Charts**: the head-to-head chart shows More Mana with one creature fewer and one artifact more than main. Click **By Mana Value** to compare the mana curves too, then open **Stats** to see how the swap moved the Card Roles counts.
 
 ## Step 8: Promote the version to main
 

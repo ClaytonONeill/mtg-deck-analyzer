@@ -29,6 +29,9 @@ import type { CMCDataPoint } from "@/features/metrics/types/metrics.types";
 
 interface CMCChartProps {
   data: CMCDataPoint[];
+  /** Fixed y-axis top, so side-by-side charts share one scale. Applies to
+   * the stacked view only (individual bars are much shorter). */
+  yMax?: number;
 }
 
 function getAllColorKeys(data: CMCDataPoint[]): string[] {
@@ -59,7 +62,7 @@ function flattenPoint(
   return flat;
 }
 
-export default function CMCChart({ data }: CMCChartProps) {
+export default function CMCChart({ data, yMax }: CMCChartProps) {
   const { isStacked } = useChartSelection();
   const {
     isTouch,
@@ -113,6 +116,7 @@ export default function CMCChart({ data }: CMCChartProps) {
           />
           <YAxis
             allowDecimals={false}
+            domain={isStacked && yMax ? [0, yMax] : [0, "auto"]}
             tick={{ fill: "#94a3b8", fontSize: 12 }}
             axisLine={false}
             tickLine={false}

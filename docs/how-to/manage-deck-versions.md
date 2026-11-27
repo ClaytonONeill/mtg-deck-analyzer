@@ -43,10 +43,14 @@ Switching restarts the hand simulator at turn 1, and **Suggestions** are worked 
 ## Compare versions
 
 1. Open the **Metrics** tab and click **Compare**.
-2. Under **Comparison Base**, pick the build to compare from. It defaults to the main build.
-3. Under **Target Version**, pick the build to compare to. It defaults to the version you're viewing. If you're viewing the main build, it defaults to the first saved version.
+2. Under **Base**, pick the build to compare from. It defaults to the main build.
+3. Under **Target**, pick the build to compare to. It defaults to the version you're viewing. If you're viewing the main build, it defaults to the first saved version. The ⇄ button between the two flips them.
 
-The changelog lists the cards **Removed** and **Added** between the two builds. If the builds have the same cards, it says "Versions are functionally identical." Below it, use **By Type** / **By CMC** to switch both charts, and **Include Lands** to show or hide lands.
+Four summary tiles show the number of cards changed, the price change, and the average mana value and land count of both builds. Below them, three sub-tabs:
+
+- **Swaps** lists each change as a pair: the card that left (red, −) and the card that replaced it (green, +), grouped by card type. Two versions that both replaced the same main-deck card are paired with each other. A change with no counterpart shows "Nothing added" or "Nothing removed." Click or tap a pair to see both cards full size. If the builds have the same cards, it says "These versions have the same cards."
+- **Charts** shows a head-to-head chart with each build's count per card type (or per mana value) as two bars, then each build's color breakdown on a shared scale. Use **By Type** / **By Mana Value** and **Include Lands** to change all three charts.
+- **Stats** shows tables of both builds' numbers and the change: overview (cards, lands, average mana value, price), card types, Card Roles, color demand, and objective tags.
 
 ## Promote a version to main
 

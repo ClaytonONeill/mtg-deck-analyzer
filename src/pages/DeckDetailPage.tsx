@@ -730,6 +730,7 @@ export default function DeckDetailPage() {
                   <VersionCompare
                     deck={activeDeck}
                     defaultTargetId={activeVersionId}
+                    objectives={objectives}
                   />
                 )}
               </div>

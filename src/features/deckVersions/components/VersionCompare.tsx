@@ -1,283 +1,271 @@
 // Modules
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-// Types
-import type { Deck } from "@/types";
+// Icons
+import { ArrowLeftRight, ChartColumn, Repeat2, Table2 } from "lucide-react";
+
+// Hooks
+import { useCardPrices } from "@/hooks/useCardPriceContext";
 
 // Utils
 import {
-  applyVersionToDeck,
-  getVersionLabel,
-} from "@/features/deckVersions/utils/versionUtils";
-import {
-  getTypeBreakdown,
-  getCMCBreakdown,
-} from "@/features/metrics/utils/deckMetrics";
-import { getCardImageUris } from "@/utils/cardImage";
-
-// Context
-import { ChartSelectionProvider } from "@/features/metrics/context/ChartSelectionContext";
+  getDeckStats,
+  getSwapGroups,
+  resolveCompareDeck,
+  type CompareTarget,
+} from "@/features/deckVersions/utils/compareUtils";
 
 // Components
-import TypesChart from "@/features/metrics/components/TypesChart";
-import CMCChart from "@/features/metrics/components/CMCChart";
-import SelectedCategoryModal from "@/features/metrics/components/SelectedCategoryModal";
-import CardPrice from "@/components/CardPrice/CardPrice";
+import CompareSwapList from "./CompareSwapList";
+import CompareCharts from "./CompareCharts";
+import CompareStats from "./CompareStats";
+
+// Types
+import type { Deck, Objective } from "@/types";
 
 interface VersionCompareProps {
   deck: Deck;
-  /** Version to default the right-hand ("Target Version") side to — the
-   * version currently active in the gallery/viewer, if any. Falls back to
-   * the first saved version when not viewing a specific one. */
-  defaultTargetId?: "main" | string;
+  /** Version to default the right-hand ("Target") side to — the version
+   * currently active in the gallery/viewer, if any. Falls back to the first
+   * saved version when not viewing a specific one. */
+  defaultTargetId?: CompareTarget;
+  /** The user's objectives, for the per-objective tag counts in Stats. */
+  objectives?: Objective[];
 }
 
-type CompareTarget = "main" | string;
-type ChartView = "types" | "cmc";
+type CompareView = "swaps" | "charts" | "stats";
 
+/**
+ * Compare two sides of a deck (main or any saved version): the card swaps
+ * between them, head-to-head charts, and a stats table. Sub-tabs give each
+ * of those the full width instead of squeezing them onto one screen.
+ */
 export default function VersionCompare({
   deck,
   defaultTargetId,
+  objectives = [],
 }: VersionCompareProps) {
+  const versions = deck.versions ?? [];
   const [leftId, setLeftId] = useState<CompareTarget>("main");
   const [rightId, setRightId] = useState<CompareTarget>(
     defaultTargetId && defaultTargetId !== "main"
       ? defaultTargetId
-      : ((deck.versions ?? [])[0]?.id ?? "main"),
+      : (versions[0]?.id ?? "main"),
   );
-  const [chartView, setChartView] = useState<ChartView>("types");
-  const [includeLands, setIncludeLands] = useState(true);
+  const [view, setView] = useState<CompareView>("swaps");
+  const livePrices = useCardPrices();
 
-  const versions = deck.versions ?? [];
+  const label = (id: CompareTarget) =>
+    id === "main"
+      ? "Main deck"
+      : (versions.find((v) => v.id === id)?.name ?? "Unknown");
+  const baseLabel = label(leftId);
+  const targetLabel = label(rightId);
 
-  const resolveDeck = (id: CompareTarget): Deck => {
-    if (id === "main") return deck;
-    const version = versions.find((v) => v.id === id);
-    return version ? applyVersionToDeck(deck, version) : deck;
-  };
+  const leftDeck = useMemo(() => resolveCompareDeck(deck, leftId), [deck, leftId]);
+  const rightDeck = useMemo(() => resolveCompareDeck(deck, rightId), [deck, rightId]);
+  const groups = useMemo(
+    () => (leftId === rightId ? [] : getSwapGroups(deck, leftId, rightId)),
+    [deck, leftId, rightId],
+  );
+  // Card Role detection runs regexes over every card, so only on change.
+  const leftStats = useMemo(() => getDeckStats(leftDeck, livePrices), [leftDeck, livePrices]);
+  const rightStats = useMemo(() => getDeckStats(rightDeck, livePrices), [rightDeck, livePrices]);
 
-  const leftDeck = resolveDeck(leftId);
-  const rightDeck = resolveDeck(rightId);
-
-  const leftTypeData = getTypeBreakdown(leftDeck, includeLands);
-  const rightTypeData = getTypeBreakdown(rightDeck, includeLands);
-  const leftCMCData = getCMCBreakdown(leftDeck, includeLands);
-  const rightCMCData = getCMCBreakdown(rightDeck, includeLands);
+  const changeCount = groups.reduce((n, g) => n + g.pairs.length, 0);
 
   const options: { value: CompareTarget; label: string }[] = [
-    { value: "main", label: `Main — ${deck.name}` },
+    { value: "main", label: `Main deck — ${deck.name}` },
     ...versions.map((v) => ({ value: v.id, label: v.name })),
   ];
 
-  const getCardDiff = (fromId: CompareTarget, toId: CompareTarget) => {
-    if (fromId === toId) return null;
+  const selectors = (
+    <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2 md:gap-4 bg-base-200 p-4 rounded-box border border-base-300">
+      <CompareSelect
+        label="Base"
+        swatch="bg-base-content/35"
+        value={leftId}
+        options={options}
+        onChange={setLeftId}
+      />
+      <button
+        type="button"
+        onClick={() => {
+          setLeftId(rightId);
+          setRightId(leftId);
+        }}
+        className="btn btn-ghost btn-sm md:btn-md btn-square justify-self-center"
+        aria-label="Swap base and target"
+        title="Swap base and target"
+      >
+        <ArrowLeftRight size={18} className="rotate-90 md:rotate-0" />
+      </button>
+      <CompareSelect
+        label="Target"
+        swatch="bg-primary"
+        value={rightId}
+        options={options}
+        onChange={setRightId}
+      />
+    </div>
+  );
 
-    const fromEntries = resolveDeck(fromId).entries;
-    const toEntries = resolveDeck(toId).entries;
+  if (versions.length === 0) {
+    return (
+      <div className="rounded-box bg-base-200 border border-base-300 p-6 text-center text-sm md:text-base text-base-content/70">
+        No saved versions yet. Queue swaps in the Gallery tab and save them as
+        a version to compare it with the main deck here.
+      </div>
+    );
+  }
 
-    const fromEntryIds = new Set(fromEntries.map((e) => e.card.id));
-    const toEntryIds = new Set(toEntries.map((e) => e.card.id));
+  if (leftId === rightId) {
+    return (
+      <div className="flex flex-col gap-6">
+        {selectors}
+        <div className="rounded-box bg-base-200 border border-base-300 p-4 text-center text-sm md:text-base text-base-content/70">
+          Pick two different versions to compare.
+        </div>
+      </div>
+    );
+  }
 
-    const removed = fromEntries.filter((e) => !toEntryIds.has(e.card.id));
-    const added = toEntries.filter((e) => !fromEntryIds.has(e.card.id));
-
-    return { removed, added };
-  };
-
-  const diff = getCardDiff(leftId, rightId);
-  const hasDiff = diff && (diff.removed.length > 0 || diff.added.length > 0);
-
-  const panels = [
-    {
-      id: leftId,
-      side: "left",
-      deck: leftDeck,
-      typeData: leftTypeData,
-      cmcData: leftCMCData,
-    },
-    {
-      id: rightId,
-      side: "right",
-      deck: rightDeck,
-      typeData: rightTypeData,
-      cmcData: rightCMCData,
-    },
+  const priceDelta = rightStats.price - leftStats.price;
+  const tabs: { key: CompareView; label: string; Icon: typeof Repeat2; count?: number }[] = [
+    { key: "swaps", label: "Swaps", Icon: Repeat2, count: changeCount },
+    { key: "charts", label: "Charts", Icon: ChartColumn },
+    { key: "stats", label: "Stats", Icon: Table2 },
   ];
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* Selectors */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-base-200 p-4 rounded-2xl border border-base-300">
-        {[
-          { id: leftId, setId: setLeftId, label: "Comparison Base" },
-          { id: rightId, setId: setRightId, label: "Target Version" },
-        ].map(({ id, setId, label }) => (
-          <div key={label} className="form-control w-full">
-            <label className="label">
-              <span className="label-text-alt uppercase tracking-widest opacity-60 font-bold">
-                {label}
-              </span>
-            </label>
-            <select
-              value={id}
-              onChange={(e) => setId(e.target.value as CompareTarget)}
-              className="select select-bordered select-sm w-full bg-base-100 focus:select-primary"
-            >
-              {options.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
+    <div className="flex flex-col gap-6">
+      {selectors}
+
+      {/* At-a-glance summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <SummaryTile label="Cards changed" value={String(changeCount)} />
+        <SummaryTile
+          label="Price change"
+          value={
+            Math.abs(priceDelta) < 0.01
+              ? "$0"
+              : `${priceDelta > 0 ? "+" : "−"}$${Math.abs(priceDelta).toFixed(2)}`
+          }
+        />
+        <SummaryTile
+          label="Avg mana value"
+          value={rightStats.avgManaValue.toFixed(2)}
+          from={leftStats.avgManaValue.toFixed(2)}
+        />
+        <SummaryTile
+          label="Lands"
+          value={String(rightStats.lands)}
+          from={String(leftStats.lands)}
+        />
+      </div>
+
+      {/* Sub-tabs */}
+      <div role="tablist" aria-label="Compare views" className="tabs tabs-box bg-base-200 p-1">
+        {tabs.map(({ key, label: text, Icon, count }) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={view === key}
+            onClick={() => setView(key)}
+            className={`tab flex-1 gap-2 text-sm md:text-base font-bold ${
+              view === key ? "tab-active" : "text-base-content/60"
+            }`}
+          >
+            <Icon size={16} aria-hidden />
+            {text}
+            {count !== undefined && (
+              <span className="font-mono text-xs md:text-sm opacity-70">{count}</span>
+            )}
+          </button>
         ))}
       </div>
 
-      {/* Card diff */}
-      {hasDiff ? (
-        <div className="card bg-base-100 border border-base-300 shadow-sm overflow-hidden">
-          <div className="bg-base-300 px-4 py-2 flex items-center justify-between">
-            <h4 className="text-[10px] font-bold uppercase tracking-tighter opacity-70">
-              Changelog: {getVersionLabel(deck, leftId)} →{" "}
-              {getVersionLabel(deck, rightId)}
-            </h4>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-base-300">
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="badge badge-error badge-sm badge-outline">
-                  Removed
-                </span>
-                <span className="text-xs font-mono opacity-50">
-                  {diff.removed.length} cards
-                </span>
-              </div>
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                {diff.removed.length === 0 ? (
-                  <p className="text-xs italic opacity-30">No cards removed</p>
-                ) : (
-                  diff.removed.map((e) => (
-                    <div
-                      key={e.card.id}
-                      className="flex items-center gap-3 hover:bg-base-200 p-1 rounded transition-colors group"
-                    >
-                      <div className="avatar">
-                        <div className="w-8 rounded">
-                          <img
-                            src={getCardImageUris(e.card)?.small}
-                            alt={e.card.name}
-                          />
-                        </div>
-                      </div>
-                      <span className="text-xs font-medium group-hover:text-error transition-colors truncate">
-                        {e.card.name}
-                      </span>
-                      <CardPrice card={e.card} className="shrink-0" />
-                    </div>
-                  ))
-                )}
-              </div>
+      <div role="tabpanel">
+        {view === "swaps" &&
+          (changeCount === 0 ? (
+            <div className="rounded-box bg-base-200 border border-base-300 p-4 text-center text-sm md:text-base text-base-content/70">
+              These versions have the same cards.
             </div>
-
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="badge badge-success badge-sm badge-outline">
-                  Added
-                </span>
-                <span className="text-xs font-mono opacity-50">
-                  {diff.added.length} cards
-                </span>
-              </div>
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                {diff.added.length === 0 ? (
-                  <p className="text-xs italic opacity-30">No cards added</p>
-                ) : (
-                  diff.added.map((e) => (
-                    <div
-                      key={e.card.id}
-                      className="flex items-center gap-3 hover:bg-base-200 p-1 rounded transition-colors group"
-                    >
-                      <div className="avatar">
-                        <div className="w-8 rounded">
-                          <img
-                            src={getCardImageUris(e.card)?.small}
-                            alt={e.card.name}
-                          />
-                        </div>
-                      </div>
-                      <span className="text-xs font-medium group-hover:text-success transition-colors truncate">
-                        {e.card.name}
-                      </span>
-                      <CardPrice card={e.card} className="shrink-0" />
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        leftId !== rightId && (
-          <div className="alert bg-base-200 border-base-300 text-xs py-2 flex justify-center italic opacity-60">
-            Versions are functionally identical.
-          </div>
-        )
-      )}
-
-      {/* Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-base-300 pb-4">
-        <div className="join bg-base-200 p-1 rounded-xl shadow-inner">
-          {(["types", "cmc"] as ChartView[]).map((view) => (
-            <button
-              key={view}
-              onClick={() => setChartView(view)}
-              className={`join-item btn btn-sm border-none shadow-none ${
-                chartView === view ? "btn-primary" : "btn-ghost opacity-60"
-              }`}
-            >
-              {view === "types" ? "By Type" : "By CMC"}
-            </button>
+          ) : (
+            <CompareSwapList groups={groups} baseLabel={baseLabel} targetLabel={targetLabel} />
           ))}
-        </div>
-
-        <div className="form-control">
-          <label className="label cursor-pointer gap-3 bg-base-200 px-4 py-2 rounded-xl border border-base-300 transition-hover hover:bg-base-300">
-            <span className="label-text font-bold text-[10px] uppercase opacity-60">
-              Include Lands
-            </span>
-            <input
-              type="checkbox"
-              className="toggle toggle-primary toggle-sm"
-              checked={includeLands}
-              onChange={() => setIncludeLands(!includeLands)}
-            />
-          </label>
-        </div>
+        {view === "charts" && (
+          <CompareCharts
+            baseDeck={leftDeck}
+            targetDeck={rightDeck}
+            baseLabel={baseLabel}
+            targetLabel={targetLabel}
+          />
+        )}
+        {view === "stats" && (
+          <CompareStats
+            base={leftStats}
+            target={rightStats}
+            baseLabel={baseLabel}
+            targetLabel={targetLabel}
+            objectives={objectives}
+          />
+        )}
       </div>
+    </div>
+  );
+}
 
-      {/* Side by side charts — each in its own provider */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {panels.map(({ id, side, deck: panelDeck, typeData, cmcData }) => (
-          <ChartSelectionProvider key={side} entries={panelDeck.entries}>
-            <div className="card bg-base-100 border border-base-300 shadow-xl">
-              <div className="card-body p-5">
-                <h3 className="card-title text-sm font-black opacity-80 mb-4 border-l-4 border-primary pl-3 uppercase tracking-wider">
-                  {getVersionLabel(deck, id)}
-                </h3>
-                <div className="h-[250px] w-full">
-                  {chartView === "types" ? (
-                    <TypesChart data={typeData} />
-                  ) : (
-                    <CMCChart data={cmcData} />
-                  )}
-                </div>
-              </div>
-            </div>
-            <SelectedCategoryModal />
-          </ChartSelectionProvider>
+function CompareSelect({
+  label,
+  swatch,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  swatch: string;
+  value: CompareTarget;
+  options: { value: CompareTarget; label: string }[];
+  onChange: (id: CompareTarget) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-1.5 min-w-0">
+      <span className="flex items-center gap-2 text-xs md:text-sm uppercase tracking-widest font-bold text-base-content/60">
+        <span className={`size-3 rounded-sm ${swatch}`} aria-hidden />
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="select select-bordered w-full bg-base-100 focus:select-primary"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
         ))}
-      </div>
+      </select>
+    </label>
+  );
+}
+
+function SummaryTile({ label, value, from }: { label: string; value: string; from?: string }) {
+  return (
+    <div className="flex flex-col gap-1 rounded-box bg-base-200 border border-base-300 p-3 min-w-0">
+      <span className="text-xs md:text-sm uppercase tracking-widest font-bold text-base-content/60 truncate">
+        {label}
+      </span>
+      <span className="flex items-baseline gap-2 flex-wrap font-mono">
+        {from !== undefined && from !== value && (
+          <>
+            <span className="text-sm md:text-base text-base-content/60">{from}</span>
+            <span className="text-sm text-base-content/60" aria-label="to">→</span>
+          </>
+        )}
+        <span className="text-xl md:text-2xl font-black leading-none">{value}</span>
+      </span>
     </div>
   );
 }
