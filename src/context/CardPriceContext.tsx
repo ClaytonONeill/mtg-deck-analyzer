@@ -2,10 +2,14 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 // Context
-import { CardPriceContext } from '@/hooks/useCardPriceContext';
+import {
+  CardLegalityContext,
+  CardPriceContext,
+} from '@/hooks/useCardPriceContext';
 
 // Types
 import type { ScryfallPrices } from '@/types';
+import type { LiveLegalities } from '@/features/formats/formats';
 
 const SCRYFALL_COLLECTION_URL = 'https://api.scryfall.com/cards/collection';
 const BATCH_SIZE = 75;
@@ -15,8 +19,16 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchPrices(ids: string[]): Promise<Map<string, ScryfallPrices>> {
-  const result = new Map<string, ScryfallPrices>();
+interface LiveCardData {
+  prices: Map<string, ScryfallPrices>;
+  legalities: LiveLegalities;
+}
+
+/** One `/cards/collection` pass yields both live prices and live
+ * legalities, so the legality refresh costs no extra requests. */
+async function fetchLiveCardData(ids: string[]): Promise<LiveCardData> {
+  const prices = new Map<string, ScryfallPrices>();
+  const legalities: LiveLegalities = new Map();
 
   for (let i = 0; i < ids.length; i += BATCH_SIZE) {
     const chunk = ids.slice(i, i + BATCH_SIZE);
@@ -27,12 +39,13 @@ async function fetchPrices(ids: string[]): Promise<Map<string, ScryfallPrices>> 
     });
     const data = await res.json();
     for (const card of data.data ?? []) {
-      result.set(card.id, card.prices);
+      prices.set(card.id, card.prices);
+      if (card.legalities) legalities.set(card.id, card.legalities);
     }
     if (i + BATCH_SIZE < ids.length) await sleep(BATCH_DELAY_MS);
   }
 
-  return result;
+  return { prices, legalities };
 }
 
 interface CardPriceProviderProps {
@@ -42,20 +55,23 @@ interface CardPriceProviderProps {
 
 export function CardPriceProvider({ cardIds, children }: CardPriceProviderProps) {
   const idsKey = [...new Set(cardIds)].sort().join(',');
-  const [prices, setPrices] = useState<Map<string, ScryfallPrices>>(new Map());
+  const [live, setLive] = useState<LiveCardData>({
+    prices: new Map(),
+    legalities: new Map(),
+  });
 
   useEffect(() => {
     const ids = idsKey ? idsKey.split(',') : [];
     if (ids.length === 0) return;
 
     let cancelled = false;
-    fetchPrices(ids)
-      .then((map) => {
-        if (!cancelled) setPrices(map);
+    fetchLiveCardData(ids)
+      .then((data) => {
+        if (!cancelled) setLive(data);
       })
       .catch(() => {
         // Live refresh is a display-only enhancement; silently fall back
-        // to whatever prices (if any) are already on each card object.
+        // to whatever prices/legalities are already on each card object.
       });
 
     return () => {
@@ -64,8 +80,10 @@ export function CardPriceProvider({ cardIds, children }: CardPriceProviderProps)
   }, [idsKey]);
 
   return (
-    <CardPriceContext.Provider value={prices}>
-      {children}
+    <CardPriceContext.Provider value={live.prices}>
+      <CardLegalityContext.Provider value={live.legalities}>
+        {children}
+      </CardLegalityContext.Provider>
     </CardPriceContext.Provider>
   );
 }

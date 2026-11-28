@@ -1,4 +1,5 @@
 // Modules
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 // Hooks
@@ -6,7 +7,21 @@ import { useDeckBuilder } from '@/features/deckBuilder/hooks/useDeckBuilder';
 import { useCardHoverPreview } from '@/hooks/useCardHoverPreview';
 
 // Store
-import { getDeckCardCount, getAllCardIdsInDeck } from '@/store/deckStore';
+import {
+  getDeckCardCount,
+  getAllCardIdsInDeck,
+  changeDeckFormat,
+} from '@/store/deckStore';
+
+// Utils
+import {
+  FORMATS,
+  FORMAT_ORDER,
+  getDeckViolations,
+  getRules,
+  getSideboardCount,
+  isDeckFormat,
+} from '@/features/formats/formats';
 
 // Context
 import { CardPriceProvider } from '@/context/CardPriceContext';
@@ -20,9 +35,11 @@ import DeckStatsPanel from '@/features/deckBuilder/components/DeckStatsPanel';
 import ColorPip from '@/components/ManaSymbol/ColorPip';
 import ImportDeckButton from '@/components/ImportDeckButton/ImportDeckButton';
 import PageShell from '@/components/PageShell/PageShell';
+import ConfirmDelete from '@/components/ConfirmDelete/ConfirmDelete';
 
 // Types
-import type { Deck } from '@/types';
+import type { Deck, DeckFormat, DeckZone } from '@/types';
+import type { AddWarning } from '@/features/deckBuilder/hooks/useDeckBuilder';
 
 // Icons
 import { TriangleAlert, X } from 'lucide-react';
@@ -44,26 +61,51 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
     loading,
     saveStatus,
     retrySave,
-    colorWarning,
+    addWarning,
     partnerWarning,
     commanderHasPartner,
     requiredPartnerName,
-    duplicateWarning,
     setName,
+    setFormat,
     setCommander,
     setPartner,
     removePartner,
     addCard,
     saveDeck,
-    clearColorWarning,
+    clearAddWarning,
     clearPartnerWarning,
-    clearDuplicateWarning,
   } = useDeckBuilder(deckId);
+
+  // Which zone the card search adds to (60-card formats only).
+  const [zone, setZone] = useState<DeckZone>('main');
+  // A format change on a deck that already has cards waits for confirmation.
+  const [pendingFormat, setPendingFormat] = useState<DeckFormat | null>(null);
 
   const { previewProps, hidePreview, preview } = useCardHoverPreview();
 
+  const rules = getRules(deck);
   const cardCount = getDeckCardCount(deck);
-  const MAX_CARD_COUNT_REACHED = cardCount >= 100;
+  const sideCount = getSideboardCount(deck);
+  const mainFull = rules.mainMax !== null && cardCount >= rules.mainMax;
+  const activeZone: DeckZone = rules.sideboardMax > 0 ? zone : 'main';
+  const searchFull =
+    activeZone === 'side' ? sideCount >= rules.sideboardMax : mainFull;
+  // Commander decks pick a commander before anything else.
+  const canAddCards = !rules.hasCommander || !!deck.commander;
+  const hasCards =
+    deck.entries.length > 0 || sideCount > 0 || !!deck.commander;
+
+  const requestFormat = (value: string) => {
+    if (!isDeckFormat(value) || value === rules.id) return;
+    if (hasCards) setPendingFormat(value);
+    else setFormat(value);
+  };
+
+  const pendingViolations = pendingFormat
+    ? getDeckViolations(changeDeckFormat(deck, pendingFormat)).filter(
+        (v) => v.cardName,
+      ).length
+    : 0;
 
   const handleSave = async () => {
     if (await saveDeck()) navigate('/');
@@ -135,16 +177,36 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
                   Deck Identity
                 </span>
               </label>
-              <input
-                type="text"
-                value={deck.name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Name your masterpiece..."
-                className="input input-bordered input-lg w-full bg-base-100 font-bold focus:input-primary"
-              />
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  value={deck.name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Name your masterpiece..."
+                  className="input input-bordered input-lg w-full min-w-0 bg-base-100 font-bold focus:input-primary"
+                />
+                <select
+                  value={rules.id}
+                  onChange={(e) => requestFormat(e.target.value)}
+                  aria-label="Deck format"
+                  className="select select-bordered select-lg w-full sm:w-48 shrink-0 bg-base-100 font-bold text-base"
+                >
+                  {FORMAT_ORDER.map((f) => (
+                    <option key={f} value={f}>
+                      {FORMATS[f].label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-xs md:text-sm text-base-content/60 mt-2">
+                {rules.hasCommander
+                  ? 'Commander: 100 cards including your commander, one copy of each card, within its color identity.'
+                  : `${rules.label}: at least ${rules.mainMin} cards, up to ${rules.copyLimit} copies of each card${rules.id === 'vintage' ? ' (1 if restricted)' : ''}, and a sideboard of up to ${rules.sideboardMax}. Search only shows ${rules.label}-legal cards.`}
+              </p>
             </div>
 
             {/* Commander Selection */}
+            {rules.hasCommander && (
             <div className="space-y-4">
               <CardSearchPanel
                 commanderOnly
@@ -177,9 +239,10 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
                 </div>
               )}
             </div>
+            )}
 
             {/* Partner Selection */}
-            {deck.commander && commanderHasPartner && (
+            {rules.hasCommander && deck.commander && commanderHasPartner && (
               <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                 <CardSearchPanel
                   commanderOnly
@@ -248,34 +311,53 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
           </section>
 
           {/* Card Addition */}
-          {deck.commander && (
+          {canAddCards && (
             <section className="space-y-4">
-              <CardSearchPanel
-                label="The 99"
-                placeholder="Search cards..."
-                disabled={MAX_CARD_COUNT_REACHED}
-                onSelectCard={addCard}
-              />
-
-              {colorWarning && (
-                <div className="alert alert-warning shadow-lg py-2">
-                  <TriangleAlert />
-                  <span className="text-sm">{colorWarning}</span>
-                  <button
-                    onClick={clearColorWarning}
-                    className="btn btn-ghost btn-xs"
-                  >
-                    <X size={15} />
-                  </button>
+              {rules.sideboardMax > 0 && (
+                <div className="join" role="group" aria-label="Add cards to">
+                  {(
+                    [
+                      ['main', 'Main deck'],
+                      ['side', `Sideboard (${sideCount}/${rules.sideboardMax})`],
+                    ] as const
+                  ).map(([z, text]) => (
+                    <button
+                      key={z}
+                      type="button"
+                      onClick={() => setZone(z)}
+                      aria-pressed={activeZone === z}
+                      className={`join-item btn btn-sm text-sm ${activeZone === z ? 'btn-primary' : 'btn-ghost bg-base-100'}`}
+                    >
+                      {text}
+                    </button>
+                  ))}
                 </div>
               )}
-              {duplicateWarning && (
-                <div className="alert alert-info shadow-lg py-2">
+              <CardSearchPanel
+                format={rules.id}
+                label={
+                  rules.hasCommander
+                    ? 'The 99'
+                    : activeZone === 'side'
+                      ? 'Add to sideboard'
+                      : 'Add to main deck'
+                }
+                placeholder={`Search ${rules.label}-legal cards...`}
+                disabled={searchFull}
+                disabledLabel={
+                  activeZone === 'side' ? 'Sideboard is full' : 'Max card limit reached'
+                }
+                onSelectCard={(card) => addCard(card, activeZone)}
+              />
+
+              {addWarning && (
+                <div className={`alert ${warningTone(addWarning)} shadow-lg py-2`}>
                   <TriangleAlert />
-                  <span className="text-sm">{duplicateWarning}</span>
+                  <span className="text-sm">{addWarning.message}</span>
                   <button
-                    onClick={clearDuplicateWarning}
+                    onClick={clearAddWarning}
                     className="btn btn-ghost btn-xs"
+                    aria-label="Dismiss"
                   >
                     <X size={15} />
                   </button>
@@ -285,7 +367,7 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
               <BasicLandsPanel
                 deck={deck}
                 onDeckChange={commitCards}
-                disabled={MAX_CARD_COUNT_REACHED}
+                disabled={mainFull}
               />
             </section>
           )}
@@ -300,14 +382,59 @@ function DeckBuilder({ deckId }: { deckId?: string }) {
         </aside>
 
         {/* Decklist: fills the main column under the builder controls. */}
-        {deck.commander && (
+        {canAddCards && (
           <div className="min-w-0 lg:col-start-1">
             <DeckEntryList deck={deck} onDeckChange={commitCards} />
           </div>
         )}
       </div>
       {preview}
+      <ConfirmDelete
+        open={!!pendingFormat}
+        onClose={() => setPendingFormat(null)}
+        onConfirm={() => {
+          if (pendingFormat) setFormat(pendingFormat);
+          setPendingFormat(null);
+        }}
+        title={`Switch to ${pendingFormat ? FORMATS[pendingFormat].label : ''}?`}
+        message={formatSwitchMessage(deck, pendingFormat, pendingViolations)}
+        confirmLabel="Switch format"
+      />
     </PageShell>
     </CardPriceProvider>
   );
+}
+
+function warningTone(w: AddWarning) {
+  switch (w.kind) {
+    case 'illegal':
+      return 'alert-error';
+    case 'copies':
+      return 'alert-info';
+    default:
+      return 'alert-warning';
+  }
+}
+
+function formatSwitchMessage(
+  deck: Deck,
+  to: DeckFormat | null,
+  violations: number,
+): string {
+  if (!to) return '';
+  const rules = FORMATS[to];
+  const parts: string[] = [];
+  if (!rules.hasCommander && (deck.commander || deck.partner)) {
+    parts.push('Your commander moves into the main deck.');
+  }
+  if (rules.hasCommander && !getRules(deck).hasCommander) {
+    parts.push("You'll pick a commander next.");
+  }
+  parts.push(
+    violations > 0
+      ? `${violations} ${violations === 1 ? 'card breaks' : 'cards break'} ${rules.label} rules and will be flagged, not removed.`
+      : 'No cards are removed.',
+  );
+  parts.push('You can switch back at any time.');
+  return parts.join(' ');
 }

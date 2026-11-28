@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 // Types
 import type {
   DeckEntry,
+  DeckFormat,
   Objective,
   ScryfallCard,
   PendingSwap,
@@ -22,7 +23,8 @@ import ObjectiveAssignMenu from "@/features/objectives/components/ObjectiveAssig
 import ObjectivePill from "@/features/objectives/components/ObjectivePill";
 
 // Hooks
-import { useCardPrices } from "@/hooks/useCardPriceContext";
+import { useCardLegalities, useCardPrices } from "@/hooks/useCardPriceContext";
+import { checkCardAdd, getRules } from "@/features/formats/formats";
 
 // Utils
 import {
@@ -52,10 +54,13 @@ import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 interface CardGalleryProps {
   deckId: string;
+  format: DeckFormat;
   colorIdentity: string[];
   commander?: ScryfallCard | null;
   partner?: ScryfallCard | null;
   entries: DeckEntry[];
+  /** Counted toward copy limits when checking a swap-in. */
+  sideboard?: DeckEntry[];
   objectives: Objective[];
   /** Deck-level strategic objectives, used by swap suggestions. */
   strategyObjectives?: Objective[];
@@ -128,10 +133,12 @@ const SWIPE_THRESHOLD = 50;
 
 export default function CardGallery({
   deckId,
+  format,
   colorIdentity,
   commander,
   partner,
   entries,
+  sideboard = [],
   objectives,
   strategyObjectives = [],
   pendingSwaps,
@@ -185,8 +192,54 @@ export default function CardGallery({
 
   const { getForDeck } = useWishlist();
   const deckWishlist = getForDeck(deckId);
-  const swappedOutIds = new Set(pendingSwaps.map((s) => s.removeCardId));
+  // Pending swaps per card id. A card with several copies can be swapped
+  // out one copy at a time; it only counts as swapped out once every copy is.
+  const swapCounts = new Map<string, number>();
+  for (const s of pendingSwaps) {
+    swapCounts.set(s.removeCardId, (swapCounts.get(s.removeCardId) ?? 0) + 1);
+  }
+  const swappedOutIds = new Set(
+    (entries ?? [])
+      .filter((e) => (swapCounts.get(e.card.id) ?? 0) >= e.quantity)
+      .map((e) => e.card.id),
+  );
   const livePrices = useCardPrices();
+  const liveLegalities = useCardLegalities();
+
+  /** Can `card` replace one copy of the card being swapped out? Checked
+   * against the deck with every pending swap applied. Swaps are
+   * one-for-one, so deck size never changes. */
+  const checkSwapIn = (card: ScryfallCard) => {
+    let list: DeckEntry[] = (entries ?? []).map((e) => ({ ...e }));
+    const drop = (id: string) => {
+      list = list
+        .map((e) => (e.card.id === id ? { ...e, quantity: e.quantity - 1 } : e))
+        .filter((e) => e.quantity > 0);
+    };
+    const add = (c: ScryfallCard) => {
+      const i = list.findIndex((e) => e.card.id === c.id);
+      if (i >= 0) list[i] = { ...list[i], quantity: list[i].quantity + 1 };
+      else list.push({ card: c, quantity: 1, category: "Other", objectiveIds: [] });
+    };
+    for (const s of pendingSwaps) {
+      drop(s.removeCardId);
+      add(s.addCard);
+    }
+    if (swapping) drop(swapping.id);
+    return checkCardAdd(
+      {
+        format,
+        commander: commander ?? null,
+        partner: partner ?? null,
+        colorIdentity,
+        entries: list,
+        sideboard,
+      },
+      card,
+      "main",
+      { ignoreSize: true, live: liveLegalities },
+    );
+  };
 
   // Basic lands never show in the gallery, so they're excluded from the
   // "x / y" total too — otherwise the counter never adds up with no filters.
@@ -498,9 +551,10 @@ export default function CardGallery({
       >
         {filteredAndSorted.map((entry) => {
           const isSwapped = swappedOutIds.has(entry.card.id);
-          const pendingReplacement = pendingSwaps.find(
-            (s) => s.removeCardId === entry.card.id,
-          )?.addCard;
+          const replacements = pendingSwaps
+            .filter((s) => s.removeCardId === entry.card.id)
+            .map((s) => s.addCard.name);
+          const partlySwapped = !isSwapped && replacements.length > 0;
           const cardObjectives = (objectives ?? []).filter((o) =>
             (entry.objectiveIds ?? []).includes(o.id),
           );
@@ -545,9 +599,10 @@ export default function CardGallery({
                     {entry.card.name}
                   </h3>
                   <CardPrice card={entry.card} />
-                  {pendingReplacement && (
-                    <span className="text-success text-xs font-bold italic">
-                      → {pendingReplacement.name}
+                  {replacements.length > 0 && (
+                    <span className="text-success text-xs md:text-sm font-bold italic">
+                      {partlySwapped && `${replacements.length} of ${entry.quantity}: `}→{" "}
+                      {replacements.join(", ")}
                     </span>
                   )}
                 </div>
@@ -588,6 +643,14 @@ export default function CardGallery({
                           Swap
                         </span>
                       </button>
+                      {partlySwapped && (
+                        <button
+                          onClick={() => onUndoSwap(entry.card.id)}
+                          className={`btn btn-error btn-outline ${dense ? "btn-sm sm:btn-md px-2" : "btn-md px-3"} rounded-full`}
+                        >
+                          Undo
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <button
@@ -683,7 +746,9 @@ export default function CardGallery({
             ...entries.map((e) => e.card),
             ...pendingSwaps.map((s) => s.addCard),
           ]}
-          colorIdentity={colorIdentity}
+          checkCard={checkSwapIn}
+          format={format}
+          showSuggestions={getRules({ format }).hasCommander}
           onConfirm={(replacement) => {
             onAddSwap(swapping.name, swapping.id, replacement);
             setSwapping(null);

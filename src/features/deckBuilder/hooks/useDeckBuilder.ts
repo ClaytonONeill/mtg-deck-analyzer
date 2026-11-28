@@ -9,8 +9,7 @@ import {
   createNewDeck,
   addCardToDeck,
   removeCardFromDeck,
-  isCardLegalForDeck,
-  duplicateCardInDeck,
+  changeDeckFormat,
   deckStore,
   setCommander as storeSetCommander,
   setPartner as storeSetPartner,
@@ -22,15 +21,21 @@ import {
   getPartnerInfo,
   isValidPartner,
 } from '@/features/deckBuilder/utils/partnerUtils';
+import { checkCardAdd, type AddCheckKind } from '@/features/formats/formats';
 
 // Types
-import type { Deck, ScryfallCard } from '@/types';
+import type { Deck, DeckFormat, DeckZone, ScryfallCard } from '@/types';
+
+/** Why the last add was refused. `kind` picks the alert tone. */
+export interface AddWarning {
+  kind: AddCheckKind;
+  message: string;
+}
 
 export function useDeckBuilder(deckId?: string) {
   const [deck, setDeck] = useState<Deck>(createNewDeck(''));
   const [loading, setLoading] = useState(!!deckId);
-  const [colorWarning, setColorWarning] = useState<string | null>(null);
-  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [addWarning, setAddWarning] = useState<AddWarning | null>(null);
   const [partnerWarning, setPartnerWarning] = useState<string | null>(null);
   const { status: saveStatus, save, retry: retrySave } = useDeckAutosave();
 
@@ -62,9 +67,8 @@ export function useDeckBuilder(deckId?: string) {
 
   const setCommander = useCallback((card: ScryfallCard) => {
     setDeck((d) => storeSetCommander(d, card));
-    setColorWarning(null);
+    setAddWarning(null);
     setPartnerWarning(null);
-    setDuplicateWarning(null);
   }, []);
 
   const setPartner = useCallback((card: ScryfallCard) => {
@@ -97,29 +101,33 @@ export function useDeckBuilder(deckId?: string) {
     [save],
   );
 
+  /** Switch format. Cards that break the new rules are kept and flagged. */
+  const setFormat = useCallback(
+    (format: DeckFormat) => {
+      setAddWarning(null);
+      setPartnerWarning(null);
+      commitCards(changeDeckFormat(deckRef.current, format));
+    },
+    [commitCards],
+  );
+
   const addCard = useCallback(
-    (card: ScryfallCard) => {
+    (card: ScryfallCard, zone: DeckZone = 'main') => {
       const d = deckRef.current;
-      if (!isCardLegalForDeck(d.colorIdentity, card)) {
-        setColorWarning(
-          `${card.name} is outside your commander's color identity and cannot be added.`,
-        );
+      const check = checkCardAdd(d, card, zone);
+      if (!check.ok) {
+        setAddWarning({ kind: check.kind, message: check.reason });
         return;
       }
-      if (duplicateCardInDeck(d, card)) {
-        setDuplicateWarning(`${card.name} is already in your deck.`);
-        return;
-      }
-      setColorWarning(null);
-      setDuplicateWarning(null);
-      commitCards(addCardToDeck(d, card));
+      setAddWarning(null);
+      commitCards(addCardToDeck(d, card, zone));
     },
     [commitCards],
   );
 
   const removeCard = useCallback(
-    (cardId: string) => {
-      commitCards(removeCardFromDeck(deckRef.current, cardId));
+    (cardId: string, zone: DeckZone = 'main') => {
+      commitCards(removeCardFromDeck(deckRef.current, cardId, zone));
     },
     [commitCards],
   );
@@ -129,12 +137,8 @@ export function useDeckBuilder(deckId?: string) {
     return save(deck);
   }, [deck, save]);
 
-  const clearColorWarning = useCallback(() => setColorWarning(null), []);
+  const clearAddWarning = useCallback(() => setAddWarning(null), []);
   const clearPartnerWarning = useCallback(() => setPartnerWarning(null), []);
-  const clearDuplicateWarning = useCallback(
-    () => setDuplicateWarning(null),
-    [],
-  );
 
   const commanderPartnerInfo = deck.commander
     ? getPartnerInfo(deck.commander)
@@ -154,20 +158,19 @@ export function useDeckBuilder(deckId?: string) {
     loading,
     saveStatus,
     retrySave,
-    colorWarning,
+    addWarning,
     partnerWarning,
     commanderHasPartner,
     requiredPartnerName,
-    duplicateWarning,
     setName,
+    setFormat,
     setCommander,
     setPartner,
     removePartner,
     addCard,
     removeCard,
     saveDeck,
-    clearColorWarning,
+    clearAddWarning,
     clearPartnerWarning,
-    clearDuplicateWarning,
   };
 }

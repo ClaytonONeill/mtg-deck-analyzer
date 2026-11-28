@@ -26,7 +26,9 @@ import {
   sortDecks,
   type DeckSort,
   type FilterColor,
+  type FormatFilter,
 } from '@/features/deckList/utils/deckLibrary';
+import { FORMATS, FORMAT_ORDER } from '@/features/formats/formats';
 
 // Icons
 import { Search, TriangleAlert, X } from 'lucide-react';
@@ -40,15 +42,21 @@ export default function HomePage() {
   const [query, setQuery] = useState('');
   const [colors, setColors] = useState<FilterColor[]>([]);
   const [sort, setSort] = useLocalStorage<DeckSort>('home-deck-sort', 'edited');
+  const [formatFilter, setFormatFilter] = useLocalStorage<FormatFilter>(
+    'home-deck-format',
+    'all',
+  );
 
   const visibleDecks = useMemo(
-    () => sortDecks(filterDecks(decks, query, colors), sort),
-    [decks, query, colors, sort],
+    () => sortDecks(filterDecks(decks, query, colors, formatFilter), sort),
+    [decks, query, colors, formatFilter, sort],
   );
-  const filtering = query.trim() !== '' || colors.length > 0;
+  const filtering =
+    query.trim() !== '' || colors.length > 0 || formatFilter !== 'all';
   const clearFilters = () => {
     setQuery('');
     setColors([]);
+    setFormatFilter('all');
   };
   const toggleColor = (c: FilterColor) =>
     setColors((prev) =>
@@ -137,7 +145,7 @@ export default function HomePage() {
                 />
               </label>
 
-              <div className="flex items-center justify-between md:justify-start gap-3 md:contents">
+              <div className="flex flex-wrap items-center justify-between md:justify-start gap-3 md:contents">
                 <div className="flex items-center gap-1.5 md:gap-2.5" role="group" aria-label="Filter by color">
                   {FILTER_COLORS.map((c) => {
                     const on = colors.includes(c);
@@ -157,9 +165,23 @@ export default function HomePage() {
                 </div>
 
                 <select
+                  value={formatFilter}
+                  onChange={(e) => setFormatFilter(e.target.value as FormatFilter)}
+                  className="select select-sm md:select-md w-auto md:ml-auto bg-base-100 text-sm"
+                  aria-label="Filter by format"
+                >
+                  <option value="all">All formats</option>
+                  {FORMAT_ORDER.map((f) => (
+                    <option key={f} value={f}>
+                      {FORMATS[f].label}
+                    </option>
+                  ))}
+                </select>
+
+                <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as DeckSort)}
-                  className="select select-sm md:select-md w-auto md:ml-auto bg-base-100 text-sm"
+                  className="select select-sm md:select-md w-auto bg-base-100 text-sm"
                   aria-label="Sort decks"
                 >
                   {DECK_SORTS.map((s) => (

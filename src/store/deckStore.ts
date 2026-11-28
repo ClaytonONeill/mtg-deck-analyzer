@@ -1,5 +1,12 @@
 // Types
-import type { Deck, DeckEntry, Objective, ScryfallCard } from "@/types";
+import type {
+  Deck,
+  DeckEntry,
+  DeckFormat,
+  DeckZone,
+  Objective,
+  ScryfallCard,
+} from "@/types";
 
 // Lib
 import { supabase } from "@/lib/supabase";
@@ -7,6 +14,53 @@ import { supabase } from "@/lib/supabase";
 // Utils
 import { inferCategory } from "@/utils/utils";
 import { mergeColorIdentities } from "@/features/deckBuilder/utils/partnerUtils";
+import {
+  FORMATS,
+  checkCardAdd,
+  getDeckViolations,
+  getFormat,
+  getMainCount,
+  getRules,
+  isDeckFormat,
+  isSingletonExempt,
+  withDerivedColors,
+} from "@/features/formats/formats";
+
+// Re-exported so existing imports keep working; the rules live with the
+// other format rules.
+export { isSingletonExempt, getSideboardCount } from "@/features/formats/formats";
+
+interface DeckRow {
+  id: string;
+  name: string;
+  format: string | null;
+  commander: ScryfallCard | null;
+  partner: ScryfallCard | null;
+  color_identity: string[] | null;
+  entries: DeckEntry[] | null;
+  sideboard: DeckEntry[] | null;
+  objectives: Objective[] | null;
+  versions: Deck["versions"] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function rowToDeck(row: DeckRow): Deck {
+  return {
+    id: row.id,
+    name: row.name,
+    format: getFormat(row),
+    commander: row.commander ?? null,
+    partner: row.partner ?? null,
+    colorIdentity: row.color_identity ?? [],
+    entries: row.entries ?? [],
+    sideboard: row.sideboard ?? [],
+    objectives: row.objectives ?? [],
+    versions: row.versions ?? [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 export const deckStore = {
   async getAll(): Promise<Deck[]> {
@@ -20,18 +74,7 @@ export const deckStore = {
       return [];
     }
 
-    return (data ?? []).map((row) => ({
-      id: row.id,
-      name: row.name,
-      commander: row.commander ?? null,
-      partner: row.partner ?? null,
-      colorIdentity: row.color_identity ?? [],
-      entries: row.entries ?? [],
-      objectives: row.objectives ?? [],
-      versions: row.versions ?? [],
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
+    return ((data ?? []) as DeckRow[]).map(rowToDeck);
   },
 
   async save(deck: Deck): Promise<void> {
@@ -47,10 +90,12 @@ export const deckStore = {
         id: deck.id,
         user_id: user.id,
         name: deck.name,
+        format: getFormat(deck),
         commander: deck.commander,
         partner: deck.partner,
         color_identity: deck.colorIdentity,
         entries: deck.entries,
+        sideboard: deck.sideboard ?? [],
         objectives: deck.objectives,
         versions: deck.versions,
         created_at: deck.createdAt,
@@ -93,29 +138,23 @@ export const deckStore = {
 
     if (!data) return undefined;
 
-    return {
-      id: data.id,
-      name: data.name,
-      commander: data.commander ?? null,
-      partner: data.partner ?? null,
-      colorIdentity: data.color_identity ?? [],
-      entries: data.entries ?? [],
-      objectives: data.objectives ?? [],
-      versions: data.versions ?? [],
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-    };
+    return rowToDeck(data as DeckRow);
   },
 };
 
-export function createNewDeck(name: string): Deck {
+export function createNewDeck(
+  name: string,
+  format: DeckFormat = "commander",
+): Deck {
   return {
     id: crypto.randomUUID(),
     name,
+    format,
     commander: null,
     partner: null,
     colorIdentity: [],
     entries: [],
+    sideboard: [],
     objectives: [],
     versions: [],
     createdAt: new Date().toISOString(),
@@ -154,6 +193,29 @@ export function removePartner(deck: Deck): Deck {
   };
 }
 
+/**
+ * Switch a deck to another format without losing cards. Commander →
+ * 60-card moves the commander and partner into the main deck; 60-card →
+ * Commander leaves the commander slot empty to pick. Cards that break the
+ * new format's rules stay in the deck and are flagged (see
+ * `getDeckViolations`), so switching back undoes the change.
+ */
+export function changeDeckFormat(deck: Deck, format: DeckFormat): Deck {
+  if (getFormat(deck) === format) return deck;
+  let next: Deck = { ...deck, format, sideboard: deck.sideboard ?? [] };
+
+  if (!FORMATS[format].hasCommander) {
+    for (const card of [deck.commander, deck.partner]) {
+      if (card) next = addCardToDeck(next, card);
+    }
+    next = { ...next, commander: null, partner: null };
+  } else {
+    next = { ...next, colorIdentity: [] };
+  }
+
+  return { ...withDerivedColors(next), updatedAt: new Date().toISOString() };
+}
+
 export function addStrategicObjective(deck: Deck, objective: Objective): Deck {
   if (deck.objectives.some((o) => o.id === objective.id)) return deck;
   return {
@@ -174,45 +236,83 @@ export function removeStrategicObjective(
   };
 }
 
-export function addCardToDeck(deck: Deck, card: ScryfallCard): Deck {
-  const category = inferCategory(card);
-  const existing = deck.entries.findIndex((e) => e.card.id === card.id);
+const zoneKey = (zone: DeckZone) => (zone === "side" ? "sideboard" : "entries");
 
-  const entries: DeckEntry[] =
+/** Add one copy of `card` to the main deck or sideboard. Does not validate:
+ * callers check `checkCardAdd` first. */
+export function addCardToDeck(
+  deck: Deck,
+  card: ScryfallCard,
+  zone: DeckZone = "main",
+): Deck {
+  const key = zoneKey(zone);
+  const list = deck[key] ?? [];
+  const category = inferCategory(card);
+  const existing = list.findIndex((e) => e.card.id === card.id);
+
+  const updated: DeckEntry[] =
     existing >= 0
-      ? deck.entries.map((e, i) =>
+      ? list.map((e, i) =>
           i === existing ? { ...e, quantity: e.quantity + 1 } : e,
         )
-      : [...deck.entries, { card, quantity: 1, category, objectiveIds: [] }];
+      : [...list, { card, quantity: 1, category, objectiveIds: [] }];
 
-  return { ...deck, entries, updatedAt: new Date().toISOString() };
+  return withDerivedColors({
+    ...deck,
+    [key]: updated,
+    updatedAt: new Date().toISOString(),
+  });
 }
 
-export function removeCardFromDeck(deck: Deck, cardId: string): Deck {
-  const entries = deck.entries
+/** Remove one copy of the card with this id from the given zone. */
+export function removeCardFromDeck(
+  deck: Deck,
+  cardId: string,
+  zone: DeckZone = "main",
+): Deck {
+  const key = zoneKey(zone);
+  const updated = (deck[key] ?? [])
     .map((e) => (e.card.id === cardId ? { ...e, quantity: e.quantity - 1 } : e))
     .filter((e) => e.quantity > 0);
-  return { ...deck, entries, updatedAt: new Date().toISOString() };
+  return withDerivedColors({
+    ...deck,
+    [key]: updated,
+    updatedAt: new Date().toISOString(),
+  });
 }
 
+/** Move one copy between main deck and sideboard. */
+export function moveCardBetweenZones(
+  deck: Deck,
+  cardId: string,
+  from: DeckZone,
+): Deck {
+  const entry = (deck[zoneKey(from)] ?? []).find((e) => e.card.id === cardId);
+  if (!entry) return deck;
+  const to: DeckZone = from === "main" ? "side" : "main";
+  return addCardToDeck(removeCardFromDeck(deck, cardId, from), entry.card, to);
+}
+
+/** Commander color-identity check. Always true outside Commander. */
 export function isCardLegalForDeck(
   colorIdentity: string[],
   card: ScryfallCard,
+  format: DeckFormat = "commander",
 ): boolean {
+  if (!FORMATS[format].enforcesColorIdentity) return true;
   return card.color_identity.every((c) => colorIdentity.includes(c));
 }
 
-/** Cards exempt from Commander's singleton rule: basic lands, plus cards like
- * Relentless Rats whose own text allows any number of copies. */
-export function isSingletonExempt(card: ScryfallCard): boolean {
-  return (
-    /\bBasic\b/.test(card.type_line ?? "") ||
-    /a deck can have any number of cards named/i.test(card.oracle_text ?? "")
-  );
+/** True when adding one more copy of `card` would break the deck's copy
+ * limit (singleton in Commander, 4 elsewhere, 1 for restricted cards). */
+export function duplicateCardInDeck(deck: Deck, card: ScryfallCard): boolean {
+  const check = checkCardAdd(deck, card, "main", { ignoreSize: true });
+  return !check.ok && check.kind === "copies";
 }
 
 /** Singleton check by card name (not Scryfall id), so a different printing of
- * a card already in `existingCards` still counts as a duplicate. */
+ * a card already in `existingCards` still counts as a duplicate. Commander
+ * only; 60-card formats use `checkCardAdd`. */
 export function isDuplicateCard(
   existingCards: ScryfallCard[],
   card: ScryfallCard,
@@ -221,38 +321,9 @@ export function isDuplicateCard(
   return existingCards.some((c) => c.name === card.name);
 }
 
-export function duplicateCardInDeck(deck: Deck, card: ScryfallCard): boolean {
-  const existing = [
-    ...(deck.commander ? [deck.commander] : []),
-    ...(deck.partner ? [deck.partner] : []),
-    ...deck.entries.map((e) => e.card),
-  ];
-  return isDuplicateCard(existing, card);
-}
-
-/** Names of non-exempt cards appearing more than once across the commander,
- * partner, and entries (including a single entry with quantity > 1). */
-export function findDuplicateCardNames(deck: Deck): string[] {
-  const counts = new Map<string, number>();
-  const add = (card: ScryfallCard | undefined, quantity: number) => {
-    // Imported files are only loosely validated, so tolerate malformed entries.
-    if (!card?.name || isSingletonExempt(card)) return;
-    counts.set(card.name, (counts.get(card.name) ?? 0) + quantity);
-  };
-  if (deck.commander) add(deck.commander, 1);
-  if (deck.partner) add(deck.partner, 1);
-  deck.entries.forEach((e) => add(e?.card, e?.quantity ?? 1));
-  return [...counts].filter(([, n]) => n > 1).map(([name]) => name);
-}
-
+/** Main-deck size: entries plus commander and partner (sideboard excluded). */
 export function getDeckCardCount(deck: Deck): number {
-  const commanderCount = deck.commander ? 1 : 0;
-  const partnerCount = deck.partner ? 1 : 0;
-  return (
-    deck.entries.reduce((sum, e) => sum + e.quantity, 0) +
-    commanderCount +
-    partnerCount
-  );
+  return getMainCount(deck);
 }
 
 export function getAllCardIdsInDeck(deck: Deck): string[] {
@@ -260,6 +331,7 @@ export function getAllCardIdsInDeck(deck: Deck): string[] {
     deck.commander?.id,
     deck.partner?.id,
     ...deck.entries.map((e) => e.card.id),
+    ...(deck.sideboard ?? []).map((e) => e.card.id),
     ...deck.versions.flatMap((v) => v.swaps.map((s) => s.addCard.id)),
   ].filter((id): id is string => Boolean(id));
 
@@ -278,21 +350,30 @@ export function defaultExportFilename(
 /**
  * Plain "<quantity> <card name>" per line — the de facto clipboard-import
  * format supported by most deckbuilding sites (Moxfield, Archidekt, etc).
- * Commander/partner go under a "Commander" section header and the rest under
- * "Deck" (MTG Arena-style), so importers like endstep.cc seat the commanders
- * in the command zone instead of the 99.
+ * Sections follow MTG Arena: commander/partner under "Commander" (so
+ * importers like endstep.cc seat them in the command zone), the main deck
+ * under "Deck", and any sideboard under "Sideboard".
  */
 export function buildDeckTextExport(deck: Deck): string {
   const lines: string[] = [];
-  if (deck.commander || deck.partner) {
+  const sideboard = deck.sideboard ?? [];
+  const hasCommander = !!(deck.commander || deck.partner);
+  if (hasCommander) {
     lines.push("Commander");
     if (deck.commander) lines.push(`1 ${deck.commander.name}`);
     if (deck.partner) lines.push(`1 ${deck.partner.name}`);
-    lines.push("", "Deck");
+    lines.push("");
   }
+  if (hasCommander || sideboard.length) lines.push("Deck");
   deck.entries.forEach((entry) => {
     lines.push(`${entry.quantity} ${entry.card.name}`);
   });
+  if (sideboard.length) {
+    lines.push("", "Sideboard");
+    sideboard.forEach((entry) => {
+      lines.push(`${entry.quantity} ${entry.card.name}`);
+    });
+  }
   return lines.join("\n");
 }
 
@@ -332,6 +413,9 @@ async function buildDeckXlsxBlob(deck: Deck): Promise<Blob> {
   deck.entries.forEach((entry) =>
     addRow(entry.category, entry.quantity, entry.card),
   );
+  (deck.sideboard ?? []).forEach((entry) =>
+    addRow("Sideboard", entry.quantity, entry.card),
+  );
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
   const workbook = XLSX.utils.book_new();
@@ -355,6 +439,13 @@ export function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Read a deck JSON export. A file is rejected if it is malformed, or if it
+ * breaks its own format's copy limit (singleton for Commander, per
+ * tasks/021). Other rule breaks, such as banned cards or cards outside the
+ * color identity, import and are flagged in the builder, the same as after
+ * a format switch. Files from before formats existed import as Commander.
+ */
 export async function importDeckFromFile(file: File): Promise<Deck> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -365,16 +456,22 @@ export async function importDeckFromFile(file: File): Promise<Deck> {
           reject(new Error("Invalid deck file — missing required fields."));
           return;
         }
-        const duplicates = findDuplicateCardNames(parsed as Deck);
-        if (duplicates.length > 0) {
+        const deck = normalizeImportedDeck(parsed as Deck);
+        const overLimit = getDeckViolations(deck)
+          .filter((v) => v.kind === "copies" && v.cardName)
+          .map((v) => v.cardName as string);
+        if (overLimit.length > 0) {
+          const rules = getRules(deck);
           reject(
             new Error(
-              `Invalid deck file — Commander decks can only contain one copy of: ${duplicates.join(", ")}.`,
+              rules.copyLimit === 1
+                ? `Invalid deck file — ${rules.label} decks can only contain one copy of: ${overLimit.join(", ")}.`
+                : `Invalid deck file — too many copies for ${rules.label} of: ${overLimit.join(", ")}.`,
             ),
           );
           return;
         }
-        resolve(parsed as Deck);
+        resolve(deck);
       } catch {
         reject(
           new Error("Could not parse file. Make sure it is a valid deck JSON."),
@@ -384,6 +481,25 @@ export async function importDeckFromFile(file: File): Promise<Deck> {
     reader.onerror = () => reject(new Error("Failed to read file."));
     reader.readAsText(file);
   });
+}
+
+function normalizeImportedDeck(raw: Deck): Deck {
+  const isEntry = (e: unknown): e is DeckEntry =>
+    typeof e === "object" &&
+    e !== null &&
+    typeof (e as DeckEntry).card?.name === "string";
+  const deck: Deck = {
+    ...raw,
+    format: isDeckFormat(raw.format) ? raw.format : "commander",
+    commander: raw.commander ?? null,
+    partner: raw.partner ?? null,
+    colorIdentity: Array.isArray(raw.colorIdentity) ? raw.colorIdentity : [],
+    entries: raw.entries.filter(isEntry),
+    sideboard: Array.isArray(raw.sideboard) ? raw.sideboard.filter(isEntry) : [],
+    objectives: Array.isArray(raw.objectives) ? raw.objectives : [],
+    versions: Array.isArray(raw.versions) ? raw.versions : [],
+  };
+  return getRules(deck).hasCommander ? deck : withDerivedColors(deck);
 }
 
 function isValidDeck(obj: unknown): boolean {

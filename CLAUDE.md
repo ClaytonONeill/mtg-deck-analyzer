@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this app is
 
-MTG Deck Analyzer is a personal Commander/EDH deck-building tool for a handful of users (not a public product). It is a browser-only SPA with no server of its own. It talks directly to:
+MTG Deck Analyzer is a personal Magic deck-building tool (Commander plus 60-card formats) for a handful of users (not a public product). It is a browser-only SPA with no server of its own. It talks directly to:
 
 - **Supabase** (Postgres + Auth), the only backend, via `@supabase/supabase-js`.
 - **Scryfall's public REST API** (`api.scryfall.com`) for card data, search, images and prices. It's unauthenticated.
 - **EDHREC's static JSON** (`json.edhrec.com`) for card suggestions. It's unofficial and undocumented, and isolated in `features/recommendations/utils/edhrecClient.ts`.
 
-Users can build a Commander deck (commander + partner + up to 99 cards, color-identity legal, singleton), save named **versions** as card-swap diffs and compare them, tag cards with **objectives**, keep a cross-deck **wishlist**, view metrics charts, get suggestions, and run a hand simulator. Feature walkthroughs are in [`docs/README.md`](docs/README.md).
+Users can build a deck in Commander (commander + partner + 98–99 cards, color-identity legal, singleton) or in Standard, Pioneer, Modern, Legacy, Vintage or Pauper (60+ cards, up to 4 copies, 15-card sideboard), save named **versions** as card-swap diffs and compare them, tag cards with **objectives**, keep a cross-deck **wishlist**, view metrics charts, get suggestions, and run a hand simulator. Feature walkthroughs are in [`docs/README.md`](docs/README.md).
 
 `IDEAS.md` at the repo root is the product owner's running backlog. It goes stale in both directions: items can already be partly or fully built. For example, "Confirm Delete Modal" is done: the shared `ConfirmDelete` covers deck deletion on `HomePage` and version delete/promote on `DeckDetailPage`. Some fixes also exist without the backlog line being removed, such as `duplicateCardInDeck()`, which is enforced on builder add. Don't trust an IDEAS.md line at face value; grep for the feature before assuming it's unbuilt.
 
@@ -38,7 +38,8 @@ Path alias: `@/*` → `src/*` (configured in both `vite.config.ts` and `tsconfig
 The full explanation, with a diagram and the reasons behind each choice, is in [`docs/explanation/architecture.md`](docs/explanation/architecture.md). Tables and store APIs are in [`docs/reference/data-model.md`](docs/reference/data-model.md), and every external call is in [`docs/reference/external-services.md`](docs/reference/external-services.md). The short version:
 
 - **Auth is one gate.** `AuthProvider` (`src/context/AuthContext.tsx`) owns the Supabase session, and `App.tsx` shows a spinner, then `LoginPage`, then the app shell (`ThemeProvider` + `BrowserRouter` + `ErrorBoundary` + `Header` + 6 flat routes). There is no per-route auth logic.
-- **`src/store/*.ts` are data-access modules, not client state.** They are plain objects of async Supabase CRUD functions with hand-written row↔domain mapping. `deckStore.ts` also carries pure deck rules (`addCardToDeck`, `setCommander`, `isCardLegalForDeck`, import/export), so treat it as two things stapled together.
+- **`src/store/*.ts` are data-access modules, not client state.** They are plain objects of async Supabase CRUD functions with hand-written row↔domain mapping. `deckStore.ts` also carries pure deck helpers (`addCardToDeck`, `setCommander`, `changeDeckFormat`, import/export), so treat it as two things stapled together.
+- **Format rules live in `src/features/formats/formats.ts`** (pure, table-driven `FORMATS`). Every path that adds a card to a deck must go through `checkCardAdd`; search filtering (`f:<format>`) is only a convenience. Legality comes from each card's Scryfall `legalities`, refreshed live via `useCardLegalities()` inside `CardPriceProvider`. Details: [`docs/reference/deck-rules.md`](docs/reference/deck-rules.md). `Deck.format` and `Deck.sideboard` need the columns from `docs/plans/sql/multi-format-decks.sql`.
 - **State lives in per-feature hooks, with no global store or cache.** Each page composes hooks (`useDeckBuilder`, `useDeckVersions`, `useGallery`, `useWishlist`, `useObjectives`, `useRecommendations`, `useCardSearch`…) that fetch on mount. Navigating re-fetches, and `deckStore.getAll()` runs independently on three pages ([`tasks/008`](tasks/008-reduce-redundant-deck-refetching.md)).
 
 **Mutation conventions: follow these when adding a write** (step-by-step guide: [`docs/how-to/dev/add-a-data-write.md`](docs/how-to/dev/add-a-data-write.md)). Store mutations throw on any Supabase error; read paths (`getAll`/`getById`/`getForDeck`) degrade to `[]`/`undefined` instead. There are two patterns, chosen by what's being written:

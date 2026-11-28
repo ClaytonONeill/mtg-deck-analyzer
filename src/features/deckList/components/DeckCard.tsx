@@ -1,9 +1,17 @@
 // Store
 import { getDeckCardCount } from '@/store/deckStore';
+import {
+  getRules,
+  getSideboardCount,
+  isMainComplete,
+} from '@/features/formats/formats';
 
 // Components
 import ColorPip from '@/components/ManaSymbol/ColorPip';
 import ObjectivePill from '@/features/objectives/components/ObjectivePill';
+import LegalFormats, {
+  FormatBadge,
+} from '@/features/formats/components/LegalFormats';
 
 // Types
 import type { Deck, ScryfallCard } from '@/types';
@@ -30,17 +38,33 @@ function bannerImage(card: ScryfallCard | null | undefined) {
   return uris?.art_crop ?? uris?.normal;
 }
 
+/** Banner card for a deck without a commander: the non-land card it runs
+ * the most copies of (first one on a tie). */
+function featuredCard(deck: Deck): ScryfallCard | null {
+  let best: { card: ScryfallCard; quantity: number } | null = null;
+  for (const e of deck.entries) {
+    if (e.category === 'Land') continue;
+    if (!best || e.quantity > best.quantity) best = e;
+  }
+  return best?.card ?? null;
+}
+
 export default function DeckCard({
   deck,
   onOpen,
   onEdit,
   onDelete,
 }: DeckCardProps) {
+  const rules = getRules(deck);
   const cardCount = getDeckCardCount(deck);
-  const complete = cardCount === 100;
+  const sideCount = getSideboardCount(deck);
+  const complete = isMainComplete(deck);
   const value = approxDeckValue(deck);
 
-  const art = [deck.commander, deck.partner]
+  const artCards = rules.hasCommander
+    ? [deck.commander, deck.partner]
+    : [featuredCard(deck)];
+  const art = artCards
     .map((c) => (c ? { name: c.name, src: bannerImage(c) } : null))
     .filter((a): a is { name: string; src: string } => !!a?.src);
 
@@ -53,7 +77,7 @@ export default function DeckCard({
         style={{ background: manaGradient(deck.colorIdentity) }}
       />
 
-      {/* Commander art */}
+      {/* Commander (or featured card) art */}
       <figure
         className="relative h-44 w-full overflow-hidden shrink-0 m-0 cursor-pointer bg-base-300"
         onClick={onOpen}
@@ -94,29 +118,41 @@ export default function DeckCard({
           </div>
         </div>
 
-        <p className="text-sm text-base-content/70 italic leading-snug">
-          {deck.commander ? (
-            <>
-              {deck.commander.name}
-              {deck.partner && <> &amp; {deck.partner.name}</>}
-            </>
-          ) : (
-            'No commander chosen'
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <FormatBadge deck={deck} />
+          {rules.hasCommander && (
+            <p className="text-sm text-base-content/70 italic leading-snug min-w-0">
+              {deck.commander ? (
+                <>
+                  {deck.commander.name}
+                  {deck.partner && <> &amp; {deck.partner.name}</>}
+                </>
+              ) : (
+                'No commander chosen'
+              )}
+            </p>
           )}
-        </p>
+        </div>
 
-        {/* Progress toward 100 */}
+        <LegalFormats deck={deck} />
+
+        {/* Progress toward the format's size */}
         <div className="flex items-center gap-2 mt-1">
           <progress
             className={`progress h-1.5 flex-1 ${complete ? 'progress-primary' : 'progress-secondary'}`}
-            value={cardCount}
-            max={100}
+            value={Math.min(cardCount, rules.mainMin)}
+            max={rules.mainMin}
           />
           <span
             className={`text-xs md:text-sm font-mono tabular-nums ${complete ? 'text-primary font-bold' : 'text-base-content/60'}`}
           >
-            {cardCount}/100
+            {cardCount}/{rules.mainMin}
           </span>
+          {sideCount > 0 && (
+            <span className="text-xs md:text-sm font-mono tabular-nums text-base-content/60">
+              +{sideCount} SB
+            </span>
+          )}
         </div>
 
         {/* Strategy */}

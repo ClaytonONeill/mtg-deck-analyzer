@@ -8,7 +8,13 @@ import {
 } from 'react';
 
 // Types
-import type { ScryfallCard, CardCategory, WishlistEntry } from '@/types';
+import type {
+  ScryfallCard,
+  CardCategory,
+  DeckFormat,
+  WishlistEntry,
+} from '@/types';
+import type { AddCheck } from '@/features/formats/formats';
 
 // Hooks
 import { useObjectives } from '@/hooks/useObjectives';
@@ -26,7 +32,6 @@ import RecommendationsPanel from '@/features/recommendations/components/Recommen
 import type { RecInput } from '@/features/recommendations/utils/deckSignals';
 
 // Utils
-import { isCardLegalForDeck, isDuplicateCard } from '@/store/deckStore';
 import { getCardPriceValue } from '@/utils/priceUtils';
 import { getCardImageUris } from '@/utils/cardImage';
 
@@ -40,7 +45,12 @@ interface SwapSidebarProps {
   deckCards: ScryfallCard[];
   /** Version-resolved deck, for the Suggested tab. */
   recInput: RecInput;
-  colorIdentity: string[];
+  /** Whether `card` may replace the card being swapped out, under the
+   * deck's format rules (legality, color identity, copy limit). */
+  checkCard: (card: ScryfallCard) => AddCheck;
+  format: DeckFormat;
+  /** The Suggested tab is EDHREC-backed, so Commander decks only. */
+  showSuggestions: boolean;
   onConfirm: (replacement: ScryfallCard) => void;
   onClose: () => void;
   swappedEntries: ScryfallCard[];
@@ -79,7 +89,9 @@ export default function SwapSidebar({
   deckWishlist,
   deckCards,
   recInput,
-  colorIdentity,
+  checkCard,
+  format,
+  showSuggestions,
   onConfirm,
   onClose,
   swappedEntries,
@@ -172,13 +184,15 @@ export default function SwapSidebar({
     typeFilters.length + objectiveFilters.length + (hideSwapped ? 1 : 0);
 
   const handleSelect = (card: ScryfallCard) => {
-    if (!isCardLegalForDeck(colorIdentity, card)) {
-      setColorError(`${card.name} is outside this deck's color identity.`);
-      setSelected(null);
-      return;
-    }
-    if (isDuplicateCard(deckCards, card)) {
-      setDuplicateError(`${card.name} is already in this deck.`);
+    const check = checkCard(card);
+    if (!check.ok) {
+      if (check.kind === 'copies') {
+        setColorError(null);
+        setDuplicateError(check.reason);
+      } else {
+        setDuplicateError(null);
+        setColorError(check.reason);
+      }
       setSelected(null);
       return;
     }
@@ -256,6 +270,7 @@ export default function SwapSidebar({
           >
             Wishlist ({deckWishlist.length})
           </button>
+          {showSuggestions && (
           <button
             className={`tab flex-1 font-bold ${activeTab === 'suggested' ? 'tab-active bg-primary! text-primary-content!' : ''}`}
             onClick={() => {
@@ -265,6 +280,7 @@ export default function SwapSidebar({
           >
             Suggested
           </button>
+          )}
         </div>
 
         {/* Action Bar */}
@@ -353,6 +369,7 @@ export default function SwapSidebar({
           ) : activeTab === 'search' ? (
             <div className="space-y-6 py-6">
               <CardSearchPanel
+                format={format}
                 label="Replacement Name"
                 placeholder="Search Scryfall..."
                 onSelectCard={handleSelect}
@@ -535,12 +552,17 @@ export default function SwapSidebar({
               {/* Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-4">
                 {sorted.map((entry) => {
-                  const legal = isCardLegalForDeck(colorIdentity, entry.card);
+                  const check = checkCard(entry.card);
+                  const isInDeck = !check.ok && check.kind === 'copies';
+                  const legal = check.ok || isInDeck;
+                  const illegalReason =
+                    !check.ok && check.kind === 'color'
+                      ? 'Outside color identity'
+                      : 'Not legal in this format';
                   const isSelected = selected?.id === entry.card.id;
                   const isSwapped = swappedEntries.some(
                     (c) => c.id === entry.card.id,
                   );
-                  const isInDeck = isDuplicateCard(deckCards, entry.card);
 
                   return (
                     <div
@@ -593,7 +615,7 @@ export default function SwapSidebar({
                               ILLEGAL
                             </span>
                             <span className="text-[9px] font-bold text-error-content/80 bg-black/50 rounded-full px-2 py-0.5">
-                              Outside color identity
+                              {illegalReason}
                             </span>
                           </div>
                         )}

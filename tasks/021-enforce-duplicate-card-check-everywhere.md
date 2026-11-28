@@ -30,3 +30,11 @@
 ## Out of Scope
 
 - Any change to the add-card flow's existing, already-correct behavior.
+
+## Later change: multi-format decks (2026-11-27)
+
+[`docs/plans/multi-format-decks.md`](../docs/plans/multi-format-decks.md) generalized these checks from Commander's singleton rule to each format's copy limit, in `src/features/formats/formats.ts`:
+
+- Import still rejects the whole file, now when any card breaks *its format's* copy limit (`getDeckViolations`, kind `copies`). `findDuplicateCardNames` was removed. Commander files produce the same message as before.
+- The swap sidebar now receives a `checkCard` predicate from `CardGallery` (`checkCardAdd` on the deck with pending swaps applied), instead of `deckCards` + `isDuplicateCard`. So a 60-card deck can swap in a 2nd–4th copy.
+- The manual regression item above is still open. Run it in a Commander deck and in a Modern deck (try a 5th copy).
