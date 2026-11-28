@@ -69,6 +69,8 @@ Promoting *keeps* the version. The deck page then asks, in a separate dialog, wh
 
 ## Known gaps
 
+**Versions cover the main deck only.** Swaps take cards out of, and put cards into, `entries`. A 60-card deck's sideboard isn't part of any version: it is edited directly in the deck builder and is the same whichever version you view. A card with several copies can be swapped out one copy at a time, with one swap per copy.
+
 These are the limits of version editing today, scoped in [`tasks/007`](../../tasks/007-deck-version-editing-gaps.md):
 
 - **Name and note can't be changed after creation.** `useDeckVersions` exports `updateVersion(versionId, name, note)`, but no UI calls it.

@@ -17,6 +17,7 @@ Steps for a specific task, for when you already know the basics.
 
 ### Using the app
 
+- [Build a deck for Standard, Pioneer, Modern, Legacy, Vintage, or Pauper](how-to/build-a-60-card-deck.md): pick a format, use the sideboard and copy controls, change a deck's format, and see where else it's legal.
 - [Import and export a deck](how-to/import-and-export-a-deck.md): save a deck to a file, or bring an exported JSON deck back in.
 - [Set up partner commanders](how-to/set-up-partner-commanders.md): add, change, or remove a second commander when the commander has Partner.
 - [Tag cards and set a deck strategy](how-to/tag-cards-and-set-strategy.md): create objectives, tag cards with them, set the deck's Strategy, and filter the gallery by tag.
@@ -36,7 +37,7 @@ Steps for a specific task, for when you already know the basics.
 Facts to look up: what exists, what it's called, and how it behaves.
 
 - [Screens and tabs](reference/screens-and-tabs.md): every route, every Deck Detail tab, and the controls on each.
-- [Commander deck rules](reference/deck-rules.md): the deck-construction rules the app enforces, the functions behind them, and where each one is checked.
+- [Deck rules](reference/deck-rules.md): each format's deck-construction rules, the functions behind them, and where each one is checked.
 - [Card Roles](reference/card-roles.md): every Card Role detected from rules text, what text triggers it, and where it shows up.
 - [Deck file formats](reference/deck-file-formats.md): the JSON, Excel, and text export formats, and the JSON schema **Import Deck** accepts.
 - [Data model](reference/data-model.md): the domain types in `src/types/index.ts` and how `src/store/` maps them to Supabase tables.
@@ -49,6 +50,7 @@ Facts to look up: what exists, what it's called, and how it behaves.
 Background on how the app works and why it was built this way.
 
 - [Strategy, Objectives, and Card Roles](explanation/strategy-objectives-and-card-roles.md): the three ways the app labels a deck or card, and why they are kept apart.
+- [Formats and legality](explanation/formats-and-legality.md): where legality comes from, why every add path runs one check, and why a format switch flags cards instead of removing them.
 - [How deck versions work](explanation/how-deck-versions-work.md): why a version is stored as a list of changes rather than a copy, and what that means when the deck changes.
 - [How suggestions are chosen](explanation/how-suggestions-work.md): where suggested cards come from, and why two decks with the same commander can get different ones.
 - [Architecture overview](explanation/architecture.md): a mental model of how the app fits together, and why it is built the way it is.

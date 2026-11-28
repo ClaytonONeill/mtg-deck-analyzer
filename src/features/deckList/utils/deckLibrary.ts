@@ -4,17 +4,28 @@ import { getDeckCardCount } from "@/store/deckStore";
 // Utils
 import { getCardPriceValue } from "@/utils/priceUtils";
 
-// Types
-import type { Deck } from "@/types";
+import {
+  FORMAT_ORDER,
+  getFormat,
+  getMainCount,
+  mainTarget,
+} from "@/features/formats/formats";
 
-export type DeckSort = "edited" | "created" | "name" | "complete";
+// Types
+import type { Deck, DeckFormat } from "@/types";
+
+export type DeckSort = "edited" | "created" | "name" | "complete" | "format";
 
 export const DECK_SORTS: { value: DeckSort; label: string }[] = [
   { value: "edited", label: "Recently edited" },
   { value: "created", label: "Newest" },
   { value: "name", label: "Name (A–Z)" },
   { value: "complete", label: "Most complete" },
+  { value: "format", label: "Format" },
 ];
+
+/** Home's format filter: one format, or every deck. */
+export type FormatFilter = DeckFormat | "all";
 
 /** WUBRG plus "C" for colorless. */
 export const FILTER_COLORS = ["W", "U", "B", "R", "G", "C"] as const;
@@ -28,9 +39,11 @@ export function filterDecks(
   decks: Deck[],
   query: string,
   colors: FilterColor[],
+  format: FormatFilter = "all",
 ): Deck[] {
   const q = query.trim().toLowerCase();
   return decks.filter((d) => {
+    if (format !== "all" && getFormat(d) !== format) return false;
     if (q) {
       const haystack = [d.name, d.commander?.name, d.partner?.name]
         .filter(Boolean)
@@ -57,9 +70,19 @@ export function sortDecks(decks: Deck[], sort: DeckSort): Deck[] {
     case "name":
       return sorted.sort((a, b) => a.name.localeCompare(b.name));
     case "complete":
+      // By share of the format's target, so a 60/60 deck ranks with 100/100.
       return sorted.sort(
         (a, b) =>
+          Math.min(getMainCount(b) / mainTarget(b), 1) -
+            Math.min(getMainCount(a) / mainTarget(a), 1) ||
           getDeckCardCount(b) - getDeckCardCount(a) ||
+          time(b.updatedAt) - time(a.updatedAt),
+      );
+    case "format":
+      return sorted.sort(
+        (a, b) =>
+          FORMAT_ORDER.indexOf(getFormat(a)) -
+            FORMAT_ORDER.indexOf(getFormat(b)) ||
           time(b.updatedAt) - time(a.updatedAt),
       );
   }
@@ -75,7 +98,7 @@ export function approxDeckValue(deck: Deck): number {
   for (const c of [deck.commander, deck.partner]) {
     if (c) total += getCardPriceValue(c, null) ?? 0;
   }
-  for (const e of deck.entries) {
+  for (const e of [...deck.entries, ...(deck.sideboard ?? [])]) {
     total += (getCardPriceValue(e.card, null) ?? 0) * e.quantity;
   }
   return total;

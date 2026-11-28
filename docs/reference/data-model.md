@@ -18,10 +18,12 @@ All types are exported from `src/types/index.ts` (import path `@/types`).
 | --- | --- | --- |
 | `id` | `string` | Generated client-side with `crypto.randomUUID()` (`createNewDeck`). |
 | `name` | `string` | |
-| `commander` | `ScryfallCard \| null` | |
+| `format` | `DeckFormat` | `"commander"`, `"standard"`, `"pioneer"`, `"modern"`, `"legacy"`, `"vintage"`, or `"pauper"`. Read as `"commander"` when missing. Rules per format: [Deck rules](deck-rules.md). |
+| `commander` | `ScryfallCard \| null` | Always `null` outside Commander. |
 | `partner` | `ScryfallCard \| null` | Second commander. Cleared by `setCommander`. |
-| `colorIdentity` | `string[]` | Commander's identity, merged with the partner's when one is set. |
-| `entries` | `DeckEntry[]` | The non-commander cards. |
+| `colorIdentity` | `string[]` | Commander: the commander's identity, merged with the partner's when one is set. Other formats: the union of the main-deck and sideboard cards' identities (`withDerivedColors`). |
+| `entries` | `DeckEntry[]` | The main deck, excluding commander and partner. |
+| `sideboard` | `DeckEntry[]` | Up to 15 cards in 60-card formats. Empty in a legal Commander deck. Read as `[]` when missing. |
 | `createdAt` | `string` | ISO 8601 timestamp. |
 | `updatedAt` | `string` | ISO 8601 timestamp. `deckStore.save` overwrites it with the save time. |
 | `objectives` | `Objective[]` | The deck's **Strategy**: 1–2 deck-level themes. Stored as full `Objective` copies, not ids. |
@@ -32,10 +34,12 @@ All types are exported from `src/types/index.ts` (import path `@/types`).
 | Field | Type | Notes |
 | --- | --- | --- |
 | `card` | `ScryfallCard` | Full card object, embedded. |
-| `quantity` | `number` | Above 1 only for singleton-exempt cards (basic lands, "any number of cards named" cards). |
+| `quantity` | `number` | Copies of this printing. Capped by the format's copy limit, counted by card name across main deck and sideboard (`maxCopies`). In Commander, above 1 only for singleton-exempt cards. |
 | `category` | `CardCategory` | Set by `inferCategory(card)` when the card is added. |
 | `objectiveIds` | `string[]` | The card's **Objectives**: ids of `Objective` rows the user applied to this card. |
 | `type_line` | `string` (optional) | Not set by `addCardToDeck`. |
+
+`DeckZone` is `"main"` or `"side"`. It tells the zone-aware helpers which list (`entries` or `sideboard`) to read or write.
 
 `CardCategory` is one of `"Commander"`, `"Creature"`, `"Land"`, `"Instant"`, `"Sorcery"`, `"Enchantment"`, `"Artifact"`, `"Planeswalker"`, `"Other"`.
 
@@ -120,23 +124,27 @@ The code uses three tables. Rows are read with `select("*")`. Each insert or ups
 
 ### `decks`
 
-Read and written by `deckStore`. The mapping is inline in `getAll`, `getById`, and `save`.
+Read and written by `deckStore`. `getAll` and `getById` map rows through `rowToDeck`. `save` maps inline.
 
 | Column | Domain field | Read default (when null) |
 | --- | --- | --- |
 | `id` | `Deck.id` | — |
 | `user_id` | — (write only) | — |
 | `name` | `Deck.name` | — |
+| `format` | `Deck.format` | `"commander"` (also for unknown values) |
 | `commander` | `Deck.commander` | `null` |
 | `partner` | `Deck.partner` | `null` |
 | `color_identity` | `Deck.colorIdentity` | `[]` |
 | `entries` | `Deck.entries` | `[]` |
+| `sideboard` | `Deck.sideboard` | `[]` |
 | `objectives` | `Deck.objectives` | `[]` |
 | `versions` | `Deck.versions` | `[]` |
 | `created_at` | `Deck.createdAt` | — |
 | `updated_at` | `Deck.updatedAt` | — (set to the current time on every save) |
 
-`commander`, `partner`, `entries`, `objectives`, and `versions` hold nested objects (whole cards, entries, and versions) rather than ids or join rows.
+`format` and `sideboard` were added for multi-format decks by [`docs/plans/sql/multi-format-decks.sql`](../plans/sql/multi-format-decks.sql). Until that SQL has run, `deckStore.save` fails, because it writes both columns.
+
+`commander`, `partner`, `entries`, `sideboard`, `objectives`, and `versions` hold nested objects (whole cards, entries, and versions) rather than ids or join rows.
 
 ### `objectives`
 
@@ -191,15 +199,18 @@ On `DeckDetailPage`, every deck write goes through `useDeckAutosave`, which call
 
 | Group | Functions |
 | --- | --- |
-| Construction | `createNewDeck(name)` |
+| Construction | `createNewDeck(name, format = "commander")` |
+| Format | `changeDeckFormat(deck, format)` |
 | Commanders | `setCommander(deck, card)`, `setPartner(deck, card)`, `removePartner(deck)` |
 | Strategy | `addStrategicObjective(deck, objective)`, `removeStrategicObjective(deck, objectiveId)` |
-| Entries | `addCardToDeck(deck, card)`, `removeCardFromDeck(deck, cardId)` |
-| Rules | `isCardLegalForDeck(colorIdentity, card)`, `isSingletonExempt(card)`, `isDuplicateCard(existingCards, card)`, `duplicateCardInDeck(deck, card)`, `findDuplicateCardNames(deck)` |
-| Queries | `getDeckCardCount(deck)`, `getAllCardIdsInDeck(deck)` |
+| Entries | `addCardToDeck(deck, card, zone = "main")`, `removeCardFromDeck(deck, cardId, zone = "main")`, `moveCardBetweenZones(deck, cardId, from)` |
+| Rules (wrappers over `src/features/formats/formats.ts`) | `isCardLegalForDeck(colorIdentity, card, format = "commander")`, `isSingletonExempt(card)`, `isDuplicateCard(existingCards, card)`, `duplicateCardInDeck(deck, card)` |
+| Queries | `getDeckCardCount(deck)` (main deck only), `getSideboardCount(deck)`, `getAllCardIdsInDeck(deck)` (includes the sideboard) |
 | Import/export | `defaultExportFilename(deck, format)`, `buildDeckTextExport(deck)`, `buildDeckExportBlob(deck, format)`, `downloadBlob(blob, filename)`, `importDeckFromFile(file)` |
 
-Every helper that changes a deck returns a new `Deck` and sets `updatedAt` to now. `DeckExportFormat` is `"json" | "xlsx" | "txt"`.
+Every helper that changes a deck returns a new `Deck` and sets `updatedAt` to now. Outside Commander, the entry helpers and `changeDeckFormat` also recalculate `colorIdentity`. `DeckExportFormat` is `"json" | "xlsx" | "txt"`.
+
+The format rules (`FORMATS`, `checkCardAdd`, `getDeckViolations`, `getLegalFormats`, `maxCopies`, and the rest) are pure functions in `src/features/formats/formats.ts`, documented in [Deck rules](deck-rules.md).
 
 ### `objectivesStore` (`src/store/objectivesStore.ts`)
 

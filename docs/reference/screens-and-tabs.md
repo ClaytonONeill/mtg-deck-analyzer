@@ -74,9 +74,10 @@ Search text and color filters are not saved. They reset when you leave the page.
 
 | Element | Description |
 |---|---|
-| Commander art | Opens the deck (`/deck/:deckId`). |
-| Name, color pips, commander (and partner) | Read-only. |
-| Progress | Card count out of 100. |
+| Commander art | Opens the deck (`/deck/:deckId`). For decks without a commander, the art is the non-land card with the most copies. |
+| Name, color pips, format badge, commander (and partner) | Read-only. The commander line shows for Commander decks only. |
+| Also legal in | The other formats the deck is legal in (solid badge), or legal in but not yet the right size for (outlined badge). Uses the legalities saved with each card. Hidden for an empty deck. |
+| Progress | Main-deck count out of 100 (Commander) or 60 (other formats), plus "+*n* SB" when there is a sideboard. |
 | Strategy pills | The deck's strategy objectives, if any. |
 | Meta line | "Edited *time ago*", the version count, and an approximate deck value (from prices saved when cards were added). |
 | View | Opens `/deck/:deckId`. |
@@ -99,13 +100,14 @@ Search text and color filters are not saved. They reset when you leave the page.
 
 | Section | Description |
 |---|---|
-| Deck Identity | Deck name input (placeholder "Name your masterpiece..."). |
-| Commander | Card search limited to commanders (placeholder "Find a legend..."). The selected commander shows as a card with its color identity. |
-| Partner Commander / Required Partner: *name* | Shown only when the commander allows a partner. Includes a partner search, an error alert for invalid partners, and an ✕ button to remove the partner. See [Commander deck rules](deck-rules.md). |
-| The 99 | Card search (placeholder "Search cards..."). Shown once a commander is set. Disabled at 100 cards. Off-color and duplicate cards show a dismissible alert instead of being added. |
-| Basic Lands | Controls for adding basic lands. Disabled at 100 cards. |
-| Deck at a Glance | Sidebar stats: Lands, Avg MV (nonland), Price, a mana curve, and Card Role counts against target values ("Detected from card text. Targets are rough Commander norms."). |
-| Decklist | The deck's cards, with a **List** / **Stacks** view toggle and a remove button on each card. Empty text: "No cards yet. Search above to start adding to the 99." |
+| Deck Identity | Deck name input (placeholder "Name your masterpiece..."), the format menu (Commander, Standard, Pioneer, Modern, Legacy, Vintage, Pauper), and a one-line summary of the format's rules. Changing the format of a deck with cards opens a confirmation dialog. See [Deck rules](deck-rules.md#changing-a-decks-format). |
+| Commander | Commander decks only. Card search limited to commanders (placeholder "Find a legend..."). The selected commander shows as a card with its color identity. |
+| Partner Commander / Required Partner: *name* | Shown only when the commander allows a partner. Includes a partner search, an error alert for invalid partners, and an ✕ button to remove the partner. See [Deck rules](deck-rules.md). |
+| Main deck / Sideboard | 60-card formats only. Chooses where the card search adds cards. The sideboard button shows its count out of 15. |
+| The 99 / Add to main deck / Add to sideboard | Card search (placeholder "Search *format*-legal cards..."), limited to cards legal in the deck's format. Shown once a commander is set in Commander, and at once in other formats. Disabled at 100 cards in Commander, and when the sideboard is full. A card that can't be added shows a dismissible alert with the reason. |
+| Basic Lands | Controls for adding basic lands to the main deck. Lists only basics within the commander's color identity in Commander, and all five otherwise. **+** is disabled at 100 cards in Commander. |
+| Deck at a Glance | Sidebar stats: main-deck count against 100 or "60+", the sideboard count (60-card formats), Lands (with the format's typical range), Avg MV (nonland), Price (main deck and sideboard), and a mana curve. Commander decks also show Card Role counts against target values ("Detected from card text. Targets are rough Commander norms."). |
+| Decklist | The deck's cards by type, then a **Sideboard** group, with a **List** / **Stacks** view toggle. Each card has **−** (remove a copy), **+** (add a copy; hidden on cards that can only have one copy, and disabled with a tooltip at the limit), and in 60-card formats a button that moves a copy between main deck and sideboard. Cards that break the format's rules are flagged with the reason, under a summary alert. Empty text: "No cards yet. Search above to start adding to the 99." (Commander) or "No cards yet. Search above to start building your deck." |
 
 ## Deck Detail (`/deck/:deckId`)
 
@@ -128,9 +130,12 @@ Search text and color filters are not saved. They reset when you leave the page.
 | Element | Description |
 |---|---|
 | Name and color pips | Read-only. |
-| Commander / Partner | Card names. Shows "None set" when there is no commander. |
+| Format | The deck's format, as a badge. |
+| Commander / Partner | Commander decks only. Card names. Shows "None set" when there is no commander. |
 | Strategy | The deck's strategy objectives as pills, each with a remove control. The **+** dropdown ("Set Strategic Objective") lists Objectives not yet assigned. Once two are set, it adds the hint "Usually just 1-2 core objectives work best." With none set, it shows "No strategic objective set". See [Strategy, Objectives, and Card Roles](../explanation/strategy-objectives-and-card-roles.md). |
-| Card count | "*n* / 100 cards" with a progress bar. The count highlights at exactly 100. |
+| Card count | "*n* / 100 cards" (Commander) or "*n* / 60+ cards" with a progress bar, and "Sideboard *n*/15" in 60-card formats. The count highlights when the main deck is complete (exactly 100, or 60 or more). |
+| Format legality | Collapsible panel listing every format with Legal, "Cards legal, deck not finished", or Not legal, and the reasons. Uses live legalities. |
+| Sideboard | Collapsible list of sideboard cards. Shown when the deck has a sideboard. |
 
 ### Version selector
 
@@ -153,7 +158,7 @@ You can't rename a saved version, edit its note, or remove a single swap from it
 | Gallery | `CardGallery` |
 | Simulator | `HandSimulator` |
 | Deck Wishlist | `WishlistDeckFilter` |
-| Suggestions | `RecommendationsPanel` |
+| Suggestions | `RecommendationsPanel`. Commander decks only. |
 
 On desktop (`md` and up), tabs show as a bordered tab bar. Below `md`, they show as a horizontally scrollable row of pills.
 
@@ -240,7 +245,7 @@ The filter panel's open or closed state and the commander-row visibility are not
 
 #### Swap sidebar
 
-The sidebar is titled "Swapping Out *card name*". It has three tabs:
+The sidebar is titled "Swapping Out *card name*". It has three tabs (two outside Commander, where **Suggested** is hidden):
 
 | Tab | Content |
 |---|---|

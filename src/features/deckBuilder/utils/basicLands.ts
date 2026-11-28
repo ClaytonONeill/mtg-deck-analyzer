@@ -1,6 +1,14 @@
 // Types
 import type { ScryfallCard } from "@/types";
 
+// Utils
+import { FORMAT_ORDER } from "@/features/formats/formats";
+
+// Basic lands are legal in every format.
+const BASIC_LEGALITIES: Record<string, string> = Object.fromEntries(
+  FORMAT_ORDER.map((f) => [f, "legal"]),
+);
+
 export const BASIC_LANDS: ScryfallCard[] = [
   {
     id: "plains",
@@ -11,7 +19,7 @@ export const BASIC_LANDS: ScryfallCard[] = [
     oracle_text: "{T}: Add {W}.",
     color_identity: ["W"],
     colors: [],
-    legalities: { commander: "legal" },
+    legalities: BASIC_LEGALITIES,
     image_uris: {
       small:
         "https://cards.scryfall.io/small/front/b/c/bc71ebf6-2056-41f7-be35-b2e5c34afa99.jpg",
@@ -30,7 +38,7 @@ export const BASIC_LANDS: ScryfallCard[] = [
     oracle_text: "{T}: Add {U}.",
     color_identity: ["U"],
     colors: [],
-    legalities: { commander: "legal" },
+    legalities: BASIC_LEGALITIES,
     image_uris: {
       small:
         "https://cards.scryfall.io/small/front/0/2/026e4057-1e64-4e1b-8a0b-a41c8b37de1c.jpg",
@@ -49,7 +57,7 @@ export const BASIC_LANDS: ScryfallCard[] = [
     oracle_text: "{T}: Add {B}.",
     color_identity: ["B"],
     colors: [],
-    legalities: { commander: "legal" },
+    legalities: BASIC_LEGALITIES,
     image_uris: {
       small:
         "https://cards.scryfall.io/small/front/f/a/fa5b3a10-de4a-4f8d-8f58-b86ac6e4d434.jpg",
@@ -68,7 +76,7 @@ export const BASIC_LANDS: ScryfallCard[] = [
     oracle_text: "{T}: Add {R}.",
     color_identity: ["R"],
     colors: [],
-    legalities: { commander: "legal" },
+    legalities: BASIC_LEGALITIES,
     image_uris: {
       small:
         "https://cards.scryfall.io/small/front/a/a/aa68a3d3-f9e6-4f35-9a57-8d6e9a9e7b8a.jpg",
@@ -87,7 +95,7 @@ export const BASIC_LANDS: ScryfallCard[] = [
     oracle_text: "{T}: Add {G}.",
     color_identity: ["G"],
     colors: [],
-    legalities: { commander: "legal" },
+    legalities: BASIC_LEGALITIES,
     image_uris: {
       small:
         "https://cards.scryfall.io/small/front/3/1/31b5c8c4-ba75-4f81-9d5e-5e8e2e9e7b8a.jpg",

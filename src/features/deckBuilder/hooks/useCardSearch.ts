@@ -2,19 +2,25 @@
 import { useState, useCallback, useRef } from "react";
 
 // Types
-import type { ScryfallCard } from "@/types";
+import type { DeckFormat, ScryfallCard } from "@/types";
 
 const BASE = "https://api.scryfall.com";
 const MIN_QUERY = 3;
 
+/** Only cards playable in `format` come back. Scryfall's `f:` matches both
+ * legal and restricted cards, which is what Vintage needs. The commander
+ * picker always searches Commander; a null format searches every card. */
 async function fetchCards(
   query: string,
   commanderOnly: boolean,
+  format: DeckFormat | null,
   signal: AbortSignal,
 ): Promise<ScryfallCard[]> {
   const q = commanderOnly
-    ? `${query} is:commander format:commander`
-    : `${query} format:commander`;
+    ? `${query} is:commander f:commander`
+    : format
+      ? `${query} f:${format}`
+      : query;
 
   const res = await fetch(
     `${BASE}/cards/search?q=${encodeURIComponent(q)}&order=name`,
@@ -24,7 +30,7 @@ async function fetchCards(
   return data.object === "error" ? [] : (data.data as ScryfallCard[]);
 }
 
-export function useCardSearch() {
+export function useCardSearch(format: DeckFormat | null = "commander") {
   const [results, setResults] = useState<ScryfallCard[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +53,7 @@ export function useCardSearch() {
       setError(null);
 
       try {
-        const cards = await fetchCards(query, commanderOnly, signal);
+        const cards = await fetchCards(query, commanderOnly, format, signal);
 
         // Only apply results if this is still the latest request
         if (requestId === requestIdRef.current) {
@@ -65,7 +71,7 @@ export function useCardSearch() {
         }
       }
     },
-    [],
+    [format],
   );
 
   const search = useCallback(

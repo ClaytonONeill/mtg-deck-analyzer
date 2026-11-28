@@ -8,7 +8,7 @@ Pair your commander with a partner in the deck builder, so the deck's color iden
 
 ## Prerequisites
 
-- A deck whose commander has Partner. The app opens a partner slot only when the commander's rules text contains the word "partner". That covers both generic **Partner** and **Partner with [Name]**. Other pairing mechanics, such as "Choose a Background" or "Friends forever", don't open the slot. See [Commander deck rules](../reference/deck-rules.md) for the full pairing rules.
+- A deck whose commander has Partner. The app opens a partner slot only when the commander's rules text contains the word "partner". That covers both generic **Partner** and **Partner with [Name]**. Other pairing mechanics, such as "Choose a Background" or "Friends forever", don't open the slot. See [Deck rules](../reference/deck-rules.md) for the full pairing rules.
 
 ## Steps
 
@@ -60,5 +60,5 @@ Click **Save Deck**. Autosave only runs when you add or remove cards in the 99, 
 
 ## Next steps
 
-- [Commander deck rules](../reference/deck-rules.md): the full pairing and color-identity rules.
+- [Deck rules](../reference/deck-rules.md): the full pairing and color-identity rules.
 - [Import and export a deck](import-and-export-a-deck.md): move a partnered deck in or out of the app.

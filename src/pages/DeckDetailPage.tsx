@@ -22,7 +22,6 @@ import {
   getAllCardIdsInDeck,
   addCardToDeck,
   duplicateCardInDeck,
-  isCardLegalForDeck,
   addStrategicObjective,
   removeStrategicObjective,
 } from "@/store/deckStore";
@@ -48,6 +47,12 @@ import {
   getColorDemand,
 } from "@/features/metrics/utils/deckMetrics";
 import { applyVersionToDeck } from "@/features/deckVersions/utils/versionUtils";
+import {
+  checkCardAdd,
+  getRules,
+  getSideboardCount,
+  isMainComplete,
+} from "@/features/formats/formats";
 
 // Components
 import TypesChart from "@/features/metrics/components/TypesChart";
@@ -67,6 +72,9 @@ import PageShell from "@/components/PageShell/PageShell";
 import RecommendationsPanel from "@/features/recommendations/components/RecommendationsPanel";
 import CommanderBackdrop from "@/features/deckList/components/CommanderBackdrop";
 import SwapOutPicker from "@/features/recommendations/components/SwapOutPicker";
+import LegalFormats, {
+  FormatBadge,
+} from "@/features/formats/components/LegalFormats";
 
 // Types
 import type {
@@ -94,10 +102,12 @@ type ConfirmAction =
 const EMPTY_DECK: Deck = {
   id: "",
   name: "",
+  format: "commander",
   commander: null,
   partner: null,
   colorIdentity: [],
   entries: [],
+  sideboard: [],
   objectives: [],
   versions: [],
   createdAt: "",
@@ -275,7 +285,12 @@ export default function DeckDetailPage() {
     (o) => !activeDeck.objectives.some((x) => x.id === o.id),
   );
 
+  const rules = getRules(activeDeck);
   const cardCount = getDeckCardCount(displayDeck);
+  const mainComplete = isMainComplete(displayDeck);
+  const sideboard = activeDeck.sideboard ?? [];
+  const sideCount = getSideboardCount(activeDeck);
+  const mainFull = rules.mainMax !== null && cardCount >= rules.mainMax;
   const typeData = getTypeBreakdown(displayDeck, includeLands);
   const cmcData = getCMCBreakdown(displayDeck, includeLands);
   const colorDemand = getColorDemand(displayDeck);
@@ -371,13 +386,7 @@ export default function DeckDetailPage() {
   /** Quick add from Suggestions. Writes to the main list, which every
    * version is built on, and saves at once. */
   const handleQuickAdd = (card: ScryfallCard) => {
-    if (
-      cardCount >= 100 ||
-      isInDeck(card) ||
-      !isCardLegalForDeck(activeDeck.colorIdentity, card)
-    ) {
-      return;
-    }
+    if (isInDeck(card) || !checkCardAdd(displayDeck, card).ok) return;
     if (recBasis?.versionId !== activeVersionId) {
       setRecBasis({ versionId: activeVersionId, entries: displayDeck.entries });
     }
@@ -440,13 +449,27 @@ export default function DeckDetailPage() {
     commitDeck(updated);
   };
 
+  // Suggestions are EDHREC-backed, which only covers Commander.
   const tabs: { key: Tab; label: string }[] = [
     { key: "metrics", label: "Metrics" },
     { key: "gallery", label: "Gallery" },
     { key: "simulator", label: "Simulator" },
     { key: "wishlist", label: "Deck Wishlist" },
-    { key: "suggestions", label: "Suggestions" },
+    ...(rules.hasCommander
+      ? [{ key: "suggestions" as Tab, label: "Suggestions" }]
+      : []),
   ];
+
+  // Cards with every copy already staged to swap out can't be picked again.
+  const swapCounts = new Map<string, number>();
+  for (const s of pendingSwaps) {
+    swapCounts.set(s.removeCardId, (swapCounts.get(s.removeCardId) ?? 0) + 1);
+  }
+  const fullySwappedIds = new Set(
+    displayDeck.entries
+      .filter((e) => (swapCounts.get(e.card.id) ?? 0) >= e.quantity)
+      .map((e) => e.card.id),
+  );
 
   return (
     <CardPriceProvider cardIds={getAllCardIdsInDeck(activeDeck)}>
@@ -489,10 +512,15 @@ export default function DeckDetailPage() {
               </div>
 
               <div className="space-y-1 opacity-80">
+                <div className="flex items-center gap-2">
+                  <FormatBadge deck={activeDeck} />
+                </div>
+                {rules.hasCommander && (
                 <p className="text-sm">
                   <span className="font-semibold opacity-50">Commander:</span>{" "}
                   {activeDeck.commander?.name ?? "None set"}
                 </p>
+                )}
                 {activeDeck.partner && (
                   <p className="text-sm">
                     <span className="font-semibold opacity-50">Partner:</span>{" "}
@@ -559,20 +587,58 @@ export default function DeckDetailPage() {
             <div className="flex flex-col items-start md:items-end gap-2 shrink-0">
               <div className="flex items-baseline gap-1">
                 <span
-                  className={`text-4xl font-mono font-black ${cardCount === 100 ? "text-primary" : "text-base-content"}`}
+                  className={`text-4xl font-mono font-black ${mainComplete ? "text-primary" : "text-base-content"}`}
                 >
                   {cardCount}
                 </span>
                 <span className="text-base-content/50 text-sm font-bold">
-                  / 100 cards
+                  / {rules.mainMin}
+                  {rules.mainMax === null && "+"} cards
                 </span>
               </div>
               <progress
-                className={`progress w-48 ${cardCount === 100 ? "progress-primary" : "progress-neutral"}`}
-                value={cardCount}
-                max="100"
+                className={`progress w-48 ${mainComplete ? "progress-primary" : "progress-neutral"}`}
+                value={Math.min(cardCount, rules.mainMin)}
+                max={rules.mainMin}
               ></progress>
+              {rules.sideboardMax > 0 && (
+                <span
+                  className={`text-xs md:text-sm font-mono ${sideCount > rules.sideboardMax ? "text-error font-bold" : "text-base-content/60"}`}
+                >
+                  Sideboard {sideCount}/{rules.sideboardMax}
+                </span>
+              )}
             </div>
+          </div>
+          {/* Format legality + sideboard */}
+          <div className="relative grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <details className="collapse collapse-arrow bg-base-200 border border-base-300 rounded-2xl">
+              <summary className="collapse-title text-sm md:text-base font-bold">
+                Format legality
+              </summary>
+              <div className="collapse-content">
+                <LegalFormats deck={displayDeck} variant="detailed" />
+              </div>
+            </details>
+            {sideboard.length > 0 && (
+              <details className="collapse collapse-arrow bg-base-200 border border-base-300 rounded-2xl">
+                <summary className="collapse-title text-sm md:text-base font-bold">
+                  Sideboard ({sideCount})
+                </summary>
+                <ul className="collapse-content text-sm md:text-base space-y-0.5">
+                  {[...sideboard]
+                    .sort((a, b) => a.card.name.localeCompare(b.card.name))
+                    .map((e) => (
+                      <li key={e.card.id} className="flex gap-2">
+                        <span className="w-6 shrink-0 font-mono opacity-60">
+                          {e.quantity}
+                        </span>
+                        <span className="truncate">{e.card.name}</span>
+                      </li>
+                    ))}
+                </ul>
+              </details>
+            )}
           </div>
           {/* Version selector */}
           <div className="flex flex-col sm:flex-row items-center gap-4 mb-8 p-4 bg-base-200 border border-base-300 rounded-2xl shadow-inner">
@@ -743,6 +809,8 @@ export default function DeckDetailPage() {
           {activeTab === "gallery" && (
             <CardGallery
               deckId={activeDeck.id}
+              format={rules.id}
+              sideboard={sideboard}
               colorIdentity={activeDeck.colorIdentity}
               commander={displayDeck.commander}
               partner={displayDeck.partner}
@@ -795,7 +863,7 @@ export default function DeckDetailPage() {
           )}
 
           {/* Suggestions tab */}
-          {activeTab === "suggestions" && (
+          {activeTab === "suggestions" && rules.hasCommander && (
             <RecommendationsPanel
               input={recInput}
               excludeCards={recExclude}
@@ -829,7 +897,7 @@ export default function DeckDetailPage() {
                       <ArrowLeftRight size={14} className="shrink-0" />
                       <span className="truncate">Swap in</span>
                     </button>
-                    {(inDeck || cardCount < 100) && (
+                    {(inDeck || !mainFull) && (
                       <button
                         type="button"
                         onClick={() => handleQuickAdd(card)}
@@ -862,7 +930,7 @@ export default function DeckDetailPage() {
           <SwapOutPicker
             incoming={swapInCard}
             entries={displayDeck.entries}
-            swappedOutIds={new Set(pendingSwaps.map((s) => s.removeCardId))}
+            swappedOutIds={fullySwappedIds}
             onPick={(entry) =>
               handleSwapOutPicked(entry.card.name, entry.card.id)
             }

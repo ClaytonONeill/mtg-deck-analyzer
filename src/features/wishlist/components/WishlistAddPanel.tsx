@@ -37,7 +37,10 @@ export default function WishlistAddPanel({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* The wishlist spans decks of every format, so search every card;
+          legality is checked when a card is swapped into a deck. */}
       <CardSearchPanel
+        format={null}
         label="Search for a card to wishlist"
         placeholder="Type a card name..."
         onSelectCard={handleSelect}

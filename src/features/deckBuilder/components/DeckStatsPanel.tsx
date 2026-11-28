@@ -11,6 +11,11 @@ import { getDeckCardCount } from "@/store/deckStore";
 // Utils
 import { roleCounts } from "@/features/recommendations/utils/deckSignals";
 import { getCardPriceValue } from "@/utils/priceUtils";
+import {
+  getRules,
+  getSideboardCount,
+  isMainComplete,
+} from "@/features/formats/formats";
 
 // Types
 import type { Deck, ScryfallCard } from "@/types";
@@ -25,22 +30,25 @@ interface DeckStatsPanelProps {
 // Curve buckets: 0–6 individually, then 7+.
 const CURVE_BUCKETS = ["0", "1", "2", "3", "4", "5", "6", "7+"];
 
-// Common Commander guidance: most 100-card decks run ~36–38 lands, and
-// anything far outside 33–40 is usually a mistake rather than a plan.
-const LANDS_LOW = 33;
-const LANDS_HIGH = 40;
+// Typical land ranges come from the format rules: most 100-card Commander
+// decks run ~36–38 lands, 60-card decks ~22–25. Far outside the range is
+// usually a mistake rather than a plan.
 
 /**
  * Live "deck at a glance" for the builder sidebar: capacity, mana curve,
  * land count, average mana value, total price, and the staple roles (same
  * detection as the Suggestions tab). Commanders count toward capacity and
  * price, but not the curve or roles, matching how players read a curve.
+ * The sideboard counts toward price only. Staple-role targets are Commander
+ * norms, so they're shown for Commander decks only.
  */
 export default function DeckStatsPanel({ deck }: DeckStatsPanelProps) {
   const livePrices = useCardPrices();
   // Collapsible so the decklist below can have the whole sidebar when wanted.
   const [open, setOpen] = useLocalStorage("builder-stats-open", true);
   const cardCount = getDeckCardCount(deck);
+  const rules = getRules(deck);
+  const sideCount = getSideboardCount(deck);
 
   const stats = useMemo(() => {
     const curve = CURVE_BUCKETS.map(() => 0);
@@ -84,11 +92,13 @@ export default function DeckStatsPanel({ deck }: DeckStatsPanelProps) {
     if (deck.commander) add(deck.commander, 1);
     if (deck.partner) add(deck.partner, 1);
     for (const e of deck.entries) add(e.card, e.quantity);
+    for (const e of deck.sideboard ?? []) add(e.card, e.quantity);
     return { total, unpriced };
-  }, [deck.commander, deck.partner, deck.entries, livePrices]);
+  }, [deck.commander, deck.partner, deck.entries, deck.sideboard, livePrices]);
 
-  const complete = cardCount === 100;
-  const landsInRange = stats.lands >= LANDS_LOW && stats.lands <= LANDS_HIGH;
+  const complete = isMainComplete(deck);
+  const landsInRange =
+    stats.lands >= rules.landsLow && stats.lands <= rules.landsHigh;
 
   return (
     <div className="card shrink-0 bg-base-100 border border-base-content/10 overflow-hidden">
@@ -112,14 +122,27 @@ export default function DeckStatsPanel({ deck }: DeckStatsPanelProps) {
           >
             {cardCount}
             <span className="text-base-content/30 text-lg mx-0.5">/</span>
-            <span className="text-lg">100</span>
+            <span className="text-lg">
+              {rules.mainMin}
+              {rules.mainMax === null && "+"}
+            </span>
           </span>
         </div>
         <progress
           className={`progress h-1.5 w-full ${complete ? "progress-primary" : "progress-secondary"}`}
-          value={cardCount}
-          max={100}
+          value={Math.min(cardCount, rules.mainMin)}
+          max={rules.mainMin}
         />
+        {rules.sideboardMax > 0 && (
+          <div className="flex justify-between text-xs md:text-sm opacity-60">
+            <span>{rules.label}</span>
+            <span
+              className={`font-mono tabular-nums ${sideCount > rules.sideboardMax ? "text-error font-bold opacity-100" : ""}`}
+            >
+              Sideboard {sideCount}/{rules.sideboardMax}
+            </span>
+          </div>
+        )}
       </div>
 
       {open && (
@@ -160,7 +183,7 @@ export default function DeckStatsPanel({ deck }: DeckStatsPanelProps) {
         <Stat
           label="Lands"
           value={String(stats.lands)}
-          hint={landsInRange ? "on target" : "36–38 typical"}
+          hint={landsInRange ? "on target" : rules.landsHint}
           tone={stats.lands === 0 ? "muted" : landsInRange ? "good" : "warn"}
         />
         <Stat label="Avg MV" value={stats.avgMv ? stats.avgMv.toFixed(2) : "—"} hint="nonland" />
@@ -172,6 +195,7 @@ export default function DeckStatsPanel({ deck }: DeckStatsPanelProps) {
       </div>
 
       {/* Staple roles */}
+      {rules.hasCommander && (
       <ul className="p-4 space-y-2.5">
         {stats.roles.map((r) => {
           const met = r.count >= r.target;
@@ -200,6 +224,7 @@ export default function DeckStatsPanel({ deck }: DeckStatsPanelProps) {
           Detected from card text. Targets are rough Commander norms.
         </li>
       </ul>
+      )}
       </>
       )}
     </div>
